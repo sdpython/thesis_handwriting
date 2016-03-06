@@ -1,0 +1,34 @@
+\input{../../common/figure_begin.tex}
+
+\unitlength 1mm
+\begin{picture}(135,65)(0,0)
+
+\put(5,  50) {\framebox(30,10){image}}
+\put(5,  5) {\framebox(30,10){résultat}}
+\put(100,  50) {\framebox(30,10){ \begin{minipage}[c]{2.2cm} sequence de lettres $l^*$ \end{minipage} }}
+\put(100,  5) {\framebox(30,10){\begin{minipage}[c]{2.5cm} voisinage de $l^*$ inclus dans $D$  \end{minipage}  }}
+
+\put(35,55)		{\vector(1,0){65}}
+\put(100,10)	{\vector(-1,0){65}}
+
+\put(17,50)		{\vector(0,-1){35}}
+\put(18,50)		{\vector(0,-1){35}}
+\put(115,50)	{\vector(0,-1){35}}
+
+\put(60,30){\arc{20}{4}{8.6}}
+\put(54,22){\vector(-1,1){1}}
+
+\put(48,25){\makebox(30,10){ \begin{minipage}{1.5cm} second chemin \end{minipage} } }
+\put(-3,25){\makebox(30,10){ \begin{minipage}{1.5cm} premier chemin \end{minipage} } }
+
+\put(30,47){\makebox(100,10){ \begin{minipage}{8cm} reconnaissance sans dictionnaire \end{minipage} } }
+
+\put(85,25){\makebox(35,10){ \begin{minipage}{2cm} calcul de distances d'édition \end{minipage} } }
+
+\put(35,8){\makebox(100,10){ \begin{minipage}{8cm} calcul de $k < n$ probabilités \end{minipage} } }
+
+\put(18,25){\makebox(25,10){ \begin{minipage}{2cm} calcul de $n$ probabilités \end{minipage} } }
+
+\end{picture}
+
+\input{../../common/figure_end.tex}

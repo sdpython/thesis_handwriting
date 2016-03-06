@@ -1,0 +1,2128 @@
+\input{../../common/livre_begin.tex}
+\firstpassagedo{\input{hmm_select_titre.tex}}
+\input{../../common/livre_table_begin.tex}
+\firstpassagedo{\input{hmm_select_chapter.tex}}
+
+
+
+
+
+\indexsee{modèle de Markov caché}{MMC}
+\indexfr{MMC}
+\indexsee{chaîne de Markov cachée}{MMC}
+\indexsee{Hidden Markov Model}{MMC}
+\indexfr{HMM}
+
+                        
+                        
+                        
+\label{annexe_hmm_select}
+
+
+
+
+\indexfrr{sélection}{architecture}
+\indexfr{bruit}
+
+\indexfr{équivalence}
+\indexfrr{modèle}{équivalent}
+\indexfrr{modèle}{proche}
+
+L'objectif de la sélection de l'architecture des modèles de Markov cachés est de trouver le modèle optimal modélisant les séquences d'observations de la base d'apprentissage. Les algorithmes développés dans cette partie ont pour objectif de faire croître et décroître le nombre de coefficients des modèles de Markov cachés jusqu'à ce qu'il se stabilise. La croissance vise à permettre aux modèles de s'adapter à une plus grande variabilité d'images de lettres mais elle génère souvent des coefficients redondants qu'une étape de décroissance tend à supprimer tout en conservant des modèles équivalents ou \emph{proches} (c'est-à-dire dans le cas de la reconnaissance de l'écriture, des modèles dont les performances en reconnaissance sont comparables).
+
+A ce sujet, des travaux ont été menés et ont débouché sur des algorithmes permettant de dire si deux modèles sont équivalents \citeindex{Ito1992} (coût exponentiel) ou \citeindex{Balasubramanian1993} (coût polynômial). Mais à ceux-ci seront préférés d'autres algorithmes comme celui développé par \citeindex{Kamp1985} qui s'intéresse au regroupement de deux états. Ce dernier est en effet adaptable au cas de modèles proches puisque l'équivalence stricte est peu intéressante. En effet, ces modèles sont la solution de problèmes d'optimisation, les méthodes numériques utilisées font fréquemment intervenir une part aléatoire dans la recherche de ces solutions. Celles-ci, pour un même problème, permettent d'obtenir des performances équivalentes bien qu'elles ne soient jamais rigoureusement équivalentes.
+ 
+
+
+
+\indexfrr{MMC}{architecture}%
+\indexfrr{MMC}{sélection}%
+\label{selection_architecture_chaine_MMC}
+
+Avant même d'apprendre un modèle (de lettre par exemple), la première inconnue est le nombre d'états et les connexions qui les relient entre eux. Cette architecture ne peut être fixée une fois pour toutes car elle dépend des observations, si celles-ci changent (si les graphèmes changent par exemple), la structure de chaque chaîne devra également évoluer. Il faut donc trouver une méthode permettant aux modèles de Markov cachés d'apprendre et de s'adapter.
+
+\citeindex{Ziv1992} propose un estimateur du nombre d'états mais le calcul de celui-ci suppose l'apprentissage de nombreux modèles, elle n'est pas applicable parce que trop gourmande en calcul et ne prend pas en compte le sens gauche droite de l'écriture. D'autres travaux plus récents adaptent des méthodes utilisées dans d'autres domaines (AIC, BIC, ...) aux cas des modèles de Markov cachés (voir \citeindex{Durand2003}). Ces méthodes nécessitent toujours l'estimation de nombreux modèles et s'aident parfois d'une évolution guidée de l'architecture (voir \citeindex{Bicego2003}). Comme dans \citeindex{Augustin2001}, le modèle initial comporte plus de paramètres que le nombre adéquat, auquel sont enlevés états et connexions faibles pour aboutir à une architecture presque équivalente et réduite. Ce chapitre s'inscrit comme complément des méthodes de sélections citées ci-dessus et propose des méthodes de croissance et décroissance de l'architecture des modèles de Markov cachés.
+
+
+
+
+
+
+
+
+
+
+
+%---------------------------------------------------------------------------------------------------------------------
+\section{Propriétés des modèles de Markov cachés}
+%---------------------------------------------------------------------------------------------------------------------
+\label{hmm_seq_propriete_mmc}
+
+
+
+\subsection{Tests d'adéquation de lois}
+
+\indexfrr{test}{adéquation}
+\indexfrr{test}{Kolmogorov}
+\indexfr{Kolmogorov}
+\indexfr{fonction de répartition}
+
+Le test d'ajustement de Kolmogorov est un test non paramétrique permettant de vérifier si un échantillon $\vecteur{X_1}{X_N} \in \R^N$ suit une loi dont la fonction de répartition est $F\pa{x}$ (voir \citeindex{Saporta1990}). On définit tout d'abord la fonction de répartition empirique $\widehat{F_N}\pa{x}$ par~:
+
+			\begin{eqnarray}
+			\widehat{F_N}\pa{x} 	&=&		\frac{1}{N} \; \summy{k=1}{N} \, \indicatrice{X_k \infegal x}
+			\end{eqnarray}
+			
+On construit la statistique $D_N$~:
+
+			\begin{eqnarray}
+			D_N &=& \underset{x}{\sup} \abs { \widehat{F_N}\pa{x} - F\pa{x} }  \label{hmm_selec_test_kolmogorov}
+			\end{eqnarray}
+		
+Cette statistique est asymptotiquement distribuée selon la loi~:
+
+			\begin{eqnarray}
+			\pr { \sqrt{N}\, D_N < y }  \stackrel{N\rightarrow \infty}{\longrightarrow}
+							\summy{-\infty} {+\infty} \, \pa{-1}^k \, e^{-2 k^2 y^2} = K\pa{y}
+			\end{eqnarray}
+
+La fonction $K\pa{y}$ est tabulée (voir table~\ref{kolmogorov_1}, \citeindex{Pearson1972}) et permet de définir le test suivant\footnote{Il existe d'autres tests d'ajustements non paramétriques comme celui de Cramer~-~von~Mises qui s'appuie sur la statistique~:
+	\indexfr{Cramer-von Mises}
+	\indexfrr{test}{Cramer-von Mises}
+		\begin{eqnarray}
+		N \, \omega_N^2 &=& \int_{-\infty}^{+\infty} \, \cro{ \widehat{F_N}\pa{x} - F_N\pa{x} }^2 dF\pa{x} 
+				= \frac{1}{12 N} + \summy{k=1}{N} \, \cro{ \frac{2k - 1}{2N} - F \pa{X_k} }^2
+		\end{eqnarray}
+		La loi de cette statistique est tabulée dans \citeindex{Pearson1972}.}~:
+
+		
+
+			\begin{eqnarray*}
+			\left\{ \begin{array}{lll}
+			H_0 &:& F = F_0 \\
+			H_1 &:& F \neq F_0 
+			\end{array}\right.
+			\end{eqnarray*}
+
+
+			\begin{table}[ht]
+			$$
+			%\begin{normal} 
+			\begin{tabular}{|r|rrrrr|}\hline
+			n				& p = 0.80 & p = 0.90 & p = 0.95 & p = 0.98 & p = 0.99 \\ \hline
+			1				& 0.90000  & 0.95000  & 0.97500  & 0.99000  & 0.99500  \\ 
+			2				& 0.68377  & 0.77639  & 0.84189  & 0.90000  & 0.92929  \\ 
+			... 		& ... 		 & ...      & ...      & ...      & ...			 \\
+			100			& 0.10563  & 0.12067  & 0.13403  & 0.14987  & 0.16081  \\ \hline
+			$n > 100$	& $\dfrac{1,073} { \sqrt{n}}$ &  $\dfrac{1,223} { \sqrt{n}}$ &  $\dfrac{1,358} { \sqrt{n}}$ &  
+								$\dfrac{1,518} { \sqrt{n}}$ &  $\dfrac{1,629} { \sqrt{n}}$ \\
+			\hline \end{tabular} 
+			%\end{tiny}
+			$$
+			\label{kolmogorov_1} 
+			\caption{	Loi de $D_n$ (\ref{hmm_selec_test_kolmogorov}), 
+								valeur de $d_N$ telle que $\pr{ D_N < d_n } = p$. Les bases d'images utilisées pour l'estimation
+								des modèles de reconnaissance comportent au moins quelques milliers d'images, donc
+								de grandes valeurs pour $n$. Seule la dernière ligne sera utilisée.}
+			\end{table}
+			
+
+\indexfrr{test}{Kolmogorov}
+
+Ce test peut être étendu à la comparaison de deux échantillons indépendants. On dispose donc de deux échantillons $\vecteur{X_1}{X_{N_1}}$ et $\vecteur{Y_1}{Y_{N_2}}$ provenant de deux fonctions de répartitions $F^1$ et $F^2$ pour lesquels les fonctions de répartition empiriques sont notées $\widehat{F^1_{N_1}}\pa{x}$ et $\widehat{F^2_{N_2}}\pa{x}$.  On cherche à résoudre le problème suivant~:
+
+			\begin{eqnarray*}
+			\left\{ \begin{array}{lll}
+			H_0 &:& F^1 = F^2 \\
+			H_1 &:& F^1 \neq F^2 
+			\end{array}\right.
+			\end{eqnarray*}
+
+Or~:
+
+			\begin{eqnarray}
+			\pr{ \sqrt{ \frac{N_1 N_2}{N_1 + N_2} } \; \; \underset{x}{\sup} \; \abs { 
+						\widehat{F^1_{N_1}}\pa{x} - \widehat{F^2_{N_2}}\pa{x}
+					} < y } \longrightarrow K\pa{y}
+			\end{eqnarray}
+
+
+\indexfrr{test}{Wilcoxon-Mann-Whitney}
+\indexfr{Wilcoxon-Mann-Whitney}
+
+Si on veut contourner la loi tabulée de la table~\ref{kolmogorov_1}, il est possible d'utiliser le test de Wilcoxon-Mann-Whitney pour valider l'hypothèse que deux échantillons $\vecteur{X_1}{X_n}$, $\vecteur{Y_1}{Y_m}$ suivent la même loi. Pour effectuer de test, on construit la statistique~:
+
+			\begin{eqnarray}
+			U &=& \summy{i=1}{n} \; \summy{j=1}{m} \; \indicatrice{X_i > Y_j} \label{hmm_selec_test_wilcoxon}
+			\end{eqnarray}
+				
+Si les deux échantillons suivent la même loi alors $\esps{U} = \frac{nm}{2}$ et $\vars{U} = \frac{nm\pa{n + m + 1}}{12}$. De plus, $U$ tend asymptotiquement vers une loi normale $\loinormale{\frac{nm}{2}}{\frac{nm\pa{n + m + 1}}{12}}$.
+
+
+
+
+
+
+\subsection{Etats récurrents, semi-récurrents, cycles}
+
+\label{hmm_selec_recurrent_cycle}
+\indexfrr{état}{récurrent}%
+\indexfrr{état}{semi-récurrent}%
+\indexfr{cycle}%
+
+
+
+
+		\begin{xdefinition}{état semi-récurrent}
+		\label{definition_hmm_semi_recurrent_1}%
+		On appelle un \emph{état semi-récurrent} un état $i$ vérifiant~:
+		
+					$$
+					\forall t \in \N, \, \exists \, t' > t \text{ tel que } \pr{ q_{t'}=   i} > 0
+					$$
+					
+		Autrement dit, si $\min \acc { d > 0 \sac \forall t \in \N, \, \pr{ q_{t+d}=i \sac q_t=i }  > 0 }$ 
+		existe et est défini, alors l'état $i$ est un état semi-récurrent.
+		\end{xdefinition}
+
+
+
+
+Les états semi-récurrents sont peu fréquents en reconnaissance de l'écriture car le sens gauche-droite de la lecture implique qu'on ne puisse pas revenir à un état antérieur. Ils introduisent également des incertitudes quant à la longueur de la séquence à reconnaître. Les modèles utilisés jusqu'à présent en reconnaissance de l'écriture n'en possèdent pas et la méthode de sélection d'architecture aura pour objectif de les supprimer.
+
+
+
+		\begin{xdefinition}{état récurrent}
+		\label{hmm_etat_recurrent_label}%
+		On appelle un \emph{état récurrent} un état $i$ vérifiant~:
+		
+					$$
+					\summy{t=1}{+\infty} \pr{ q_{t}=i \sac q_0=i } = +\infty
+					$$
+					
+		\end{xdefinition}
+
+Ces états sont inexistants dans les modèles de Markov utilisés lors de la reconnaissance de l'écriture car les séquences d'observations que les modèles doivent apprendre sont finies or un état récurrent implique la possibilité d'émettre des séquences infinies. Les états récurrents sont aussi semi-récurrents.
+
+
+
+		\begin{xdefinition}{cycle}
+		\label{definition_hmm_cycle_1}%
+		On appelle un \emph{cycle} inclus dans un modèle de Markov un ensemble d'états semi-récurrents (ou récurrents) 
+		connectés les uns aux autres. Si un état appartient à ce cycle, il existe une suite de transitions de probabilités 
+		non nulles menant de nouveau à cet état.
+		\end{xdefinition}
+
+
+
+
+
+Si un état fait partie d'un cycle, la longueur de ce cycle est le nombre minimal de transitions nécessaires pour revenir à ce même état. Le plus petit cycle est composé d'un seul état semi-récurrent (ou récurrent).
+
+Partant d'un modèle de Markov caché débarrassé de ses émissions, on désire savoir pour chaque état s'il appartient à un cycle ou non. Pour cela, on définit la probabilité pour un état d'appartenir à un cycle. Le modèle de Markov contient $N$ états numérotés $\ensemble{1}{N}$, une séquence d'états est notée $\vecteur{q_1}{q_T}$. Soit~$i$ un état, $i \in \ensemble{1}{N}$, on définit la probabilité que l'état $i$ soit cyclique~:
+
+			\begin{eqnarray}
+			\pr{ i \in cycle }= \summy{t=1}{+\infty} \; \pr{ q_t=i \text{ et } q_l  \neq i \text{ pour } 0 < l < t \sac	q_0 = i }
+												= \summy{t=1}{+\infty} \; c_t^i
+			\label{hmm_probabilite_cycle}%
+			\end{eqnarray}
+
+La définition de cette probabilité ne permet pas de la calculer explicitement, c'est pourquoi on pose~:
+
+			\begin{eqnarray*}
+			d_t^{ij} &=& \pr{ q_t = j \text{ et } q_l \neq i \text{ pour } 0 < l < t \sac q_0 = i} \\
+			c_t^i    &=& d_{t}^{ii}
+			\end{eqnarray*}
+			
+Avec ces notations~:
+
+			\begin{eqnarray*}
+			d_1^{ij} 			&=& \pr{ q_1 = j \sac q_0 = i } = a_{ij}\\
+			d_{t+1}^{ij} 	&=& \pr{ q_{t+1} = j \text{ et } q_l \neq i \text{ pour } 0 < l < t+1 \sac q_0= i } \\
+			d_{t+1}^{ij} 	&=& \summyone{k \neq i } \pr{ q_{t+1} = j, \, q_t = k \text{ et } q_l \neq i \text{ pour } 0 < l < t
+														\sac q_0=i }\\
+			d_{t+1}^{ij}	&=& \summyone{k \neq i } 
+					        \pa{
+					        \begin{array}{l}
+					        \pr{ q_{t+1}=j \sac q_t=k \text{ et } q_l \neq i \text{ pour } 0 < l < t, \, q_0 =i }\\%
+					        \pr{ q_t = k \text{ et } q_l \neq i \text{ pour } 0 < l < t \sac q_{0}=i }
+					        \end{array}
+					        }
+			        \\
+			\end{eqnarray*}
+			
+D'où~:
+
+			\begin{eqnarray*}
+			d_{t+1}^{ij} &=& \summyone{k\neq i} \; a_{kj} \, d_t^{ik} \\
+			c_i^t &=& d_t^{ii}
+			\end{eqnarray*}
+			
+Ce cycle a une longueur $l_i$ dont on peut estimer la longueur moyenne $L_i$~:
+
+			\begin{eqnarray}
+			L_i = \esp{ l_i } =\dfrac	{ \summy{t=1}{+\infty} \; t \, c_t^i } 
+																{ \summy{t=1}{+\infty}  \; c_t^i}%
+			\end{eqnarray}
+
+Il peut paraître étonnant d'énoncer certains résultats sur les états semi-récurrents étant donné qu'ils sont peu fréquents en reconnaissance de l'écriture mais ils seront utilisés lors de la sélection automatique de l'architecture.
+
+
+
+
+
+
+
+
+
+\subsection{Distributions temporelles}
+\indexfrr{distribution}{temporelle}
+\label{hmm_ditribution_temporelle_etat}
+
+
+
+On considère une chaîne de Markov cachée $M$ incluant un état d'entrée et de sortie. Comme dans le paragraphe précédent, on ne s'intéresse qu'aux états et non aux émissions. On définit $ \pr{ q_t=i}$, la probabilité d'être dans l'état $i$ à l'instant $t$ sachant $M$ ($E$ est l'état d'entrée). On obtient que si $N$ est le nombre d'états du modèle~:
+
+
+			\begin{eqnarray}
+			\pr{ q_{t+1}=j } &=& \summy{i=1}{N} \; a_{ij} \pr{ q_t=i } \\
+			\summy{i=1}{N} \pr{ q_1=i } &=& 1 \\
+			\forall t>1,\; \summy{i=1}{N} \pr{ q_t = i} &=& 1- \summy{u=1}{t-1} 
+												\underset{		\begin{subarray}{c} \text{probabilité de}\\
+																			\text{sortir à l'instant }u
+																			\end{subarray} }
+															{\underbrace{ \pr{ S \sac  u} } }%
+			\end{eqnarray}
+
+Où $ \pa{ \pr{ q_t= i}} _{1\leqslant i\leqslant N}$ est la distribution des états à l'instant $t$ et $\summy{u=1}{t-1} \; \pr{ S \sac  u}$ est la probabilité d'être sorti du modèle avant l'instant $t$. L'objectif de ce paragraphe n'est pas d'avoir la distribution des états à chaque instant mais d'estimer la distribution du "temps" pour chaque état~:
+		
+			$$
+			\pa{ \pr{  t \sac i} }_{1\leqslant t<\infty}
+			$$
+
+On s'intéresse d'abord au cas où le temps $t$ est majoré par $T$. Par conséquent $ \pr{ t }  = \frac{1}{T}$; Ce cas correspond à la
+situation suivante~:
+		
+			$$
+			\forall t>T,\; \forall i,\; \pr{ q_t=i}  = 0
+			$$
+
+\indexfr{distribution}%
+\indexfrr{état}{distribution}%
+
+On suppose également que~:
+
+			$$
+			\forall i, \; \summy{u=1}{T} \; \pr{ q_t=i}  >0
+			$$
+			
+Si ce n'est pas le cas pour un état $i_0$, cet état peut être supprimé du modèle puisqu'il n'intervient jamais. Par conséquent~:
+
+
+			\begin{eqnarray*}
+			\pr{ q_t=i }  	&=& \pr{ i \sac  t }\\
+			\pr{ t \sac i}  &=& \dfrac{ \pr{ q_t = i} \pr{ t } } { \pr{ i } }
+											 =  \dfrac{ \pr{ q_t = i} \pr{ t } } { \summy{u=1}{T} \; \pr{ i \sac u} \pr{ u } }
+											 =  \dfrac{ \frac{1}{T} \pr{ q_t = i } } { \frac{1}{T} \summy{u=1}{T} \pr{ i \sac u } }
+											 =  \dfrac{ \pr{q_t = i } } { \summy{u=1}{T} \; \pr{ q_u=i } }
+			\end{eqnarray*}
+			
+			
+
+\indexfrr{état}{récurrent}
+\indexfrr{état}{impasse}
+
+Ces résultats sont extensibles au cas où $\summy{u=1}{+\infty} \pr{ q_t = i} < +\infty$. Dans le cas contraire où $\summy{u=1}{+\infty} \; \pr { q_t=i } =+\infty$, alors l'état $i$ est \emph{récurrent}.
+Autrement dit, une fois entré dans l'état $i$, il n'est plus possible de sortir du modèle, ce qui est impossible dans le cas de la reconnaissance de l'écriture puisque les modèles apprennent des séquences finies d'observations. Les états récurrents sont considérés comme des états "impasses". Si $\summy{u=1}{+\infty} \pr{ q_t=i } < +\infty$, on définit la distribution temporelle de l'état $t$ par~:
+
+			\begin{eqnarray}
+			\pr{ t \sac i } = \dfrac{ \pr{ q_t = i }}
+															{ \summy{u=1}{+\infty} \; \pr{ q_u=i } }
+			\end{eqnarray}
+
+Si pour chaque état, on peut définir une distribution temporelle, il est possible également de définir la probabilité d'un état comme étant :%
+
+			\begin{eqnarray}
+			\pr{ i } = \dfrac{ \summy{u=1}{+\infty} \; \pr{ q_u = i } }
+											 { \summy{i=1}{N} \; \summy{u=1}{+\infty} \; \pr{ q_u=i } }
+			\end{eqnarray}
+
+Dans le cas général, pour estimer les distributions temporelles des classes d'observations, nous allons construire les matrices suivantes~:
+
+			$$
+			\begin{array}{ll}
+			N & \text {est le nombre d'états du modèle}\medskip\\
+			T & \text {est une durée}\medskip\\
+			O & \text {est le nombre de classes d'observations}\medskip\\
+			\pa{ \pr{ i \sac  t } } _{\substack{1\leqslant i\leqslant N\\1\leqslant t\leqslant T}} & 
+										\text{est la matrice des  distributions des états à chaque temps}\medskip\\
+			\pa{ \pr{ i } } _{1\leqslant i\leqslant N} & 
+										\text{est le vecteur des probabilités des états}\medskip\\
+			\pa{ \pr{ o \sac i } } _{\substack{1\leqslant i\leqslant N\\1\leqslant o\leqslant O}} & 
+										\text{est la matrice des probabilités d'émissions des observations}\medskip\\
+			\pa{ \pr{ o } } _{1\leqslant o\leqslant O} & 
+										\text {est le vecteur des probabilités des classes d'observations}\medskip\\
+			\pa{ \pr{ o \sac t} }  _{\substack{1\leqslant o\leqslant O\\1\leqslant t\leqslant T}} & 
+										\text{est la matrice des probabilités des classes d'observations à chaque temps}
+			\end{array}
+			$$
+
+On en déduit que~:
+
+			\begin{eqnarray*}
+			\pr{ o } 		&=& \summy{i=1}{N} \; \pr{ o,i} = \summy{i=1}{N} \; \pr{ o \sac i } \pr{i} \\
+			\pr{ o,t } 	&=& \summy{i=1}{N} \; \pr{ o,i,t }=
+									\summy{i=1}{N} 	\; \pr{ o \sac i,t } \pr{ i \sac t } \pr{ t } =
+									\summy{i=1}{N}	\; \pr{ o \sac i } \pr{ i \sac t} \pr{ t }
+			\end{eqnarray*}
+
+Par conséquent~:
+
+			\begin{eqnarray}
+			\begin{array}{rcl}
+			\pa{ \pr{ o } }  & = & \pa{ \pr{ o \sac  i } } ^{\prime} \pa{ \pr{ i } }\\
+			\pa{ \pr{ o \sac t } } & = & \pa{ \pr{ o \sac i} } \pa{ \pr{ i \sac  t} } ^{\prime}
+			\end{array}
+			\end{eqnarray}
+
+
+
+
+
+
+
+
+
+
+%-------------------------------------------------------------------------------------------------------------------
+\section{Décroissance de l'architecture}
+%-------------------------------------------------------------------------------------------------------------------
+\indexfrr{architecture}{décroissance}
+\indexfrr{architecture}{croissance}
+\label{hmm_selec_decroissance_par}
+
+Celle-ci est envisagée en premier parce que sa conception est plus simple. Elle consiste en effet à supprimer les coefficients d'un modèle dont dépendent peu les performances contrairement à la croissance de l'architecture qui tente de combler les carences d'un modèle par l'ajout de coefficients.
+
+
+
+
+
+
+
+
+\subsection{Méthode de \citeindex{Augustin2001}}
+\label{hmm_selec_augustin}
+
+		\begin{figure}[ht]
+    $$\frame{$\begin{array}[c]{c}\includegraphics[height=8cm, width=13cm] 
+    {\filext{../dessin2/selection_emmanuel1}}\end{array}$}$$
+    \caption{	Un modèle à structure riche organisé en colonnes (d'après \citeindexfig{Augustin2001}).
+    					Chaque colonne regroupe ensemble des états 
+    					susceptibles d'émettre des observations au même instant. Le modèle de la lettre "m", souvent découpée en
+    					trois graphèmes, contiendra trois colonnes de plusieurs états, chaque état de la colonne~$i$
+    					étant associé à une classe probable pour le $i^{\text{ème}}$ graphème. Cette construction 
+    					en forme de colonne permet de définir plus facilement une architecture initiale
+    					pour le modèle de Markov, soit autant de colonnes qu'il y a de graphèmes. Le nombre d'états par
+    					colonne représente la variabilité admise pour chaque graphème.
+    				}
+    \label{hmm_colonne_riche}
+    \indexfrr{MMC}{colonne}
+		\end{figure}
+
+
+Les modèles utilisés par \citeindex{Augustin2001} sont organisés en colonnes d'états (figure~\ref{hmm_colonne_riche}), chaque colonne comprend au départ $C$ états où $C$ est le nombre de classes d'observations, chaque état ne peut émettre qu'une seule classe d'observations (les probabilités d'émission sont dégénérées). La taille de ce modèle riche va décroître, des états et des connexions peu probables vont être suppprimées selon le processus suivant~:
+
+
+		\begin{xalgorithm}{décroissance de l'architecture d'après [Augustin2001]}
+		\begin{enumerate}
+		\item Le modèle est appris grâce aux formules de Baum-Welch
+		\item Pour chaque séquence~:
+	    \begin{enumerate}
+  	  \item Le meilleur chemin d'états est obtenu grâce à l'algorithme de Viterbi (ou alignement Viterbi).
+    	\item Pour chaque connexion, on compte le nombre de meilleurs chemins l'empruntant.
+    	\item On supprime les connexions trop peu utilisées par rapport aux autres (en dessous d'un certain seuil), 
+    							le nombre de connexions supprimées ne peut être supérieur à un petit nombre ($\sim 10\%$).
+    	\item Les états n'étant plus connectés sont supprimés également.
+	  	\end{enumerate}
+		\item On retourne à l'étape 1 tant que l'étape 2 supprime des connexions.
+		\end{enumerate}
+		\end{xalgorithm}
+		
+La suppression des connexions s'effectue peu à peu car la suppression de certaines connexions peut amener le modèle à en renforcer d'autres. L'algorithme aboutit à un modèle alléger comme celui par exemple de la figure~\ref{hmm_colonne_selection}.
+
+		\begin{figure}[ht]
+    $$\frame{$\begin{array}[c]{c}\includegraphics[height=4cm, width=10cm]
+    {\filext{../dessin2/selection_emmanuel2}}\end{array}$}$$
+    \caption{Exemple d'architecture sélectionnée par la méthode développée par \citeindex{Augustin2001}.}
+    \label{hmm_colonne_selection}
+		\end{figure}
+
+
+Le nombre de colonnes maximal que doit contenir le modèle initial correspond au nombre maximal d'observations contenues dans les séquences que le modèle doit apprendre. Par exemple, un modèle associé à la lettre "M" contiendra cinq colonnes tandis que celui associé à la lettre "i" se limitera à deux. Cette méthode fait décroître l'architecture du modèle : états et transitions sont supprimées si la vraisemblance \indexfr{vraisemblance} du modèle ne décroît pas beaucoup.
+
+
+
+
+
+
+\subsection{Suppression de connexions peu probables}
+\indexfrr{suppression}{connexion peu probable}
+
+
+Soit $M$ une chaîne de Markov cachée comprenant $N$ états et ayant appris les séquences $\vecteur{O^1}{O^K}$ de longueur $\vecteur{T_1}{T_K}$. On note $S$ l'ensemble des séquences de ce modèle et $L$ sa vraisemblance.
+
+				\begin{eqnarray}
+				L = \prody{k=1}{K} \pr{O^k|M} = \prody{k=1}{K}\, \summyone{s\in S} \pr{O^k,s|M}
+				\end{eqnarray}
+			
+				
+On désire supprimer ou annuler un ensemble $C$ de connexions, on note $S'$ l'ensemble des séquences d'états du modèle utilisant des connexions incluses dans $C$, $M'$ est le modèle $M$ débarrassé des connexions incluses dans $C$. On note $L'$ la vraisemblance du modèle obtenu après suppression des connexions et réestimation des coefficients. 
+
+
+				$$
+				L' = \prody{k=1}{K} \pr{O^k|M'} = \prody{k=1}{K}\, \summyone{s\in S \setminus S' } \pr{O^k,s|M'}
+				$$
+				
+				
+Puisque les coefficients ont été réestimés~:
+
+				\begin{eqnarray}
+				L' & \supegal &   \prody{k=1}{K}\crochet {\summyone{s\in S} \pr{O^k,s|M} - \summyone{s\in S'} \pr{O^k,s|M} }\\
+				L' & \supegal &   \prody{k=1}{K}\crochet{ \pr{O^k|M}
+				                              \crochet {1 - \dfrac{\summyone{s\in S'} \pr{O^k,s|M}}{\pr{O^k|M}}}} \nonumber\\
+				\ln L' & \supegal & \summy{k=1}{K} \ln \pr{O^k|M}
+				                  + \summy{k=1}{K} \ln \crochet { 1 - \summyone{s\in S'} \pr{s \left|O^k, M \right.} } \nonumber\\
+				\ln L' & \supegal & \ln L + \summy{k=1}{K} 
+														 \ln \crochet { 1 - \summyone{s\in S'} \pr{s \left|O^k, M \right.} } \nonumber\\
+				\ln L' - \ln L & \supegal & \summy{k=1}{K} 
+														 \ln \crochet { 1 - \summyone{s\in S'} \pr{s \left|O^k, M \right.} } \label{selec_inequal_1}
+				\end{eqnarray}
+
+Pour une séquence d'états donnée $s$ qui passe par la transition $c$, on sait que $\pr{ s \sac O^k, M} \infegal \pr{ c \sac O^k, M}$ puisque $\pr{ c \sac O^k, M}$ est la somme des probabilités des séquences d'états incluant la connexion $c$. On peut donc affirmer que~:
+
+			\begin{eqnarray}
+			\summyone{s\in S'} \pr{s \left|O^k, M \right.} \infegal \summyone{c\in C} \pr{c \left|O^k, M \right.} 
+			\end{eqnarray}
+			
+L'expression (\ref{selec_inequal_1}) peut à son tour être minorée~:
+
+				\begin{eqnarray}
+				\ln L' - \ln L & \supegal & \summy{k=1}{K} 
+														 \ln \crochet { 1 - \summyone{c\in C} \pr{c \left|O^k, M \right.} }  \\
+				\ln L' - \ln L & \supegal & \summy{k=1}{K} 
+														 \ln \crochet { 1 - \summy{t=1}{T_k-1}\summyone{(i\rightarrow j) \in C} 
+														 								\dfrac{\pr{q_{t+1} = j, q_t = i, O^k | M} }{\pr{O^k | M }}  } \label{selec_inequal_2} 
+				\end{eqnarray}
+
+
+En pratique, il est préférable de supprimer plusieurs fois un petit nombre de connexions jusqu'à ce que l'ensemble $S'$ soit vide plutôt que de supprimer les connexions en une seule fois (\citeindex{Augustin2001}). En effet, dès lors qu'une connexion est supprimée, les probabilités a posteriori réestimées à partir de ce nouveau modèle dont un coefficient est annulé peuvent être très différentes de celles du précédent modèle.
+
+En pratique, comme $\ln(1-x) \sim -x$, on calculera la quantité 
+$\rho_{ij} = \summy{k=1}{K}  \summy{t=1}{T_k-1}
+ \dfrac{\pr{q_{t+1} = j, q_t = i, O^k | M} }{\pr{O^k | M }} $. Il faut d'abord classer les connexions selon les $\rho_{ij}$ croissant puis choisir les premières connexions pour construire un ensemble $C$ tel que $\summyone{(i\rightarrow j) \in C} \rho_{ij}$ soit petit.
+
+
+
+
+
+
+
+\subsection{Suppression des états impasses}
+\indexfrr{suppression}{état impasse}
+\indexfrr{état}{impasse}
+\indexfr{impasse}
+
+
+
+Lorsque des connexions sont supprimées, certains états peuvent ne plus être atteints ou peuvent ne plus en atteindre d'autres, par exemple~: $\forall t>0,\, \pr { q_{t}=i } =0$. Par conséquent, les probabilités $\pr{ q_{t+1}=j \sac  q_{t}=i}$ n'ont plus de raison d'être et ne peuvent plus être estimées, elles doivent être supprimées également. L'état $i$ est alors un état \emph{impasse}. 
+
+Lorsqu'une connexion est supprimée, il faut vérifier qu'aucun état n'est devenu un état impasse, dans le cas contraire, on supprime cet état et les connexions arrivantes et partantes. Ce processus se répète jusqu'à ce que plus aucune connexion ne puisse plus être supprimée.
+
+\indexfr{cycle impasse}
+\indexfr{impasse}
+
+Le modèle de la figure~\ref{figure_hmm_impasse_un-fig} possède deux états numérotés 2 et 4 qui sont des états impasse. L'état 2 ne possède aucune connexion entrante excepté celle qui provient de lui-même. L'état 4 ne possède aucune connexion sortante excepté celle qui provient de lui-même. D'autres cas sont moins évidents, le modèle de la figure~\ref{figure_hmm_impasse_deux-fig} un \emph{cycle impasse} : les états 2 et 4 font partie d'un "cycle impasse".
+
+		\begin{figure}[ht]
+    $$\begin{tabular}{|c|c|} \hline
+    \includegraphics[height=3cm, width=5cm]{\filext{../dessin2/hmm_impasse_1}} &
+    \includegraphics[height=3cm, width=5cm]{\filext{../dessin2/hmm_impasse_2}} \\ 
+    $(a)$ & $(b)$ \\ \hline
+    \end{tabular}$$
+    \caption{Modèle contenant deux états "impasse" (a) et un "cycle impasse" (b).}
+    \label{figure_hmm_impasse_un-fig}
+    \label{figure_hmm_impasse_deux-fig}
+		\end{figure}
+
+
+De ces deux exemples (figure~\ref{figure_hmm_impasse_un-fig}) est inspirée la définition suivante~:
+
+		\begin{xdefinition}{état impasse}
+		\label{definition_hmm_etat_impasse_1}%
+		Soit une chaîne de Markov d'ordre 1, un état impasse $e$ est un état qui vérifie l'une des trois conditions suivantes~:
+		\begin{enumerate}
+		\item il ne possède pas de connexion entrante
+		\item il ne possède pas de connexion sortante
+		\item il est récurrent : $\pr{ e \in cycle}  =1$
+		\end{enumerate}
+		\end{xdefinition}
+
+
+Les états impasse sont supprimés, comme leur suppression peut entraîner la détection de nouveaux états impasse, ce processus est réitéré jusqu'à ce que tous les états de la chaîne de Markov soient valides.
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Regroupement d'états \emph{similaires}}
+\label{hmm_regroupement_etat}
+
+\indexfr{regroupement d'états}
+\indexfrr{état}{similaire}
+\indexfrr{état}{regroupement}
+\indexfr{similarité}
+\indexfr{équivalence}
+
+
+
+\subsubsection{Principe du regroupement de deux états}
+
+
+Il arrive parfois qu'aucune connexion ne soit négligeable et qu'il soit possible néanmoins d'en supprimer tout en conservant un modèle équivalent. C'est le cas des états similaires, ils jouent le même rôle et les échanger dans le calcul d'une probabilité ne la modifie pas. L'objectif du regroupement de deux états d'un modèle de Markov est donc de réduire le nombre de coefficients tout en conservant un modèle équivalent. Le schéma~\ref{figure_hmm_regroupement_etat-fig} illustre le regroupement de deux états en un seul. L'état résultant hérite de toutes les connexions de ses parents.
+
+			\begin{figure}[ht]
+	    \[
+	    \frame{$%
+	    \begin{array}
+	    [c]{ccc}%
+	    \begin{array}[c]{c}%
+	    {\includegraphics[height=3.5cm,width=4cm]{\filext{../dessin2/hmm_groupe_1}}}\end{array}%
+	    &  &
+	    \begin{array}[c]{c}
+	    {\includegraphics[height=3cm,width=4cm]{\filext{../dessin2/hmm_groupe_2}}}\end{array}
+	    \end{array}
+	    $}%
+	    \]
+	    \caption{Schéma illustrant le regroupement de deux états}
+	    \label{figure_hmm_regroupement_etat-fig}
+			\end{figure}
+
+
+
+
+On suppose au préalable qu'aucun état du modèle de Markov ne vérifie $\pr{i} = \summy{u=1}{+\infty} \pr {q_{t}=i } =+\infty$. Le problème consiste à estimer les nouvelles probabilités de transitions de sorte que les deux modèles soient le plus proche possible. Les coefficients du modèle de Markov caché sont les matrices~:
+
+			$$
+			\pa{ \pi,A,\theta,B }  \in \R^N \times \mathcal{M}_{N} \pa{ \R }  
+			\times\R^N \times \mathcal{M}_{ND} \pa{ \R}
+			$$
+	
+Dans ce modèle, les états $x$ et $y$ vont être regroupés dans un second modèle défini par les matrices~:
+
+			$$
+			\pa	{ \pi',A',\theta',B'} \in\R^{N-1} \times \mathcal{M}_{N-1}\pa{\R} 
+			\times \R^{N-1} \times \mathcal{M}_{N-1,D}  \pa{R}
+			$$
+			
+Les états sont numérotés de $1$ à $N$, et dans le modèle aux deux états regroupés, les états sont numérotés de la même manière à ceci près que l'état numéro $y$ n'existe plus. Par conséquent, le regroupement consiste à regrouper les états $x$ et $y$ dans l'état $x$~:
+
+			$$
+			x\longleftarrow x+y
+			$$
+			
+$E$ et $S$ sont toujours les états d'entrée et de sortie du modèle. $U$ est l'ensemble $\left\{ E,S\right\}$, $^{c}U$ est l'ensemble des états émetteurs $\vecteur{1}{N}$.
+
+On note $\underleftrightarrow{q}$ l'ensemble des prédécesseurs de l'état $q$, $a_{E,i}=\pi_{i}$ et $a_{iS}=\theta_{i}$. L'ensemble des règles qui suivent permettent de calculer les nouvelles transitions et émissions sont les suivantes~:
+
+
+\begin{enumerate}
+\indexfrr{regroupement d'états}{règles}%
+\label{hmm_regle_regroupement_etat}%
+
+\item Soit $\pa{i,j} \in \pa{^{c}U\cup U }^2$, si $\underleftrightarrow{i} \cap \pa{x,y} =\emptyset$ 
+			et $j\notin \pa{x,y}$, alors $a'_{ij}=a_{ij}$
+			
+\item Soit $i\in \pa{^{c}U\cup U}$, si $i\notin \acc{x,y}$, alors $a'_{ix}=a_{ix}+a_{iy}$
+
+\item Soit $i\in\pa{^{c}U\cup U}$, si $i\notin \acc{x,y}$, alors 
+			$a'_{xi}=\dfrac{ \pr{x} a_{xi}+ \pr{y} a_{yi}}
+							{\pr{x} + \pr{y} }$ avec $\pr{x}$ étant la probabilité de l'état $x$
+    	définie dans le paragraphe~\ref{hmm_ditribution_temporelle_etat}.
+    	
+\item $a'_{xx}=	\dfrac{ \pr{x} \pa{ a_{xx}+a_{xy}}  + \pr{y} \pa{ a_{yx}+a_{yy}}}
+											{ \pr{x} + \pr{y}  }$
+											
+\item Soit $i\in \pa{^{c}U\cup U}$, si $i\notin \acc{x,y}$, alors $\forall o, \; b'_i \pa{o} =b_i\pa{o}$
+
+\item $\forall o, \; b'_{xo} = \dfrac{\pr{x} b_{xo}+ \pr{y} b_{yo}}
+																		 {\pr{x}  +\pr{y}}$
+																		 
+\end{enumerate}
+
+
+
+
+
+
+
+On vérifie bien que~:
+
+
+		$$
+		\forall i\in \pa{^{c}U\cup U}, \; \summyone { j\in \pa{^{c}U\cup U} } \; a'_{ij} = 1
+		$$
+		
+Les règles 3,4,6 se déduisent du fait que l'état regroupé $x'$ est la réunion des deux états $x$ et $y$~: $x'=x \cup y$. Par conséquent, en appliquant la règle de Bayes, on trouve~:
+
+
+		\begin{eqnarray*}
+		\pr {q_{t+1}=i \sac q_t=j \neq x', \, i=x' } &=& \pr{ q_{t+1}=i \sac  q_t=j \neq x', \, i=x}  \pr{i=x}  + \\
+																									&& \pr{ q_{t+1}=i \sac  q_t=j \neq x', \, i=y}  \pr{i=y}    \\
+		\\
+		\pr {q_{t+1}=i \sac q_t=j \neq x', \, i=x' } &=& 
+									\dfrac{ \pr{ q_{t+1}=x \sac q_t=j \neq x'} \pr{x} +
+													\pr{ q_{t+1}=y \sac q_t=j \neq x'} \pr{y} }
+												{ \pr{x} + \pr{y} } \\
+		\\
+		\pr{ q_{t+1}=x' \sac  q_t=x' } &=& 
+		    \dfrac{ 	\cro{
+		        					\begin{array}{ll}
+		          						\cro { \pr{ q_{t+1}=x \sac q_t=x } + \pr{q_{t+1}=y \sac q_t=x } } \pr{x} & + \\
+		          						\cro { \pr{ q_{t+1}=x \sac q_t=y } + \pr{q_{t+1}=y \sac q_t=y } } \pr{y}
+		        					\end{array}
+		        					}
+		          }
+		    			{ \pr{x} + \pr{y} }
+		\end{eqnarray*}
+
+Il en est de même pour la règle 6.
+
+
+
+
+
+
+
+
+\subsubsection{Premier théorème}
+
+Le principe du regroupement exposé ci-dessus est valable quelle que soit la paire d'états choisie dans le modèle de Markov caché, néanmoins, tous les regroupements ne mènent pas à un modèle équivalent.
+
+
+
+
+		\begin{xtheorem}{regroupement d'états}
+		\label{hmm_theoreme_equivalence_un}%
+		Soit $M$ un modèle de Markov à $N$ états, soit $\pa{i,j}  \in \vecteur{1}{N}^{2}$ et $i \neq j$, 
+		on appelle $M'_{ij}$ le modèle où les états $i$ et $j$ sont regroupés dans l'état $i$ selon les règles~1 à~6 
+		exposées ci-dessus (paragraphe~\ref{hmm_regle_regroupement_etat}). Si les deux conditions suivantes sont vérifiées~:
+		
+		
+					\begin{eqnarray}
+					\left\{\begin{array}[c]{l}
+					1- \text{les distributions d'émissions des états }i \text{ et } j \text{ sont égales}\\
+					2- \forall \pa{k,l}  \in \pa{E,S,1,...,N}^{2}, \; \forall d \supegal 1, \, \\
+									\quad\quad \pr{q_{t+d+1}=l, \, \pa{ \forall t' \in \ensemble{1}{d},  \, q_{t+t'} \in \acc{i,j} }
+														\sac q_t=k, \, M}   =  \\
+									\quad\quad\quad \pr{ q_{t+d+1}=l, \, \pa{ \forall t' \in \ensemble{1}{d}, \,q_{t+t'} =i } 
+														\sac q_t=k, \, M'_{ij} }
+					\end{array}
+					\right.
+					\end{eqnarray}
+		
+		alors $M$ est équivalent à $M_{ij}^{\prime}$
+		\end{xtheorem}
+
+
+
+
+\begin{xdemo}{théorème}{\ref{hmm_theoreme_equivalence_un}}
+
+Soit $O\in\mathcal{O}$ une séquence d'observations. $O=\vecteur{O_1}{O_T} \in \mathcal{O}$. Soit $S=\pa{E,q_1,...,q_T,S}
+=\pa{q_0,q_1,...,q_T,q_{T+1}}$ une séquence d'états. Tout d'abord, comme les deux états ont la même distribution de probabilités d'émissions, les règles de regroupement des états impliquent que~:
+
+			$$
+			\pr{O_t \sac q_t=i,M } = \pr{ O_t \sac q_t=j,M } = \pr{ O_t \sac q_t=i, M'_{ij} } = b_i \pa{ O_t}
+			$$
+			
+On définit la suite $\pa{t_u } _ {0 \leqslant u \leqslant U}$ par~:
+
+			$$
+			\left\{\begin{array}[c]{l}%
+			\forall u,\; t_{u}<t_{u+1}\\
+			\forall u,\; q_{t_{u}} \notin \acc{i,j}\\
+			\forall t \in \pa{0,...,T+1} ,\; q_t \notin \acc{i,j} \Longrightarrow t\in \pa{t_0,...,t_U}
+			\end{array}
+			\right.
+			$$
+	
+Cette suite représente simplement les indices temporels croissants des états qui ne sont ni $i$ ni $j$. On note également~:
+
+			$$
+			\left\{\begin{array}[c]{lll}%
+			\pa{ A_{kl}^d } ^M &=& \pr{ q_{t+d+1}=l, \, \pa{  \forall t'\in \vecteur{1}{d}, \, q_{t+t'} \in \acc{i,j} }
+																\sac q_t=k, \, M } \\ \\
+			\pa{A_{kl}^d }^{M'_{ij}} &=& \pr{ q_{t+d+1}=l, \, \pa { \forall t' \in \vecteur{1}{d}, \, q_{t+t'}=i }
+																\sac q_t=k, \, M'_{ij} }
+			\end{array}
+			\right.
+			$$
+	
+La probabilité d'une séquence est~:
+
+			$$
+			\pr{ O \sac M } = \summyone{ \vecteur{q_1}{q_T} } \pr{ O \sac \pa{E,q_{1},...,q_{T},S}, \, M }
+			$$
+	
+On en déduit que~:
+
+			\begin{eqnarray*}
+			\pr{ O \sac S,M } &=&  a_{q_T,q_T}  \; \prody{t=1}{T+1} \; a_{q_{t-1},q_t} \, b_{q_t} \pa{O_t } \\
+			\\
+			\pr{ O \sac S,M } &=&  \prody{u=1}{U} \; \cro{ 
+			    			\begin{array}{l}
+					      \indicatrice{t_{u-1}+1 = t_u} a_{q_{t_{u-1}},q_{_{t_u}}} \, b_{q_{t_u}} \pa{ O_t} + \medskip \\
+					      \indicatrice{t_{u-1}+1 \neq t_u} \, \pa{ A_{kl}^d }^M \cro{ b_i \pa{O_t } }
+					    			^{ \pa{ t_u-t_{u-1}- \indicatrice{t_u=T+1} }   }
+			   				\end{array} 
+			   				} \\
+			\\
+			\pr{ O \sac  S,M } &=& \prody {u=1}{U} \; \cro{ 
+			    			\begin{array}{l}
+			      		\indicatrice{t_{u-1}+1=t_u} a_{q_{t_{u-1}},q_{_{t_u}}} \, b_{q_{t_u}} \pa{ O_t } + \medskip \\
+			    			\indicatrice{t_{u-1}+1\neq t_u}\, \pa{ A_{kl}^d }^{M'_{ij}} \cro {
+			        			b_i \pa{ O_t } } ^{ \pa{ t_u-t_{u-1}-\indicatrice{t_u=T+1}}}
+			    			\end{array}
+			    			}\\
+			\\
+			\pr{ O \sac S,M }  &=& \pr{ O \sac S,M'_{ij} }
+			\end{eqnarray*}
+
+Le théorème est démontré.
+
+\end{xdemo}
+
+
+
+
+
+
+
+
+
+
+\subsubsection{Exemple}
+
+Le cas figure~\ref{figure_exemple_hmm_theoreme_equivalence_un-fig} illustre un cas pour lequel la condition $2$ est vérifiée. On veut regrouper les états $2$ et $3$ qui ont tous deux la même probabilité d'émission. Les probabilités de transition nécessaires au théorème~\ref{hmm_theoreme_equivalence_un} sont~:
+
+			$$
+			\left\{\begin{array}[c]{l}%
+			\left(  A_{12}^{1}\right)  ^{M}=a\\
+			\left(  A_{15}^{1}\right)  ^{M}=b\\
+			\left(  A_{16}^{1}\right)  ^{M}=a+b\\
+			\forall k,\,d>1\Longrightarrow\left(  A_{1k}^{d}\right)  ^{M}=0
+			\end{array}\right.
+			$$
+			
+			\begin{figure}[ht]
+			\[\frame{$\begin{array}[c]{c}{\includegraphics[height=3cm,width=10cm]
+			{\filext{../dessin2/hmm_equivalence_theoreme1}}}\end{array}$}\]
+    	\caption{Exemple où le théorème ~\ref{hmm_theoreme_equivalence_un} s'applique.}
+    	\label{figure_exemple_hmm_theoreme_equivalence_un-fig}
+			\end{figure}
+
+
+
+			\begin{table}[ht]
+	    $$
+	    \frame{$
+	    \begin{array}[c]{cccccccc}%
+	    état \rightarrow t & 1 & 2 & 3 & 4 & 5 & somme & P\left(  .\right) \\
+	    1 & 1 & 0 & 0 & 0 & 0 & 1 & \dfrac{1}{2\left(  1+a+b\right)  }\\
+	    2 & 0 & a & 0 & 0 & 0 & a & \dfrac{a}{2\left(  1+a+b\right)  }\\
+	    3 & 0 & b & 0 & 0 & 0 & b & \dfrac{b}{2\left(  1+a+b\right)  }\\
+	    4 & 0 & 0 & a & 0 & 0 & a & \dfrac{a}{2\left(  1+a+b\right)  }\\
+	    5 & 0 & 0 & b & 0 & 0 & b & \dfrac{b}{2\left(  1+a+b\right)  }\\
+	    6 & 0 & 1-a+b & 0 & a+b & 0 & 1 & \dfrac{1}{2\left(  1+a+b\right)  }%
+	    \end{array}$}
+	    $$
+	    \caption{Distribution temporelle des états pour le modèle figure~\ref{figure_exemple_hmm_theoreme_equivalence_un-fig}.}
+	    \label{tableau_distribution_temporelle_etat}
+			\end{table}
+
+			\begin{figure}[ht]
+    	\[\frame{$\begin{array}[c]{c}{\includegraphics[height=3.5cm,width=10cm]
+    	{\filext{../dessin2/hmm_equivalence_theoreme2}}}\end{array}$}\]
+    	\caption{	Modèle résultant du regroupement des états 2 et 3 dans le modèle
+    						figure~\ref{figure_exemple_hmm_theoreme_equivalence_un-fig}.}
+    	\label{figure_exemple_hmm_theoreme_equivalence_un-fig_deux}
+			\end{figure}
+
+
+Le schéma~\ref{figure_exemple_hmm_theoreme_equivalence_un-fig_deux} montre le modèle équivalent à celui de la figure~\ref{figure_exemple_hmm_theoreme_equivalence_un-fig} dans lequel les états $1$ et $2$ ont été regroupés.
+D'après les six règles énoncés au paragraphe~\ref{hmm_regle_regroupement_etat}~:
+
+			$$
+			\begin{array}[c]{ccccl}%
+			c & = & a'_{12} & = & a_{12} + a_{13} = a + b \\
+			&&&&\\
+			d & = & a'_{24} & = &\dfrac{ \pr {1} a_{24} + \pr{3} a_{34} }
+																 { \pr {2} + \pr{3} } 
+												=  \dfrac{ \pr {2} a_{24} + \pr{3} a_{34} } 
+												 				 { \pr {2} + \pr{3} }
+												=  \dfrac{ \pr {2} } { \pr{2} + \pr{3} } 
+												=  \dfrac{ a } { a + b }
+			\end{array}
+			$$
+			
+			
+On en déduit que~:
+			$$
+			\left\{\begin{array}[c]{l}%
+			\pa{ A_{14}^1 } ^{M'_{23}} = cd = \pa{ a+b }  \dfrac{a}{a+b} = a = \pa{ A_{14}^1 }  ^M \\
+			\pa{ A_{15}^1 } ^{M'_{23}} = c \pa{ 1-d } = \pa{ a + b }  \pa{ 1-\dfrac{a}{a+b} }  = b = 	\pa{ A_{15}^1 }^M \\
+			\pa{  A_{16}^1 }^{M'_{23}} = 1-c = 1-a-b = \pa{ A_{16}^1 }^M \\
+			\forall k,\,d>1 \Longrightarrow  \pa{A_{1k}^d }^{M'_{23}} = 0
+			\end{array}\right.
+			$$
+
+Les deux modèles sont bien équivalents.
+
+
+
+
+
+
+
+
+
+
+\subsubsection{Second théorème}
+\label{hmm_select_thoereme_kamp_second}
+
+Lorsqu'on veut regrouper les états $i$ et $j$, le théorème précédent possède un inconvénient car il nécessite de calculer les probabilités de transiter d'un état à un autre quel que soit le nombre d'états intercalés entre~$i$ et~$j$. Le suivant (voir aussi \citeindex{Kamp1985}) se propose d'affaiblir cette condition au profit d'une autre~:
+
+		\begin{xtheorem}{regroupement d'états d'après [Kamp1985]} \label{hmm_theoreme_equivalence_deux}%
+		Soit $M$ un modèle de Markov à $N$ états, soit $\pa{i,j}  \in \vecteur{1}{N}^2$ et $i \neq j$. On appelle $M'_{ij}$
+		le modèle où les états $i$ et $j$ sont regroupés dans l'état $i$ selon les règles 1 à 6 
+		exposées ci-dessus (paragraphe~\ref{hmm_regle_regroupement_etat}). Si les trois conditions 
+		suivantes sont vérifiées~:
+		
+					$$
+					\left\{\begin{array}{ll}%
+					1- & \text{les distributions d'émissions des états } i \text{ et } j \text{ sont égales}\\
+					2- & \forall \pa{k,l}  \in \pa{E,S,1,...,N}^2, \quad \\
+						 &			\quad\quad\quad \pr{q_{t+2}=l,\,q_{t+1} \in \pa{i,j} \sac q_{t}=k, \, M } 
+																= \pr{q_{t+2}=l,\,q_{t+1}=i \sac q_{t}=k,\,M'_{ij} } \\
+					3- & \forall t>0,\forall k \in \vecteur{1}{N}, \; k \notin \pa{i,j} \Longrightarrow  \pr{ k \sac t,M} =
+					               \pr{ k \sac t,M'_{ij} } \\
+					    & \forall t>0 , \; \pr{ i \sac t,M}  + \pr{  j \sac t,M } = \pr{  i \sac t,M'_{ij} } 
+					\end{array}
+					\right. 
+					$$ 
+					
+		alors $M$ est équivalent à $M'_{ij}$.
+		
+		\end{xtheorem}
+
+
+\begin{xdemo}{théorème}{\ref{hmm_theoreme_equivalence_deux}}
+Il est évident que la condition 2 du théorème 1 implique les conditions 2 et 3 du thèorème 2. Mais ici, il s'agit de démontrer
+la réciproque~:%
+
+			$$
+			\begin{array}{lll}
+			&  & \left\{\begin{array}[c]{l}%
+			\forall \pa{ k,l}  \in  \acc{ E,S,1,...,N}  ^2 \\
+			\quad\quad  \pr{  q_{t+2}=l, \, q_{t+1}   \in \acc{i,j}  \sac q_{t}=k,\,M}   = 
+									\pr{  q_{t+2}=l, \, q_{t+1}=i \sac q_{t}=k,\,M'_{ij}} \\
+			\forall t>0, \forall k \in \ensemble{1}{N}  , \; k \notin \acc{i,j} \Longrightarrow \pr{  k \sac t,M }
+									= \pr{k \sac t,M'_{ij} } \\
+			\forall t>0, \; \pr{ i \sac  t,M }  + \pr{ j \sac t,M } = \pr{  i \sac t,M'_{ij} }
+			\end{array}
+			\right. \\
+			&&
+			\\
+      & \Longrightarrow &  \left\{
+      \begin{array}[c]{l}%
+			\forall \pa{  k,l }  \in \pa{ E,S,1,...,N}^2, \; \forall d \geqslant 1, \, \\
+			\quad\quad \pr{ q_{t+d+1}=l,\, \pa{ \forall t' \in \ensemble{1}{d} \, q_{t+t'} \in \acc{  i,j } } \sac 
+										q_{t}=k, \, M}  =\\
+			\quad\quad\quad \pr{ q_{t+d+1}=l,\, \pa{  \forall t' \in \ensemble{1}{d} \, q_{t+t'}=i } \sac q_{t}=k,\,M'_{ij}	}
+			\end{array}
+			\right.
+			\end{array}
+			$$
+
+On sait que $\pr{ l \sac  t=1 }  =\pi_l$. Or par récurrence, on obtient que~: 
+			
+			$$
+			\forall l\in \ensemble{1}{N},\, \pr{ l \sac  t+1}  = \summy{k=1}{N} \, a_{kl} \pr{ k \sac  t} 
+			$$
+
+Par conséquent~:
+
+			\begin{eqnarray*}
+			\pr{ l \sac  t=1,M } &=& \pi_l\\
+			\forall l \notin \acc{i,j}  , \; \pr{l \sac t=2,M}  &=& \summy{k=1}{N} \, \pi_k \, a_{kl}=
+						\left[
+			    \underset{k\notin\left\{  i,j\right\}  }{\sum}\pi_{k}a_{kl}\right]  +\pi _{i}a_{il}+\pi_{j}a_{jl}\\
+			\forall n \notin \acc{ i,j}  , \quad \pr{ n \sac t=3,M }  &=& 
+						\left[  \underset{\left(  k,l\right)  \notin\left\{
+			    i,j\right\}^{2}}{\sum}\pi_{k}a_{kl}a_{l,n}\right]  +\pi_{i}a_{ii}a_{in}+\pi_{i}
+			    a_{ij}a_{jn}+\pi_{j}a_{ji}a_{in}+\pi_{j}a_{jj}a_{jn}\\
+			\text {or }\forall n \notin \left\{  i,j\right\}  ,\quad \pr{  n \sac t=3,M'_{ij}}  &=&
+						\left[  \underset{\left(
+			    k,l\right)    \notin\left\{  i,j\right\}  ^{2}}{\sum}\pi_{k}^{\prime}a_{kl}^{\prime}a_{l,n}^{\prime}\right]
+			    +\pi_{i}^{\prime}a_{ii}^{\prime}a_{in}^{\prime}
+			\end{eqnarray*}
+
+D'après les hypothèses~:
+
+			\begin{eqnarray*}
+			\forall n\notin\left\{  i,j\right\},&&\\
+			&& \pr{  n \sac  t=3,M'_{ij}} - \pr{ n \sac t=3,M}  =0\\
+					& \Longrightarrow & \pi'_i \, a'_{ii} \, a'_{in} - \left(  \pi_i \, a_{ii} \, a_{in} + 
+															\pi_i \, a_{ij} \, a_{jn} + \pi_j%
+			    			a_{ji} \, a_{in} + \pi_j \, a_{jj} \, a_{jn}\right)=0\\
+			&\Longrightarrow & \cro { \begin{array}{cl} & \pr{ q_{t+3}=n, \,\left(  q_{t+2},q_{t+1}\right) 
+													\in\left\{  i,j\right\}^{2} \sac q_{t}=E,\,M} \\
+			              - & \pr{ q_{t+3}=n,\,q_{t+2}=i,\,q_{t+1}=i \sac q_{t}=E,\,M'_{ij}}
+			    											\end{array} } = 0
+			\end{eqnarray*}
+
+De même, pour $t=4$, on obtient que~:
+
+			\begin{eqnarray*}
+			\forall m\notin\left\{  i,j\right\}  ,\forall n\notin\left\{  i,j\right\} ,&&\\
+			&& \pr{  n \sac  t=4,M'_{ij}} - \pr{ n \sac  t=4,M}  =0\\
+			& \Longrightarrow & a'_{mi} \, a'_{ii} \, a'_{in}- \pa{  a_{mi} \, a_{ii} \, a_{in} + a_{mi} \, a_{ij} \, a_{nm}+
+										a_{mj} \,  a_{ji} \, a_{in} + a_{mi} \, a_{jj} \, a_{jn} } = 0\\
+			&\Longrightarrow& \crochet {    \begin{array}{cl} & P\left(  q_{t+3}=n,\,\left(  q_{t+2},q_{t+1}\right) 
+																			\in\left\{  i,j\right\}  ^{2}\,\left|
+			                                    \,q_{t}=m,\,M\right. \right) \\
+			                                - & P\left(  q_{t+3}=n,\,q_{t+2}=i,\,q_{t+1}=i\,\left|  
+			                                \,q_{t}=m,\,M_{ij}^{\prime}\right.  \right)
+			                                \end{array}} = 0
+			\end{eqnarray*}
+
+Par récurrence sur $t$, on démontre que~:
+
+			$$
+			\left\{\begin{array}[c]{l}
+			\forall\left(  k,l\right)  \in\left\{  E,S,1,...,N\right\}  ^{2},\; \forall d\geqslant1,\,\\
+			\quad\quad P\left(  q_{t+d+1}=l,\,\left(  \forall t^{\prime}\in\left\{ 1,...,d\right\}  
+			\,q_{t+t^{\prime}}\in\left\{  i,j\right\}  \right)
+			    \,\left|\,q_{t}=k,\,M\right.  \right)  =\\
+			\quad\quad\quad P\left(  q_{t+d+1}=l,\,\left(  \forall t^{\prime}\in\left\{1,...,d\right\}  
+			\,q_{t+t^{\prime}}=i\right)  \,\left|
+			    \,q_{t}=k,\,M_{ij} ^{\prime}\right.  \right)
+			\end{array}
+			\right.
+			$$
+
+Le théorème est démontré.
+
+\end{xdemo}
+
+
+
+
+
+
+
+
+
+
+
+
+\begin{xremark}{différence}
+Ce théorème n'est pas rigoureusement identique à celui présenté dans \citeindex{Kamp1985} car les hypothèses sur les états sont
+différentes. \citeindex{Kamp1985} suppose que les états $i$ et $j$ devant être regroupés ne sont pas liés~:
+
+			$$
+			\forall d > 0 ,\; \pr{q_{t+d} = j \sac q_t = i} = \pr{q_{t+d} = j \sac q_t = i} = 0
+			$$
+			
+Avec cette restriction, les hypothèses $1$ et $2$ du thèorème~\ref{hmm_theoreme_equivalence_deux} impliquent l'hypothèse $3$.
+
+
+\end{xremark}
+
+
+\begin{xremark}{associativité du regroupement d'états}
+Etant donné l'interchangeabilité de deux états similaires, trois états similaires deux à deux peuvent être regroupés en un seul état, d'abord par deux, puis ce nouvel état avec le dernier, et ce, dans n'importe quel ordre. \indexfrr{associativité}{regroupement}
+\end{xremark}
+
+
+
+
+
+
+\begin{xremark}{équivalence}
+Les deux théorèmes (\ref{hmm_theoreme_equivalence_un} et~\ref{hmm_theoreme_equivalence_deux}) supposent que les deux états ont été regroupés selon les règles~1 à~6 (paragraphe~\ref{hmm_regle_regroupement_etat}) et s'intéressent à l'équivalence du modèle $M'$ aux états regroupés avec le modèle initial $M$. Si le modèle $M$ correspond au maximum de la vraisemblance des observations, alors le modèle $M'$ aussi. Si tel n'était pas le cas, alors il serait possible à partir du modèle $M'$ de construire un modèle ayant la même architecture que le modèle $M$ mais garantissant une meilleure vraisemblance.
+\indexfr{équivalence}
+\indexfr{vraisemblance}
+\end{xremark}
+
+
+
+
+
+
+
+\subsubsection{Mise en pratique}
+
+
+
+Le paragraphe~\ref{hmm_regroupement_etat} a introduit la notion d'équivalence entre modèles. La définition de cette notion est trop stricte et ne permet pas de faire évoluer convenablement les modèles : une notion plus souple de "similarité" va être introduite. Jusqu'à présent, nous avons vu comment augmenter le nombre d'états et réduire le nombre de transitions, les paragraphes suivant montrent comment réduire le nombre d'états en procédent par regroupements successifs d'états "similaires".
+
+
+
+
+
+
+		\begin{xdefinition}{modèles similaires}
+		\label{definition_hmm_etat_similarite_1}
+		Soient deux modèles de Markov cachés $M_1$ et $M_2$, soit $\mathbf{O}=\pa{O^k} _{1\leqslant k\leqslant K}$ 
+		une suite de séquences d'observations. $M_1$ et $M_2$ sont "similaires" ou "presque équivalents" pour $\pa{O^k})_
+		{1\leqslant k\leqslant K}$ si le test	suivant est validé~:
+		
+					\begin{eqnarray*}
+					H_0  &:& \text{les distributions } \pa{ \pr{ o \sac M_1 } } _{o \in \mathbf{O}}  
+											\text{ et } \pa{  \pr{ o \sac  M_2 } }   _{o \in \mathbf{O}}  
+											\text{ sont égales}\\
+					H_1  &:& \text{les distributions } \pa{ \pr{ o \sac M_1 } } _{o \in \mathbf{O}}
+											\text{ et } \pa{  \pr{ o \sac  M_2 } }   _{o \in \mathbf{O}}  
+											\text{ sont différentes}
+					\end{eqnarray*}
+					
+		\end{xdefinition}
+
+
+
+
+
+
+		\begin{xdefinition}{états similaires}
+		\label{definition_hmm_etat_similarite_2}
+		Soit un modèle de Markov caché $M$ et $\pa{i,j}$ deux de ses états, soit 
+		$\mathbf{O}= \pa{O^k } _{1\leqslant k\leqslant K}$ une suite de séquences d'observations. 
+		$\pa{i,j}$ sont des états "similaires" ou "presque équivalents" pour $\pa{O^k}_{1\leqslant k\leqslant K}$ si 
+		le modèle $M_{ij}^{\prime}$ résultant du regroupement de $i$ et $j$ est similaire ou presque équivalent à
+		 $M$ pour $\pa{O^k }_{1\leqslant k\leqslant K}$.
+		\end{xdefinition}
+
+
+
+Avant de regrouper deux états, il convient de les choisir et le meilleure moyen de vérifier que deux modèles sont presque équivalents est de calculer la vraisemblance obtenue pour ces deux modèles sur la base de séquences d'apprentissage $\vecteur{O^1}{O^K}$. Dans le cas de grandes bases de données, il est impossible d'effectuer ce calcul pour chaque regroupement d'états possible, donc pour chaque couple d'états. Les paragraphes qui suivent proposent une méthode de sélection de ce couple à partir de calcul effectués sur le modèle initial, les propriétés décrites au paragraphe~\ref{hmm_seq_propriete_mmc} seront largement utilisées. Pour commencer, nous allons supposer que deux états sont presque similaires s'ils vérifient les quatre règles suivantes~:
+
+
+
+\begin{xdefinition}{quatre règles pour détecter les états similaires}
+\label{hmm_seq_quatre_regle}
+
+\begin{description}
+\indexfrr{test}{$\chi_2$}%
+\item[Règle 1 :] 
+					Les deux distributions de leur probabilités d'émissions 
+					$\pa{ \pr{ o \sac  x} }  _{1\leqslant o\leqslant D}$ et 
+					$\pa{ \pr{ o \sac y} }_{1\leqslant o\leqslant D}$ pour chacun de ces états sont similaires~:
+					l'hypothèse que les deux distributions sont égales est validée par un test de
+					Wilcoxon-Mann-Whitney~(\ref{hmm_selec_test_wilcoxon}).
+					\indexfrr{test}{Wilcoxon-Mann-Whitney}
+					\bigskip
+
+\item[Règle 2 :] 
+					La distribution jointe temporelle des deux états $x$ et $y$ est similaire à la distribution temporelle 
+					de l'état résultant du regroupement de ces deux états~: l'hypothèse que la distribution de l'état 
+					regroupant $x$ et $y$ est la même que la distribution jointe des deux états $x$ et $y$ est validée 
+					par un test de Kolmogorov~(\ref{hmm_selec_test_kolmogorov}).
+					\indexfrr{test}{Kolmogorov}
+					\bigskip
+
+\item[Règle 3 :] 
+					Les distributions temporelles des autres états sont peu modifiées par le regroupement des deux états 
+					$x$ et $y$~: pour chaque état différent de $x$ et $y$, l'hypothèse que la distribution de l'état dans 
+					le modèle où $x$ et $y$ ont été regroupés est la même que la distribution du même état dans le modèle 
+					de départ est validée par un test de Kolmogorov~(\ref{hmm_selec_test_kolmogorov}).
+					\indexfrr{test}{Kolmogorov}
+					\bigskip
+
+\item[Règle 4 :] 
+					Pour tout $k$, les distributions
+					
+					$$
+					\pr{ q_{t+2}=l,\, q_{t+1} \in \acc{x,y} \sac  q_t=k, \, M}  _l \text{ et } 
+					\pr{ q_{t+2}=l,\, q_{t+1}=x \sac q_t =k,\,M_{xy}^{\prime} } _l
+					$$
+
+					sont similaires, pour chaque état $k \notin \acc{i,j}$, l'hypothèse que la distribution
+					
+					$$
+					\pr{ q_{t+2} = l, \, q_{t+1} \in \acc{x,y} \sac  q_t=k,\,M}  _l
+					$$
+					
+					est la même que~:
+					
+					$$
+					\pr{ q_{t+2}=l,\,q_{t+1}=x \sac q_t=k,\,M_{xy}^{\prime} }_{l}
+					$$ 
+					
+					est validée par un test Kolmogorov~(\ref{hmm_selec_test_kolmogorov}).
+					\indexfrr{test}{Kolmogorov}
+					\bigskip
+					
+\end{description}
+\end{xdefinition}
+
+
+
+
+A chacune de ces règles correspond un test décrit dans les paragraphes suivants. Or pour appliquer ce test, il faut tenir compte de la base d'apprentissage sur laquelle ont été apprises les transitions. Il faut donc mesurer la taille des échantillons qui ont servi à estimer les distributions de probabilités nécessaires au test. Pour une séquence $O^k$, $T\pa{O^k}$ est la longueur de cette séquence, pour le modèle $M$, nous pouvons écrire :
+
+				\begin{eqnarray*}
+				\pr{ q_t=i,   O^k \sac t }  &=&  \alpha_t^k \pa{i} \, \beta_t^k \pa{i} \Longrightarrow
+				\pr{i , O^k } 		  				=  \frac{1}{T\pa{O^k}} \, \summy{t=1}{ T\pa{O^k } } \; \alpha_t^k \pa{i} \; \beta_t^k \pa{i} 
+				\end{eqnarray*}
+
+
+Par conséquent, on peut estimer la probabilité d'un état pour l'ensemble de la base d'apprentissage~:%
+
+				\begin{eqnarray}
+				P_{app}\pa{i}  &=&  \summy{k=1}{K} \; \dfrac{1}{T\pa{O^k }} \;
+													 \summy{t=1}{T \pa{O^k } } \;  \alpha_t\pa{i} \;  \beta_t \pa{i}
+				\end{eqnarray}
+
+Nous allons supposer que les quatre tests correspondant aux quatre règles sont indépendants.
+
+
+
+
+
+
+
+
+
+				\begin{xtest}{Test associé à la règle 1}
+				\indexfrr{test}{règle 1}
+				\indexfrr{test}{$\chi_2$}%
+				\label{hmm_selec_test_rg_1}
+				On note~:
+						\begin{eqnarray*}
+						p_o^{xy}	&=&	\dfrac{P_{app}\pa{x} \; \pr{ o \sac x } + P_{app} \pa{y} \pr{ o \sac y } }
+																{P_{app}\pa{x} + P_{app}\pa{y}} \\ \\
+						\end{eqnarray*}
+				\indexfrr{test}{Wilcoxon-Mann-Whitney}
+				On applique deux fois le test de Wilcoxon-Mann-Whitney entre les deux distributions 
+				$\pa{p_o^{xy}}_o$ et $\pa{\pr{ o \sac y}}_o$ et entre les deux distributions 
+				$\pa{p_o^{xy}}_o$ et $\pa{\pr{ o \sac x}}_o$.
+				
+				\end{xtest}				
+
+
+
+
+
+
+
+
+			\begin{xtest}{Test associé à la règle 2}
+			\indexfrr{test}{règle 2}
+			\indexfrr{test}{$\chi_2$}%
+			Les distributions temporelles des états $x$ et $y$ sont~:
+						$$
+						\pa{ \pr{t \sac  x } }  _{0\leqslant t<+\infty} \text { et } 
+						\pa{ \pr{t \sac  y } }  _{0\leqslant t<+\infty}
+						$$
+			La distribution temporelle de l'état résultat de leur regroupement est~:
+						$$
+						\pa{ \pr{ t \sac  \binom{x}{y} } } _{0\leqslant t<+\infty}
+						$$
+			On note également~: $P_{app}\binom{x}{y} =P_{app}\pa{x} + P_{app}\pa{y}$, on note~:
+						\begin{eqnarray*}
+						q_t^{xy} &=& \dfrac{P_{app} \pa{X} \pr{  t \sac x }  + P_{app} \pa{Y} \pr{ t \sac  y } } 
+														{P_{app} \pa{X} + P_{app} \pa{Y} } \\
+						\end{eqnarray*}
+			On applique le test de Kolmogorov\indexfrr{test}{Kolmogorov} aux deux distributions 
+			$\pa{ \pr{ t \sac  \binom{x}{y} } }_t$ et $\pa{q_t^{xy}}_t$.
+			\end{xtest}
+
+
+
+			\begin{xtest}{Test associé à la règle 3}
+			\indexfrr{test}{règle 3}
+			\indexfrr{test}{$\chi_2$}%
+			La distribution temporelle d'un état $z\notin\left\{  x,y\right\}  $ est $ \pa{ \pr{ t \sac  z } } _{0\leqslant
+			t<+\infty }$. La distribution temporelle du même état dans le modèle dans lequel les états $x$ et $y$ 
+			ont été regroupés est~:
+						$$
+						\pa{ \pr{ t \sac z,\binom{x}{y} } }  _{0\leqslant t<+\infty}
+						$$
+			On applique le test de Kolmogorov\indexfrr{test}{Kolmogorov} aux deux distributions 
+			$ \pa{ \pr{ t \sac z,\binom{x}{y} } }_t$ et $\pa{ \pr{ t \sac z } }_t$.
+			\end{xtest}
+
+
+			\begin{xtest}{Test associé à la règle 4}
+			\indexfrr{test}{règle 4}
+			\indexfrr{test}{$\chi_2$}%
+			\label{hmm_selec_test_rg_4}
+			
+			Soit un état $k\notin\left\{  x,y\right\}  $ est $\left(  \pr{ t \sac  z }  \right)  _{0\leqslant t<+\infty}$. 
+			On pose~:
+			
+						\begin{eqnarray*}
+						\forall l\in\left\{  1,...,N\right\}  ,\; q_{l} &=& \pr{ q_{t+2} =l \sac q_{t}=k,\,
+																q_{t+1}\in\left\{  x,y\right\}  ,\,M}\\
+						\forall l\in\left\{  1,...,N\right\}  ,\; p_{l} &=& \pr{ q_{t+2} =l \sac q_{t}=k,\,q_{t+1}=x,\,
+																											M_{xy}^{\prime}}
+						\end{eqnarray*}
+			On applique le test de Kolmogorov\indexfrr{test}{Kolmogorov} aux deux distributions 
+			$ \pa{ q_l }_l$ et $\pa{ p_l }_t$.
+			\end{xtest}
+			
+
+
+			
+
+
+
+		
+		
+					
+		\begin{xtest}{Test associé aux quatre règles}\label{hmm_selec_dernier_test_regroup}
+		\indexfrr{test}{règles 1,2,3,4}
+		Si les quatre tests~\ref{hmm_selec_test_rg_1} à~\ref{hmm_selec_test_rg_4} sont validés alors l'hypothèse que les
+		états $x$ et $y$ sont similaires est validée.
+		\end{xtest}
+		
+		
+
+Ce dernier test permet de savoir si deux états sont similaires ou non et qui par conséquent doivent être regroupés. Il reste à déterminer dans quel ordre les paires d'états similaires doivent être regroupées. Il est possible de classer ces paires d'états par ordre de statistique croissant (que ce soit celle de Wilcoxon-Mann-Whitney ou celle de Kolmogorov). La meilleure paire d'états est celle qui obtient les rangs les plus faibles pour chacun des tests. Comme pour la méthode de suppression des connexions, on regroupe des paires d'états tant qu'au moins une d'entre elles vérifie le test~\ref{hmm_selec_dernier_test_regroup} et on évite de regrouper trop de paires sans réestimer les paramètres du modèle entre temps.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%---------------------------------------------------------------------------------------------------------------------
+\section{Croissance de l'architecture}
+%---------------------------------------------------------------------------------------------------------------------
+\indexfrr{architecture}{décroissance}
+\indexfrr{architecture}{croissance}
+
+\label{hmm_selec_croissance_par}
+
+
+Les méthodes décroissantes se soucient peu du problème modélisé à l'inverse des méthodes croissantes, celles-ci cherchent à améliorer les performances des modèles en augmentant le nombre de coefficients qu'ils contiennent. Parmi les trois méthodes proposées, deux sont restreintes au problème de la reconnaissance de l'écriture manuscrite. L'écriture s'effectue de gauche à droite ce qui impose à tout état déjà visité de ne pas pouvoir l'être à nouveau (pas de cycle). \indexfr{cycle} De plus, afin de pouvoir utiliser efficacement des algorithmes de recherches du meilleur chemin, à chaque état d'une chaîne de Markov associée à une lettre devra correspondre une, voire quelques classes du système de classification.
+
+		\indexfr{sens gauche-droite}
+		\indexfr{Viterbi}
+
+En alternant décroissant et croissance de l'architecture des modèles (voir figure~\ref{figure_hmm_selection_croissance}), on espère que le modèle résultant de cette sélection d'architecture est optimal~: il n'existe pas d'autres modèles augmentant de manière significative la vraisemblance des observations et à vraisemblance constante, le modèle obtenu est le plus petit.
+
+		\begin{figure}[ht]
+    $$\frame{$\begin{array}[c]{c}\includegraphics[height=6cm, width=18cm] 
+    {\filext{../hmm_selec/image/hmm_arch}}\end{array}$}$$
+    \caption{Sélection de l'architecture~: croissance et décroissance.}
+    \label{figure_hmm_selection_croissance}
+		\end{figure}
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Multiplication d'états}
+\indexfr{multiplicatoin d'états}
+\indexfrr{état}{multiplication}
+
+L'architecture d'un modèle de Markov peut croître en augmentant le nombre de transitions non nulles ou augmenter le nombre d'états mais cette évolution doit conserver un modèle presque équivalent. Pour chaque architecture $A$, il est possible de définir $L_A$ la vraisemblance maximum pour cette structure. Lorsque $A$ augmente pour $A'$, alors la vraisemblance doit vérifier : $L_{A'} \supegal L_A$. Cependant, l'apprentissage de ces grands modèles peut parfois échouer à cause de nombreux maxima locaux pour lesquels $L_{A'} < L_A$. L'idée de la multiplication des états consiste à créer une architecture $A'$ équivalente à $A$, donc de même vraisemblance mais incluant plus de coefficients. De cette manière, la croissance de la vraisemblance est toujours assurée. 
+
+La multiplication d'un état $q$ consiste à ajouter au modèle d'autres états qui sont de parfaites copies de l'original~: remplacer l'état original par une de ses copies dans une séquence d'états ne change pas la probabilité conjointe de cette séquence d'états et celle des observations. La figure~\ref{figure_schema_multiplication_etat} représente l'ensemble des connexions et états impliqués dans la multiplication de l'état $q$.
+
+		\begin{figure}[ht]
+    \[\frame{$\begin{array}[c]{ccc}
+    \begin{array}[c]{c}{\includegraphics[height=1.3768in, width=2.0643in]{\filext{../dessin2/hmm_duplication_1}}}\end{array}
+    & \longrightarrow &
+    \begin{array}[c]{c}{\includegraphics[height=1.9605in, width=1.977in]{\filext{../dessin2/hmm_duplication_2}}}\end{array}
+    \end{array}
+    $}\]
+    \caption{Schéma général de multiplication d'un état.}
+    \label{figure_schema_multiplication_etat}
+		\end{figure}
+
+
+On suppose que l'état $q$ doit être multiplié $R_q$ fois. On note $\left\{ e_{1},...,e_{n}\right\} $ l'ensemble des états entrants excepté $q$ et $\left\{ s_{1},...,s_{m}\right\}  $ l'ensemble des états sortants excepté $q$. Les états d'éntrée et de sortie peuvent faire partie de ces deux ensembles.
+
+Les connexions concernées par la multiplication de l'état $q$ sont $\left(  a_{e_{i},q}\right)  _{1\leqslant i\leqslant n},a_{qq},\left(a_{q,s_{i}}\right)  _{1\leqslant i\leqslant m}$.
+\label{hmm_multiplication_notation}%
+
+Les connexions du modèle modifié sont notées~:
+
+			$$
+			\begin{array}{l}
+			\left(  a_{e_{i},q_{k}}^{\prime}\right) _{\substack{1\leqslant i\leqslant n\\
+																		1\leqslant k\leqslant R_{q}}},\left( 			a_{q_{k},q_{l}}^{\prime}\right)
+										_{_{\substack{1\leqslant k\leqslant R_{q}\\1\leqslant l\leqslant R_{q}}}},
+										\left( a_{q,s_{i}}^{\prime}\right) _{\substack{1\leqslant i\leqslant
+										m\\1\leqslant k\leqslant R_{q}}} \\ \\
+			\text{ où }\left\{ q_{1},...,q_{R_{q}}\right\} \text{ sont les } R_{q} \text{ multiplications de l'état }q.
+			\end{array}
+			$$
+
+Les probabilités d'émissions repectent les mêmes notations, celles concernées par cette modification sont $\left(  b_{q}\left( o\right) \right)_{1\leqslant o\leqslant O}.$ Les probabilités d'émissions du modèle modifié sont notées $\left(b_{q_{k}}^{\prime}\left( o\right) \right)_{\substack{1\leqslant o\leqslant O\\1\leqslant k\leqslant R_{q}}}$.
+
+
+Le modèle obtenu est équivalent au premier si les probabilités d'émissions et de transitions de la copie sont identiques à celles de l'état copié et si les probabilités de transiter vers l'état d'origine sont partagées avec sa copie. Ce principe de multiplication sera repris pour chacune des trois méthodes d'extension de l'architecture qui suivent.
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Introduction de cycles}
+\label{hmm_par_suppression_cycle}%
+\indexfrr{suppression}{cycles}%
+\indexfr{cycle}%
+
+
+\subsubsection{Principe}
+
+La longueur des séquences qu'un modèle de Markov caché doit apprendre est inconnue, on sait seulement que cette longueur est finie. Lorsqu'un modèle ne peut modéliser que des séquences limitées en longueur, la probabilité d'émission d'une séquence plus longue est nulle. Dans ces cas, les formules d'apprentissage de Baum-Welch \indexfr{Baum-Welch} ne peuvent prendre en compte l'information contenue dans ces séquences. Cette méthode de croissance consiste dans un premier temps à ajouter des états cycliques au modèle puis de réestimer ces paramètres. De cette façon, toute séquence aura une probabilité non nulle quelle que soit sa longueur. Dans un second temps, les états cycliques seront répliqués de manière à supprimer ces cycles tout en conservant leur aptitude à modéliser de longues séquences.
+
+
+Pour un état donné $i$, on note $p=\pr{ i \in cycle}$ défini en (\ref{hmm_probabilite_cycle}), on suppose que $p<1$. Dans le cas contraire, l'état est récurrent et ce cas ne peut se produire pour les modèles utilisés qui ne reconnaissent que des séquences finies d'observations. On note également $p'=1-p$ la probabilité de sortir de l'état $i$ (figure~\ref{figure_hmm_schematisation-fig}).
+
+			\begin{figure}[ht]
+	    \[\frame{$\begin{array}[c]{c}{\includegraphics[height=3cm,width=4cm]
+	    {\filext{../dessin2/hmm_etat_presque_recurrent}}}\end{array}$}\]
+	    \caption{Schématisation d'un état appartenant à un cycle.}
+	    \label{figure_hmm_schematisation-fig}
+			\end{figure}
+
+Si $p=0,9$, ceci signifie que la séquence d'états que le modèle a apprise contient $9$ transitions de cet état $i$ vers lui-même avant de transiter vers un autre état ou la sortie. Il faudrait donc multiplier l'état $i$ par $10=\frac{1}{1-0,9}$ fois. Les copies de l'état $i$ doivent suivre les deux règles suivantes~:
+
+			\begin{enumerate}
+			\item La probabilité d'appartenir à un cycle dans le modèle contenant les copies est nulle.
+			\item La probabilité de sortie des copies est identique à celle de $i$.
+			\end{enumerate}
+
+Par conséquent, si $N$ est le nombre de copies de l'état à créer, on trouve que : $\left(  1-p\right)  +N\left(  1-p\right)  =1$, d'où le nombre de copies de l'état $i$ à créer est~:
+
+			$$
+			N=\dfrac{p}{1-p}=\dfrac{\text{ce qui devrait sortir}}{\text{ce qui sort}}
+			$$
+
+Par conséquent, l'état $i$ sera multiplié un nombre de fois égal à $r_{i}$ avec~:
+
+			\begin{eqnarray}
+			\begin{array}[c]{c}%
+					r_{i}=\left\{
+			    		\begin{array}[c]{l}%
+			    		0 \text{ si } \summy{t=1}{+\infty} \; c_t^i=0 \\
+			    		\left[  \dfrac{1}{\left(  1- \pr{  i\in cycle } \right)  }\right]=
+			    						\left[  \dfrac{1}{\left(  1-\underset{t=1}{\overset{+\infty}{\sum}}c_{t}
+			    						^{i}\right)  }\right] \text{ si } \underset{t=1}{\overset{+\infty}{\sum}}c_{t}^{i}>0 \\
+			    		\text{n'est pas défini si }\underset{t=1}{\overset{+\infty}{\sum}} c_{t}^{i}=1,
+			    		\text{ dans ce cas, l'état }i\text{ est \textbf{récurrent}}%
+			    \end{array}
+			\right.
+			\end{array}
+			\end{eqnarray}
+
+
+
+
+
+
+\subsubsection{Un exemple illustration de la probabilité d'appartenir à un cycle}
+\indexfrr{exemple}{cycle}
+
+
+
+
+			\begin{figure}[ht]
+	    \[\frame{$\begin{array}[c]{c}\includegraphics[height=3cm,
+	    		 width=12cm]{\filext{../dessin2/hmm_duplication_3}}\end{array}$}\]
+	    \caption{Modèle ayant appris la séquence $0101201012$.}
+	    \label{figure_modele_exemple_cycle}
+			\end{figure}
+
+Le modèle figure~\ref{figure_modele_exemple_cycle} est un modèle qui contient deux cycles, le premier inclut les états 0 et 1, sa durée est de deux, le second inclut les états 0,1,2, sa durée est de trois. On veut calculer la probabilité pour chacun des états d'appartenir à un cycle~:
+
+			\[%
+			\begin{array}[c]{c}%
+			\frame{$%
+			\begin{array}
+			[c]{ccccccccccccccc}%
+			t & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 & 11 & 12 & 13 & 14\\
+			c_{t}^{0} & 0 & \frac{1}{2} & \frac{1}{4} & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0
+			\end{array}
+			$}\\
+			\pr{  0\in cycle }  =\frac{1}{2}+\frac{1}{4}=\frac{3}{4}%
+			\end{array}
+			\]
+
+L'état $0$ sera donc multiplié 4 fois.
+
+			\[%
+			\begin{array}[c]{c}%
+			\frame{$%
+			\begin{array}
+			[c]{ccccccccccccccc}%
+			t & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 & 11 & 12 & 13 & 14\\
+			c_{t}^{1} & 0 & \frac{1}{2} & \frac{1}{4} & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0
+			\end{array}
+			$}\\
+			\pr{ 1\in cycle}  =\frac{1}{2}+\frac{1}{4}=\frac{3}{4}
+			\end{array}
+			\]
+
+L'état $1$ sera donc multiplié 4 fois.%
+
+			\[%
+			\begin{array}[c]{c}%
+			\frame{$%
+			\begin{array}
+			[c]{ccccccccccccccc}%
+			t & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 & 11 & 12 & 13 & 14\\
+			c_{t}^{2} & 0 & 0 & \frac{1}{4} & 0 & \frac{1}{8} & 0 & \frac{1}{16} & 0 & \frac{1}{32} & 0 & 
+			\frac{1}{64} & 0 & 		\frac{1}{128} & 0
+			\end{array}
+			$}\\
+			\pr{ 3\in cycle } =\dfrac{1}{4}\underset{i=1}{\overset{+\infty}{\sum}}\frac{1}{2^{i}}=\dfrac{1}{2}%
+			\end{array}
+			\]
+
+L'état $2$ sera donc multiplié $2$ fois.
+
+Par conséquent, cette méthode estime à 10 le nombre d'états nécessaire afin d'éviter les états semi-récurrents ce qui est dans ce cas l'exacte réponse puisque la séquence que le modèle a appris contient 10 observations. Voyons maintenant comment obtenir ces états.
+
+
+
+
+
+
+
+\subsubsection{Mise en place}
+
+
+Les notations utilisées sont celles du paragraphe~\ref{hmm_multiplication_notation}. Le nouveau modèle $M'$ ne doit plus contenir de cycles, les transitions et émissions indéterminées doivent pour cela vérifier les conditions du tableau~\ref{hmm_formule_suppression_cycle}. Ces formules ne suppriment pas les cycles mais dans le cadre de la reconnaissance de l'écriture, il est peu probable qu'ils subsistent. La figure~\ref{figure_hmm_schematisation_cycle_suppression} illustre un exemple pour lequel $R_q = 3$.
+
+			\begin{table}[ht]
+	    $$
+	    \fbox{$
+	    \begin{array}{llcl}
+	    \forall k \in \intervalle{1}{R_q}, & & & \\
+	    \forall l \in \intervalle{1}{R_q}, & & & \\
+	    \forall o \in \intervalle{1}{O}, & & & \\
+	    \forall i \in \intervalle{1}{n}, & & & \\
+	    \forall j \in \intervalle{1}{m}, & & & \\
+	    & b'^{q_k}\pa{o} &=& b_q\pa{o} \\
+	    & a'_{q_k,q_l} &=& 0  \text{ si } k \supegal l \\
+	    & a'_{q_k,q_l} &=& \dfrac{\pr{q \in cycle}}{R_q - k} \text{ si } k < l \\
+	    & a'_{e_i,q} &=& 0 \text{ car l'état } q \text{ est détruit} \\
+	    & a'_{e_i,q_k} &=& \dfrac{a_{e_i,q}}{R_q} \\
+	    & a'_{q_k,s_m} &=&  \dfrac{1 - \pr{q \in cycle}}{R_q - k}
+	    \end{array}$}
+	    $$
+	    \caption{Nouvelles valeurs des coefficients lors de la suppression des cycles.}
+	    \label{hmm_formule_suppression_cycle}
+			\end{table}
+
+			\begin{figure}[ht]
+	    \[\frame{$\begin{array}[c]{c}{\includegraphics[height=4cm, width=9cm]
+	    {\filext{../dessin2/hmm_duplication_cycle_100}}}\end{array}$}\]
+	    \caption{Suppression d'un cycle de longueur trois.}
+	    \label{figure_hmm_schematisation_cycle_suppression}
+			\end{figure}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Association d'un état à une classe d'observations}
+\label{hmm_par_association_etat_classe}
+\indexfrr{état}{association}%
+
+
+\subsubsection{Principe}
+
+
+Nous avons vu que la probilité d'émission d'une observation sachant un état s'exprime comme une somme de probabilités incluant celles d'appartenance d'un graphème à chacune des classes de sortie du réseau de neurones ou d'un autre classifieur\seeannex{hmm_sec_rn_obs_cont}{réseau de neurones}. L'objectif est de réduire cette somme complexe afin de limiter les temps de calcul. Plutôt que d'avoir un état susceptible d'émettre des observations appartenant à plusieurs classes différentes, il est préférable d'avoir plusieurs états chacun capable d'émettre des observations n'appartenant qu'à une seule classe (figure~\ref{figure_hmm_architecture_exemple-fig}).
+
+
+			\begin{figure}[ht]
+	    $$\fbox{$
+	    \begin{array}{ccc}%
+	    {\includegraphics[height=4cm, width=8cm]{\filext{../dessin2/hmm_association_etat_obs_ex1}}} & &
+	    {\includegraphics[height=6cm, width=7cm]{\filext{../dessin2/hmm_association_etat_obs_ex2}}} \\
+	    M_1 & & M_2
+	    \end{array}$}
+	    $$
+	    \caption{	Deux modèles équivalents d'architectures différentes. Dans les deux cas, les deux séquences
+	    					d'observations
+	    					constituées chacunes d'un seul 0 ou d'un seul 1 autant probables avec l'un ou l'autre
+	    					des modèles. Le second modèle, en associant états et observations sans ambiguïtés, est plus lisible. 
+	    					Il permet
+	    					de mieux "décoder" la séquence par un alignement Viterbi.}
+	    \label{figure_hmm_architecture_exemple-fig}
+	    \indexfrr{exemple}{un état, une observation}
+	    \indexfrr{Viterbi}{alignement}
+			\end{figure}
+
+
+
+Considérons les deux chaînes de Markov cachées $M_{1}$ et $M_{2}$ représentées par la figure~\ref{figure_hmm_architecture_exemple-fig}. On note $O_{0}$ la séquence $\left(  0\right)  $ (une seule observation) et $O_{1}$ la séquence $\left(  1\right)  $ (une seule observation également), on obtient que~:
+
+			$$
+			\pr{ O_{0} \sac M_{1} } = \pr{ O_{0} \sac M_{2} }  = \pr{ O_{1} \sac  M_{1}}  =
+			\pr{ O_{1} \sac M_{2} } = 0,5
+			$$
+
+Cependant, lors d'un alignement Viterbi, le modèle $M_{1}$ retournera le même chemin pour les deux séquences $O_{0}$ et $O_{1}$ alors que le modèle $M_{2}$ retournera deux chemins différents, donc plus d'information. C'est une raison pour laquelle il est préférable que les probabilités d'émission d'un état soient centrées autour d'une seule classe d'observations. Cette association entre état et classe nécessite de dupliquer des états pour obtenir des modèles équivalents. On cherche donc à multiplier les états $i$ pour lesquels $o\neq o^{\prime},\,b_{i}\left(  o\right)  $ et $b_{i}\left(  o^{\prime}\right)$ sont du même ordre.
+
+Soient $K$ séquences d'observations notées $O=\vecteur{O^1}{O^K}$ avec $O^k = \vecteur{O^k_1}{O^k_{T_k}}$. On définit la probabilité $P_{in} = \pr{C_n | q_t = i, O}$ la probabilité de la classe $n$ sachant l'état $i$~:
+
+			\begin{eqnarray}
+			P_{in} 	&=& \summy{k=1}{K} \; \summy{t=1}{T_k} \; \pr{C_n | q_t = i, O^k} \pr{q_t = i, O^k} \nonumber \\
+							&=& \summy{k=1}{K} \; \summy{t=1}{T_k} \; \indicatrice{O^k_t = C_n} \alpha_t^k\pa{i} \beta_t^k\pa{i} 
+											\; \text{ pour des observations discrètes}\\
+							&=& \summy{k=1}{K} \; \summy{t=1}{T_k} \; 
+												\dfrac{\pr{O^k_t | C_n} \pr{C_n |q_t = i}}
+															{\summyone{l} \;\pr{O^k_t | C_l}\pr{C_l |q_t = i}} \;
+															\alpha_t^k\pa{i} \beta_t^k\pa{i} \; 
+															\text{ pour des observations continues}
+			\end{eqnarray}
+
+On définit pour $s \in \cro{0,1}$, $S_i^s$ est l'ensemble~:
+
+			\begin{eqnarray}
+			S_i^s = \min \acc{ n  \left |   \dfrac{ P_{in} } { \underset{k}{\max} \; P_{ik} } \supegal s \right. }
+			\end{eqnarray}
+
+
+
+
+
+
+
+\subsubsection{Mise en place}
+
+
+Si l'ensemble $S_i^s = \vecteur{S_i^s\pa{1}}{S_i^s\pa{N_i^s}}$ contient plus d'un élément, alors il sera multiplié selon les règles du tableau~\ref{hmm_formule_suppression_emission}. La figure~\ref{figure_hmm_schematisation_emission_association} illustre un exemple pour $N_i^s = 3$.
+
+			\begin{table}[ht]
+	    $$
+	    \fbox{$
+	    \begin{array}{llcl}
+	    \forall k \in \intervalle{1}{N_i^s}, & & & \\
+	    \forall l \in \intervalle{1}{N_i^s}, & & & \\
+	    \forall o \in \intervalle{1}{O}, & & & \\
+	    \forall i \in \intervalle{1}{n}, & & & \\
+	    \forall j \in \intervalle{1}{m}, & & & \\
+	    & b'^{q_k}\pa{o} &=& \indicatrice{o = S_i^s\pa{k}} \\
+	    & a'_{q_k,q_l} &=& 0  \text{ si } k \neq l \\
+	    & a'_{q_k,q_l} &=& a_{q,q} \text{ si } k = l \\
+	    & a'_{e_i,q} &=& 0 \text{ car l'état } q \text{ est détruit} \\
+	    & a'_{e_i,q_k} &=& a_{e_i,q} \\
+	    & a'_{q_k,s_m} &=&  a_{q,s_m}
+	    \end{array}$}
+	    $$
+	    \caption{Nouvelles valeurs des coefficients lors de l'association d'un état à une classe}
+	    \label{hmm_formule_suppression_emission}
+			\end{table}
+
+			\begin{figure}[ht]
+	    \[\frame{$\begin{array}[c]{c}{\includegraphics[height=6cm,width=8cm]
+	    {\filext{../dessin2/hmm_duplication_emission_100}}}\end{array}$}\]
+	    \caption{Multiplication des états pour les associer à une classe}
+	    \label{figure_hmm_schematisation_emission_association}
+			\end{figure}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Transitions d'ordre supérieur à un}
+\label{hmm_par_transition_ordre_un}%
+\indexfrr{état}{ordre}%
+\indexfrr{transition}{ordre}%
+%\citeindex{Dupré}%
+
+
+
+
+
+
+
+
+\subsubsection{Principe}
+
+
+
+Le théorème~\ref{theoreme_equivalence_cachee} a montré qu'un modèle d'ordre $n$ est équivalent à un modèle d'ordre un contenant un plus grand nombre d'états. Il est alors possible de définir pour chaque ordre $n$, un nombre d'états $D_n$ correspondant au nombre minimal d'états d'une chaîne de Markov cachée d'ordre $n$ ayant appris un ensemble de séquences d'observations. Etant donné que les modèles utilisés lors de la reconnaissance de l'écriture sont tous d'ordre un, que se passe-t-il si celui trouvé grâce à la méthode
+présentée au paragraphe~\ref{selection_architecture_chaine_MMC} possède un nombre d'états strictement inférieur à $D_1$ ? Ce paragraphe propose une méthode pour déceler ce cas.
+
+Elle est fondée sur l'idée que le modèle appris $M$ ayant $N$ états n'en contient pas assez et que le modèle optimal ayant ce même nombre d'états $N$ est d'ordre supérieur à un. On note $O = \vecteur{O^1}{O^K}$ l'ensemble des séquences que le modèle a apprises avec $\forall k, \; O_k = \vecteur{O_1^k}{O_{T_k}^k}$, on note $S$ l'ensemble des séquences d'états et $s = \vecteur{q_1}{q_T}$ une séquence d'états de longueur $T$, $\overline{q_t} = \vecteur{q_1}{q_t}$. Il s'agit donc de vérifier que~:
+
+			$$
+			\forall s \in S, \; \pr{q_t \; | \; q_{t-1}, O, M} = \pr{q_t \; | \; \overline{q_{t-1}}, O, M}
+			$$
+
+Afin de simplifier cette tâche, on pose $d \supegal 2$ pour vérifier que~:
+
+			\begin{eqnarray*}
+			\pr{q_t \; | \; q_{t-1}, O, M} &=& \pr{q_t \; | \; \vecteurno{q_{t-1}}{q_{t-d}}, O, M} \\
+			&=& \pr{q_t \; | \; q^{t-1}_{t-d}, O, M}
+			\end{eqnarray*}
+
+Par conséquent, si $i$ et $j$ sont fixés, la probabilité $\pr{q_t = j \; | \; q_{t-1} = i, \vecteurno{q_{t-2}}{q_{t-d}}, O, M}
+$ doit être constante et c'est cette hypothèse qui sera testée. Au préalable, comme $M$ est supposé être d'ordre un, ses probabilités de transition sont notées~:
+
+			\begin{eqnarray}
+			\pa{a_{ij}}_{ \begin{subarray}{c} 1 \infegal i \infegal N \\ 1 \infegal j \infegal N \end{subarray}} =
+			\pa{\pr{q_t = j \; | \; q_{t-1} = i,M}}_
+					{ \begin{subarray}{c} 1 \infegal i \infegal N \\ 1 \infegal j \infegal N \end{subarray}}%
+			\end{eqnarray}
+
+Et on définit l'ensemble $S_{ij}^d$ de séquences d'états de probabilités non nulles menant aux états $i$ et $j$~:
+
+			\begin{eqnarray}
+			\begin{array}{c}
+			S_{ij}^d = \accolade{ \vecteur{q_1}{q_{d+1}} \; \left| \; {
+			                    \begin{array} {l} q_d = i, q_{d+1} = j \text{ et } \\ 
+			                    			\pr{\vecteurno{q_1}{q_{d+1}}  | M} > 0 \end{array}} \right.} \medskip \\
+			\text{où } \pr{ \vecteurno{q_1}{q_{d+1}} | M} = \prody{t=1}{d} a_{q_t q_{t+1}}
+			\end{array}
+			\end{eqnarray}
+			
+Les élements $S_{ij}^d$ sont notés $S_{ij}^d = \accolade { \vecteurno{s_1^{ij}}{s^{ij}_{m_{ij}^d}}}$ et $s_n^{i}$ est la séquence $s_n^{ij}$ privée de l'état indice $d+1$. On note le vecteur $V_{ij}^d = \vecteur {V_{ij}^d \pa{1}} {V_{ij}^d \pa{m_{ij}^d}}$ défini par~: 
+
+			\begin{eqnarray}
+			\forall n, \;
+			\begin{array}{c}
+			V_{ij}^d \pa{n} = \left \{
+             \begin{array}{l}
+             0 \text{ si }\summy{k=1}{K} \summy{t = d+1}{T_k} \pr{ q^{t}_{t-d} = s_n^{i} \; | \; O^k, M} = 0 \\ \\
+            \dfrac { \summy{k=1}{K} \summy{t = d+1}{T_k-1} \pr{ q^{t+1}_{t-d} = s_n^{ij} \; | \; O^k, M}}
+            { \summy{k=1}{K} \summy{t = d+1}{T_k} \pr{ q^{t}_{t-d} = s_n^{i} \; | \; O^k, M}}
+            \text{ sinon}
+            \end{array}
+            \right.
+			\end{array}
+			\end{eqnarray}
+
+Si le modèle $M$ est supposé être d'ordre un alors les éléments du vecteur $V_{ij}^d$ sont tous identiques, il vérifie donc~:
+
+			\begin{eqnarray}
+			\forall n \in \intervalle {1}{m_{ij}^d}, \; 
+			\dfrac{V_{ij}^d \pa{n}}{\summy{n=1}{m_{ij}^d} V_{ij}^d\pa{n}} = \dfrac{1}{m_{ij}^d}
+			\end{eqnarray}
+
+Le vecteur $V_{ij}^d$ est donc l'estimation des paramètres d'une loi multinomiale de dimension $m_{ij}^d$ dont la distribution attendue est uniforme. On construit ainsi la statistique de test suivante~:
+
+			\begin{eqnarray}
+			\begin{array}{c}
+			X_{ij}^d = K_{ij} \summy{n=1}{m_{ij}^d} m_{ij}^d 
+								\crochet{\dfrac{V_{ij}^d \pa{n}}{\summy{n=1}{m_{ij}^d} V_{ij}^d\pa{n}} - \dfrac{1}{m_{ij}^d}}^2
+			\\ \\
+			\text{avec } K_{ij} = \summy{k=1}{K} \summy{t = 2}{T_k} \pr{q_t = j, q_{t-1} = i | O^k, M}
+			\end{array}
+			\end{eqnarray}
+
+Pour chaque transition, on effectue le test suivant~:
+
+			\begin{description}
+			\indexfrr{test}{$\chi_2$}%
+			\item[\quad Hypothèse 0 :] 
+			La transition de l'état $i$ vers l'état $j$ à l'instant $t$ ne dépend que de l'état $i$ ou des états aux instants $t-d-1$ et
+			antérieurs.
+			\item[\quad Hypothèse 1 :] 
+			La transition de l'état $i$ vers l'état $j$ à l'instant $t$ dépend des états aux instants compris entre $t-1$ et $t-d$.
+			\end{description}
+
+Si l'hypothèse nulle est vraie, alors $X_{ij}^d$ suit une une loi $\chi_2$ à $\left.m_{ij}^d-1 \right.$ degrés de liberté\footnote{
+Soit une variable aléatoire $X \in \ensemble{1}{N}$. L'estimation de sa distribution réalisée à partir d'un échantillon de $T$ exemples indépendants et de même loi. On suppose que la distribution empirique de $X$ est $\vecteur{p_1}{p_N}$. On veut tester si $X$ suit la loi multinomiale de distribution $\vecteur{q_1}{q_N}$. On calcule $d^2 = T \; \summy{i=1}{N} \; \frac{ \pa{p_i - q_i}^2 } {q_i} $. Sous l'hypothèse que $X$ suit la loi multinomiale de distribution $\vecteur{q_1}{q_N}$, la loi limite de $d^2$ lorsque $T \longrightarrow + \infty$ est une loi $\chi^2_{N-1}$ à $N-1$ degrés de liberté (voir \citeindex{Saporta1990}).
+}. Si~$t_\alpha$ vérifie $\pr{X_{ij}^d \infegal t_\alpha} = \alpha$, ceci nous permet de définir l'ordre $Or_{ij}^\alpha$ de la transition $i \longrightarrow j$ comme étant~:
+
+			\begin{eqnarray}
+			Or_{ij}^{\alpha} = \left \{%
+			        \begin{array}{l}
+			        1 \text{ si } \forall d \supegal 2, \; X_{ij}^d \infegal t_{\alpha} \medskip\\
+			        \min \acc{d \supegal 2 \; | \; X_{ij}^d \infegal t_{\alpha}} \text{ sinon}
+			        \end{array} \right.
+			\end{eqnarray}
+
+Si le modèle $M$ est effectivement d'ordre un, pour chaque transition $i \longrightarrow j$, et pour chaque $d$, l'hypothèse nulle de ce test doit être validée. Cette méthode est applicable dans le domaine de la reconnaissance de l'écriture car~:
+
+			\begin{enumerate}
+			\item Les modèles ne contiennent pas de cycle (la probabilité de transiter d'un état vers un autre déjà visité est nulle).
+			\item Les séquences sont courtes (une dizaine de d'observations), donc la valeur maximale de $d$ est petite.
+			\item Le nombre d'états des modèles est de l'ordre de quelques dizaines.
+			\end{enumerate}
+			
+Pour ces trois raisons, ce test est applicable aux modèles utilisés pour la reconnaissance de l'écriture avec un temps de calcul raisonnable.
+
+
+
+
+
+
+
+\subsubsection{Exemple}
+\indexfrr{exemple}{transition d'ordre un}
+
+
+Les classes d'observations possibles sont cette fois-ci l'ensemble $\acc{0,1,2,3}$ et le modèle $M_3$ doit apprendre les séquences "020", "121", "021", "120", "323", "321", chacune d'elles dix fois. Le modèle $M_3$ obtenu en appliquant la méthode de sélection des transitions est représenté figure~\ref{figure_exemple_modele_six}. Les statistiques de tests obtenus pour les transitions $4 \longrightarrow 5$, $4 \longrightarrow 6$, $4\longrightarrow 7$ sont précisés dans le tableau~\ref{tableau_exemple_test_trois}.
+
+			\begin{figure}[ht]
+    	$$\frame{$\begin{array}[c]{c}\includegraphics[height=6cm, width=9cm] 
+    	{\filext{../dessin2/article_dessin_6}}\end{array}$}$$
+    	\caption{Modèle $M_3$ obtenu après suppression des transitions faibles.}
+    	\label{figure_exemple_modele_six}
+			\end{figure}
+
+			\begin{table}[ht]
+	    $$\fbox{$
+	    \begin{array}{ccccc}
+	    \text{transition }  & m_{ij}^3  & K_{ij}    & X_{ij}^3 &  t | \pr{X_{ij}^3 \infegal t} = 0,95\\
+	    4 \longrightarrow 5 & 3         & 20        & 10 & 8,15  \\
+	    4 \longrightarrow 6 & 3         & 30        & 0  & 8,15  \\
+	    4 \longrightarrow 7 & 3         & 10        & 16,7 & 8,15  \\
+	    \end{array}
+	    $}$$
+	    \caption{Statistiques de test pour le modèle $M_3$.}
+	    \label{tableau_exemple_test_trois}
+			\end{table}
+
+Le remède le plus simple apporté au modèle lorsqu'est détectée une transition d'ordre supérieur à un est de créer des états. Si l'estimation de l'ordre de la transition $i \longrightarrow j$ est $d \supegal 2$, alors les états $i$ et tous ceux qui peuvent l'atteindre en $d-2$ transitions au plus sont dupliqués selon les règles (\ref{hmm_transition_regle_un}) à (\ref{hmm_transition_regle_fin}).
+
+Le modèle est ensuite réappris et converge vers le modèle $M_4$ (figure~\ref{figure_exemple_modele_sept}) pour lequel les statistiques de tests sont toutes nulles. Dans ce cas simple, le modèle $M_4$ est optimal pour les séquences d'observations qu'il doit apprendre comme le confirme le tableau~\ref{tableau_exemple_test_quatre}.
+
+			\begin{figure}[ht]
+    	$$\frame{$\begin{array}[c]{c}\includegraphics[height=6cm, width=9cm]
+    	 {\filext{../dessin2/article_dessin_7}}\end{array}$}$$
+    	\caption{Modèle $M_4$ finalement obtenu.}
+    	\label{figure_exemple_modele_sept}
+			\end{figure}
+
+			\begin{table}[ht]
+	    $$\fbox{$
+	    \begin{array}{ccc}
+	    \begin{array}{c} \textbf{séquences } \\ \textbf{d'observations} \end{array}  
+	    & \mathbf{\pr{O |M_3}} & \mathbf{\pr{O |M_4}} \\
+	    020 &  1 /  9     & 1/6 \\
+	    021 &  1 /  6     & 1/6 \\
+	    120 &  1 /  9     & 1/6 \\
+	    121 &  1 /  9     & 1/6 \\
+	    321 &  1 /  9     & 1/6 \\
+	    323 &  1 /  18    & 1/6 \\
+	    \textbf{somme} & 14 /  18  & 1 \\ \\
+	    \begin{array}{c} \textbf{séquences } \\ \textbf{non apprises} \end{array}  & \mathbf{\pr{O |M_3}} 
+	    & \mathbf{\pr{O |M_4}} \\
+	    023 &  1 / 18     & 0\\
+	    123 &  1 / 18     & 0\\
+	    320 &  1 / 9      & 0\\
+	    \textbf{somme} & 4 / 18    & 0
+	    \end{array}
+	    $}$$
+	    \caption{Probabilités des séquences $M_3$ et $M_4$.}
+	    \label{tableau_exemple_test_quatre}
+			\end{table}
+
+
+
+
+
+
+
+\subsubsection{Justification}
+
+Soit $M$ une chaîne de Markov cachée à $N$ états ne contenant pas de cycle. On note $\pa{A_{ij}}_{\begin{subarray}{c} 1 \infegal i \infegal N \\1 \infegal j \infegal N \end{subarray}}$ sa matrice de transition. Soit $u \in \intervalle{1}{N}$. On note $A^u = \acc{i | a_{iu} > 0}$ et $B^u = \acc{ j | a_{uj} > 0}$. $A^u$ et $B^u$ sont l'ensemble des prédécesseurs et des successeurs de l'état $k$. On suppose également que ni l'état de sortie, ni l'état d'entrée n'appartiennent à ces deux ensembles (voir figure~\ref{figure_exemple_modele_huit}). La chaîne de Markov cachée a appris les séquences $O = \vecteur{O^1}{O^K}$ avec $\forall k \in \intervalle{1}{K}, \; O^k =\vecteur{O_1^k}{O_{T_k}^k}$.
+
+			\begin{figure}[ht]
+    	$$\frame{$\begin{array}[c]{c}\includegraphics[height=3.5cm, width=6cm] {\filext{../dessin2/article_dessin_8}}\end{array}$}$$
+    	\caption{Modèle $M$ initial}
+    	\label{figure_exemple_modele_huit}
+			\end{figure}
+
+On construit la chaîne de Markov $M'$ contenant $N+1$ d'états, $\pa{a'_{ij}}_{\begin{subarray}{c} 1 \infegal i \infegal N \\1 \infegal j \infegal N \end{subarray}}$ sont ses probabilités de transition. Les probabilités d'émissions de l'état $N+1$ sont les mêmes que celles de l'état $u$, de plus pour $x \in B^u$, on a (voir figure ~\ref{figure_exemple_modele_neuf})~:
+
+			\begin{eqnarray}
+			a'_{ij} &=& a_{ij} \text{ si } i \neq u \text{ et } j \neq u \label{hmm_transition_regle_un}\\
+			a'_{iu} &=& a_{iu} \pa{1 - a_{ux}}  \\
+			a'_{i,N+1} &=& a_{iu} a_{ux} \\
+			a'_{ui} &=& \frac{a_{ui}}{1 - a_{ux}} \\
+			a'_{ux} &=& a'_{u,N+1} = a'_{N+1,u} = 0 \\
+			a'_{N+1,i} &=& 0 \text{ si } i \neq x \\
+			a'_{N+1,x} &=& 1  \label{hmm_transition_regle_fin}
+			\end{eqnarray}
+
+			\begin{figure}[ht]
+    	$$\frame{$\begin{array}[c]{c}\includegraphics[height=4cm, width=6cm] {\filext{../dessin2/article_dessin_9}}\end{array}$}$$
+    	\caption{Modèle $M'$ dérivé de $M$}
+    	\label{figure_exemple_modele_neuf}
+			\end{figure}
+	
+
+Il est évident que : $\forall k, \; \pr{O^k|M} = \pr{O^k|M'}$. Comme le modèle $M$ a appris les séquences d'observations $\vecteur{O^1}{O^K}$, on note $P_k^M = \pr{O^k |M}$, alors (\citeindex{Levinson1983})~:
+
+			\begin{itemize}
+			\item la vraisemblance $L\pa{O,M}$ est maxiumum
+			\item $a_{iu} = \overline{a_{iu}} = \dfrac { \summy{k=1}{K} \summy{t = 2}{T_k} \pr{q_t = u, q_{t-1} = i | O^k, M}}
+			                                                    {\summy{k=1}{K} \summy{t = 1}{T_k} \pr{q_t = i | O^k, M}}$
+			\end{itemize}
+
+On suppose maintenant que $X_{uv}^3 > 0$, la réestimation du coefficient $a'_{i,N+1}$ par les formules de Baum-Welch donne~:
+
+			\begin{eqnarray*}
+			\overline{a'_{i,N+1}} &=& \dfrac { \summy{k=1}{K} \summy{t = 2}{T_k} \pr{ \left.
+			                                            \begin{subarray}{l}
+			                                            q_t = N+1 \\
+			                                            q_{t-1} = i
+			                                            \end{subarray}
+			                                            \right | O^k, M'}}
+			                                    {\summy{k=1}{K} \summy{t = 1}{T_k} \pr{q_t = i | O^k, M'}} \\
+			\overline{a'_{i,N+1}} &=& \dfrac { \summy{k=1}{K} \summy{t = 2}{T_k-1} \pr{ \left.
+			                                            \begin{subarray}{l}
+			                                            q_{t+1} = x \\
+			                                            q_t = u \\
+			                                            q_{t-1} = i
+			                                            \end{subarray}
+			                                            \right | O^k, M}}
+			                                    {\summy{k=1}{K}  \summy{t = 1}{T_k} \pr{q_t = i | O^k, M}} \\
+			\overline{a'_{i,N+1}} &=& \overline{a_{iu}}\;  \dfrac { \summy{k=1}{K} \summy{t = 2}{T_k-1} \pr{ \left.
+			                                            \begin{subarray}{l}
+			                                            q_{t+1} = x \\
+			                                            q_t = u \\
+			                                            q_{t-1} = i
+			                                            \end{subarray}
+			                                            \right | O^k, M}}
+			                                   { \summy{k=1}{K} \summy{t = 2}{T_k} \pr{ \left.
+			                                            \begin{subarray}{l}
+			                                            q_t = u \\
+			                                            q_{t-1} = i
+			                                            \end{subarray}
+			                                            \right | O^k, M}}
+			\end{eqnarray*}
+
+Si $X^3_{ux} > 0$, alors $\exists i \in A^u$ tel que : $\frac{\overline{a'_{i,N+1}}}{a_{iu}} \neq a_{ux}$. Par conséquent, après une itération de l'algorithme Baum-Welch, $L\pa{\vecteurno{O^1}{O^K},M'} > L\pa{\vecteurno{O^1}{O^K},M}$. En revanche, si $X^3_{ux} = 0$, la vraisemblance de ce modèle ne sera pas augmentée, cette remarque laisse supposer que la réciproque est vraie. Cette démonstration peut être étendue au cas $d > 2$ en supposant que : $ \forall d' < d, \; X^{d'}_{ux} = 0$.
+
+
+
+
+\subsubsection{Mise en pratique}
+
+
+Celles-ci sont énoncées par les régles (\ref{hmm_transition_regle_un}) à (\ref{hmm_transition_regle_fin}) dans le cas où $d=2$. Dans le cas où $d>2$, plusieurs états doivent être dupliqués, soit l'ensemble $D_u$ suivant~:
+
+			$$
+			D_u = \biggacc{q \text{ tels que } \exists d' \in \intervalle{1}{d-2}, \; \pr{q_t | q_{t-d'}} > 0}
+			$$
+
+Chaque état de l'ensemble $D_u$ va être dupliqué, on note $q$ un élément de $D_u$ et $\overline{q}$ sa copie, $E_u$ est le complémentaire de $D_u$. Les règles de mise à jour des coefficients sont données par le tableau~\ref{hmm_selec_pratique_ordre}.
+
+			\begin{table}
+			$$
+			\fbox{$
+			\begin{array}{rlcl}
+			\forall q \in D_u, &&&\\
+			\forall q_2 \in D_u, &&&\\
+			\forall p \in E_u, &&& \\
+			\forall p_2 \in E_u, &&& \\
+			& a'_{q \, q_2}                                         & = & a_{q \, q_2} \text{ si } q \neq u \text{ et } 
+																																		q_2 \neq u\\
+			& a'_{q \, q_2}                                         & = & \dfrac{a_{u \, q_2}}{1 - a_{u \, i}} 
+																																			\indicatrice{q_2 = i} \text{ si } q = u \\
+			& a'_{\overline{q} \, \overline{q_2}}                   & = & a_{q \, q_2} \text{ si } \overline{q} \neq u 
+																																			\text{ et } \overline{q_2} \neq u \\
+			& a'_{\overline{q} \, \overline{q_2}}                   & = & \indicatrice{q_2 = i} \text{ si } q = u \\
+			& a'_{\overline{q} \, q_2}                              &=& 0 \\
+			& a'_{q \, \overline{q_2}}                              &=& 0 \\
+			& a'_{p \, p_2}                                         & = & a_{p \, p_2} \\
+			& a'_{p \, q_2}                                         & = & \pa{1 - a_{u \, i}} a_{p \, q_2} \\
+			& a'_{p \, \overline{q_2}}                              & = & a_{u \, i} a_{p \, q_2} \\
+			& a'_{q \, p_2}                                         & = & a_{q \, p_2} \\
+			& a'_{\overline{q} \, p_2}                              & = & a_{q \, p_2}
+			\end{array}
+			$}
+			$$
+			\caption{Règles associées à l'ajout d'un état dans un modèle afin de diminuer l'ordre des transitions.}
+			\label{hmm_selec_pratique_ordre}
+			\end{table}
+
+
+
+Cette méthode est néanmoins assez coûteuse en calcul même si, dans le cas de la reconnaissance de l'écriture manuscrite, les valeurs de $d$ n'excède pas 3 ou 4.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%------------------------------------------------------------------------------------------------------------------
+\section{Sélection automatique de l'architecture}
+%------------------------------------------------------------------------------------------------------------------
+
+
+L'objectif de la reconnaissance de l'écriture est de trouver des modèles de Markov cachés modélisant au mieux un ensemble de séquences finies et il n'est pas toujours possible de connaître le nombre d'états cachés nécessaires à cette modélisation. Jusqu'à présent, ce nombre d'états a toujours été fixé et toutes les transitions d'un état à un autre sont possibles. Dans le cas de l'exemple du joueur trichant à l'aide de pièce de monnaie truquée ou non truquée (paragraphe~\ref{chaine_markov_cachee_exemple}, page~\pageref{chaine_markov_cachee_exemple}), cela suppose que le nombre de pièces différentes qu'il posséde est connu, ce qui peut ne pas être le cas.
+
+Les six méthodes d'évolution de l'architecture présentées dans les paragraphes précédents sont agencées de manière à former un algorithme de sélection d'architecture. Il alterne période de croissance et décroissance jusqu'à ce que les performances se stabilisent.
+
+\indexfrr{coefficients}{nuls}
+Après une modification de structure, il est nécessaire de réestimer les paramètres des modèles. Cette étape est assurée par l'algorithme~\ref{hmm_algorithme_baumwelch}. Les paramètres nuls insérés lors de la modification de la structure ne doivent pas non plus le rester, il suffit d'appliquer l'astuce décrite au paragraphe~\ref{hmm_apprentissage_ameliore}.
+
+
+
+			\begin{xalgorithm}{sélection d'architecture}
+			\indexfrr{architecture}{sélection}
+			
+			\begin{xalgostep}{initialisation}
+			Le point de départ peut être soit un modèle réduit à un état cyclique capable d'émettre toutes les classes 
+			d'observations ou alors un modèle exhaustif comprenant suffisamment de connexions pour modéliser la majorité 
+			des séquences d'observations qu'il doit apprendre. Ces deux initialisations sont schématisées par la
+			figure~\ref{figure_hmm_selection_croissance}. Dans le cas de la reconnaissance de l'écriture, la seconde 
+			solution semble meilleure et c'est d'ailleurs celle préconisée par \citeindex{Augustin2001} (voir
+			paragraphe~\ref{hmm_selec_augustin}). Après l'estimation ce modèle exhautif, l'initialisation se poursuit 
+			par une suppression des connexions inutiles.
+			\end{xalgostep}
+			
+			\begin{xalgostep}{introduction de cycle}
+					\label{hmm_selec_etape_A_selec}
+					\begin{enumerate}
+					\item utilisation de la méthode introduisant des états cycliques
+					\item réestimation
+					\item à nouveau, suppression des connexions inutiles
+					\item réestimation
+					\end{enumerate}
+			\end{xalgostep}		
+			
+			\begin{xalgostep}{un état, une classe d'observation}
+					\begin{enumerate}
+					\item utilisation de la méthode associant à chaque état une seule classe d'observation
+					\item réestimation
+					\item à nouveau, suppression des connexions inutiles
+					\item réestimation
+					\end{enumerate}
+			\end{xalgostep}		
+
+			\possiblecut
+
+			
+			\begin{xalgostep}{étape facultative : réduction de l'ordre des transition}
+					\label{hmm_selec_etape_C_selec_fac}
+					\begin{enumerate}
+					\item utilisation de la méthode réduisant l'ordre des transitions
+					\item réestimation
+					\item à nouveau, suppression des connexions inutiles
+					\item réestimation
+					\end{enumerate}
+			\end{xalgostep}		
+			
+			\begin{xalgostep}{terminaison}
+			Tant que les performances s'améliorent, on retourne à l'étape~\ref{hmm_selec_etape_A_selec}, sinon, 
+			l'algorithme s'arrête. Les résultats peuvent être affinés en utilisant le regroupement d'états similaires 
+			suivi d'une réestimation.
+			\end{xalgostep}
+			
+			\end{xalgorithm}
+			
+
+\begin{xremark}{sélection dans le cadre de la reconnaissance}
+L'étape~\ref{hmm_selec_etape_C_selec_fac} est facultative car trop coûteuse comparée au gain en performances en ce qui concerne la reconnaissance de l'écriture. Il en est de même pour la méthode de regroupement des états similaires dont le coût est très élevé pour le nombre de connexions supprimées comparé à la méthode simple de suppression des connexions.
+\end{xremark}
+			
+			
+			
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\firstpassagedo{
+	\begin{thebibliography}{99}
+	\input{hmm_select_bibliographie.tex}
+	\end{thebibliography}
+}
+
+
+\input{../../common/livre_table_end.tex}
+\input{../../common/livre_end.tex}

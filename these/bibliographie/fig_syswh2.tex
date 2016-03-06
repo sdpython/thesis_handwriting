@@ -1,0 +1,83 @@
+\input{../../common/figure_begin.tex}%
+
+
+\begin{picture}(420,200)(0,0)
+\put(190,185)		{\framebox(80,12)[c]{\tiny image d'un mot}}
+
+\put(140,173)		{\vector(0,-1){15}}
+\put(230,173)		{\vector(0,-1){15}}
+\put(320,173)		{\vector(0,-1){15}}
+\put(140,173)		{\line(1,0){180}}
+\put(230,185)		{\line(0,-1){12}}
+
+\put(100,145)		{\framebox(80,12)[c]{\tiny 1$^{\text{er}}$ prétraitement}}
+\put(190,145)		{\framebox(80,12)[c]{\tiny i$^{\text{ème}}$ prétraitement}}
+\put(280,145)		{\framebox(80,12)[c]{\tiny n$^{\text{ème}}$ prétraitement}}
+
+\multido{\i=2+4}{102}{ \put(\i,180) {\line(1,0){2}}}
+
+\put(0,165)		{\makebox(95,12)[r]{\tiny binarisation, nettoyage}}
+\put(0,155)		{\makebox(95,12)[r]{\tiny correction de l'inclinaison}}
+\put(0,145)		{\makebox(95,12)[r]{\tiny estimation des lignes d'appui}}
+\put(0,135)		{\makebox(95,12)[r]{\tiny segmentation graphème}}
+
+\multido{\i=2+4}{102}{ \put(\i,130) {\line(1,0){2}}}
+
+\put(100,95)		{\framebox(80,12)[c]{\tiny 1$^{\text{er}}$ caractéristiques}}
+\put(190,95)		{\framebox(80,12)[c]{\tiny i$^{\text{ème}}$ caractéristiques}}
+\put(280,95)		{\framebox(80,12)[c]{\tiny n$^{\text{ème}}$ caractéristiques}}
+
+\put(140,145)		{\vector(0,-1){37}}
+\put(230,145)		{\vector(0,-1){37}}
+\put(320,145)		{\vector(0,-1){37}}
+\put(140,125)		{\line(1,0){180}}
+
+%\put(140,145)		{\vector(2,-1){78}}
+%\put(230,145)		{\vector(2,-1){78}}
+%\put(230,145)		{\vector(-2,-1){78}}
+%\put(320,145)		{\vector(-2,-1){78}}
+%\put(140,145)		{\vector(4,-1){150}}
+%\put(320,145)		{\vector(-4,-1){150}}
+
+\put(0,115)		{\makebox(95,12)[r]{\tiny description de l'image}}
+\put(0,105)		{\makebox(95,12)[r]{\tiny dans un espace métrique,}}
+\put(0,95)		{\makebox(95,12)[r]{\tiny de préférence,}}
+\put(0,85)		{\makebox(95,12)[r]{\tiny un espace vectoriel}}
+
+\put(140,95)		{\vector(0,-1){37}}
+\put(230,95)		{\vector(0,-1){37}}
+\put(320,95)		{\vector(0,-1){37}}
+\put(140,75)		{\line(1,0){180}}
+
+\multido{\i=2+4}{102}{ \put(\i,80) {\line(1,0){2}}}
+
+\put(100,45)		{\framebox(80,12)[c]{\tiny 1$^{\text{er}}$ reconnaisseur}}
+\put(190,45)		{\framebox(80,12)[c]{\tiny i$^{\text{ème}}$ reconnaisseur}}
+\put(280,45)		{\framebox(80,12)[c]{\tiny n$^{\text{ème}}$ reconnaisseur}}
+
+\put(0,65)		{\makebox(95,12)[r]{\tiny modèle de Markov caché}}
+\put(0,55)		{\makebox(95,12)[r]{\tiny réseau de neurones}}
+\put(0,45)		{\makebox(95,12)[r]{\tiny dictionnaires}}
+\put(0,35)		{\makebox(95,12)[r]{\tiny n-grammes}}
+
+\multido{\i=2+4}{102}{ \put(\i,30) {\line(1,0){2}}}
+
+\put(140,45)		{\line(0,-1){20}}
+\put(230,45)		{\line(0,-1){20}}
+\put(320,45)		{\line(0,-1){20}}
+\put(140,25)		{\line(1,0){180}}
+\put(230,25)		{\vector(0,-1){8}}
+
+\put(190,5)  		{\framebox(80,12)[c]{\tiny résultat final}}
+
+\put(0,10)		{\makebox(95,12)[r]{\tiny réseau de neurones}}
+\put(0,0)  		{\makebox(95,12)[r]{\tiny vote}}
+
+\put(320,160) {\makebox(100,12)[r]{\textbf{image}}}
+\put(320,110) {\makebox(100,12)[r]{\textbf{description}}}
+\put(320,60) {\makebox(100,12)[r]{\textbf{reconnaissance}}}
+\put(320,10) {\makebox(100,12)[r]{\textbf{décision}}}
+
+\end{picture}
+
+\input{../../common/figure_end.tex}%

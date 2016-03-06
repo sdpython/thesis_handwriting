@@ -1,0 +1,3228 @@
+\input{../../common/livre_begin.tex}
+\firstpassagedo{\input{rn_titre.tex}}
+\input{../../common/livre_table_begin.tex}
+\firstpassagedo{\input{rn_chapter.tex}}
+
+
+\newcommand{\trace}[1]{tr\pa{#1}}
+
+\label{annexe_reseau_neurone}
+
+
+Ce chapitre aborde les réseaux de neurones au travers de deux utilisations courantes, la régression (paragraphe~\ref{regression}) et la classification (paragraphe~\ref{classification}), et une qui l'est moins, l'analyse en composantes principales ou ACP (paragraphe~\ref{ACP}), sans oublier les méthodes d'estimation des paramètres qui les composent, à savoir optimisations du premier et second ordre (paragraphes~\ref{rn_optim_premier_ordre} et~\ref{rn_optim_second_ordre}) ainsi qu'une méthode permettant de supprimer des coefficients inutiles (paragraphe~\ref{selection_connexion}).
+
+
+
+
+
+
+%------------------------------------------------------------------------------------------------------------------
+\section{Définition des réseaux de neurones multi-couches}
+%------------------------------------------------------------------------------------------------------------------
+
+\indexfr{perceptron}
+
+Les réseaux de neurones multi-couches (ou perceptrons) définissent une classe de fonctions dont l'intérêt est de pouvoir approcher n'importe quelle fonction continue à support compact (voir théorème~\ref{theoreme_densite} page~\pageref{theoreme_densite}). Aucun autre type de réseau de neurones ne sera étudié et par la suite, tout réseau de neurones sera considéré comme multi-couches.
+
+
+
+
+
+
+\subsection{Un neurone}
+
+
+		\begin{xdefinition}{neurone}
+		\label{rn_definition_neurone_1}
+		\indexfr{neurone}
+		Un neurone à $p$ entrées est une fonction $f : \R^{p+1} \times \R^p \longrightarrow \R$ définie par :
+		\begin{enumerate}
+		    \item $g : \R \dans \R$
+		    \item $W \in \R^{p+1}$, $W=\pa{w_1,\dots,w_{p+1}}$
+		    \item $\forall x \in \R^p, \; f\pa{W,x} = g \pa { \summy{i=1}{p} w_i x_i + w_{p+1}}$ \newline
+		        avec $x = \pa{x_1,\dots,x_p}$
+		\end{enumerate}
+		\end{xdefinition}
+
+Cette définition est inspirée du neurone biologique, les poids jouant le rôle de synapses, \indexfr{synapse} le vecteur $x$ celui des \emph{entrées} \indexfr{entrées} et $W$ celui des \emph{coefficients} ou \emph{poids}. \indexfr{poids}\indexfr{coefficients} Le coefficient $w_{p+1}$ est appelé le \emph{biais} \indexfr{biais} et souvent noté $b$. La fonction $g$ est appelée \emph{fonction de transfert} ou \emph{fonction de seuil}. \indexfrr{fonction}{transfert} \indexfrr{fonction}{seuil} A cette définition mathématique du neurone, une autre moins formelle et plus graphique (figure~\ref{figure_neurone-fig}) lui est préférée. Ce schéma est également plus proche de sa définition biologique et dissocie mieux les rôles non symétriques des entrées et des poids. Des exemples de fonctions de transfert sont donnés par la table~\ref{figure_fonctiontransfert-fig} dont les plus couramment utilisées sont les fonctions linéaire et sigmoïde.
+
+La plupart des fonctions utilisées sont dérivables \indexfr{dérivable}\indexfrr{fonction}{dérivable} et cette propriété s'étend à tout assemblage de neurones, ce qui permet d'utiliser l'algorithme de rétropropagation découvert par \citeindex{Rumelhart1986}. Ce dernier permet le calcul de la dérivée ouvre ainsi les portes des méthodes d'optimisation basées sur cette propriété.
+
+
+		\begin{figure}[h]
+    \[
+    \begin{tabular}[c]{|l|l|}
+    \hline
+        \begin{tabular}[c]{l}
+        Le vecteur $\left(  x_1,...,x_p\right) \in\ensemblereel^p$ joue le rôle des \emph{entrées}.
+            \indexfrr{neurone}{entrée}\\
+        $y$ est appelé parfois le \emph{potentiel}. \indexfrr{neurone}{potentiel}\\
+        \quad $y=\summy{i=1}{p} w_ix_i+b$\\
+        $z$ est appelée la sortie du neurone. \indexfrr{neurone}{sortie}\\
+        $f$ est appelée la fonction de transfert ou de seuil. \indexfrr{fonction}{transfert}\\
+        \quad $z=f \pa{y} = f \pa {   \summy{i=1}{p} w_ix_i+b }$
+        \end{tabular}
+    &
+		\filefig{../rn/fig_rn_01}
+    \\ \hline
+    \end{tabular}
+    \]
+    \caption{Un neurone.}
+    \label{figure_neurone-fig}
+		\end{figure}
+
+\indexfrr{fonction}{transfert}
+\indexfrr{fonction}{linéaire}
+\indexfrr{fonction}{sigmoïde}
+\indexfrr{fonction}{gaussienne}
+
+		\begin{table}[ht]
+    \[
+    \begin{tabular}[c]{|l|l|}
+    \hline
+    \textbf{exemples de fonction}       &        \textbf{expression : } \\
+    \textbf{de transfert ou de seuil}   &        $\mathbf{f \pa{x} = }$\\ \hline
+    escalier                            &        $1_{\left[  0,+\infty\right[  }$ \\
+    linéaire                            &        $x$\\
+    sigmoïde entre $\cro{0,1}$          &        $\dfrac{1}{1+e^{-x}}$\\
+    sigmoïde entre $\cro{-1,1}$         &        $1-\dfrac{2}{1+e^{x}}$\\
+    normale                             &        $e^{-\frac{x^{2}}{2}}$\\
+    exponentielle                       &        $e^{x}$ \\ \hline
+    \end{tabular}
+    \]
+    \caption{Fonctions de transfert usuelles.}
+    \label{figure_fonctiontransfert-fig}
+		\end{table}
+
+
+
+
+
+\subsection{Une couche de neurones}
+
+		\begin{xdefinition} {couche de neurones}
+		\label{rn_definition_couche_neurone_1}
+		Soit $p$ et $n$ deux entiers naturels, on note $W \in \R^{n\pa{p+1}} = \pa{W_1,\dots,W_n}$ \newline
+		avec $\forall i \in \intervalle{1}{n}, \; W_i \in \R^{p+1}$. \newline%
+		Une couche de $n$ neurones et $p$ entrées est une fonction :
+		$$F : \R^{n\pa{p+1}} \times \R^p \dans \R^n$$
+		vérifiant :%
+		\begin{enumerate}
+			\item $\forall i \in \intervalle {1}{n}, \; f_i$ est un neurone.
+			\item $\forall W \in \R^{n\pa{p+1}} \times \R^p, \; F\pa{W,x} = \pa {f_1\pa{W_1,x}, 
+				\dots, f_n\pa{W_n,x}}$
+		\end{enumerate}
+		\end{xdefinition}
+
+
+
+Une couche de neurones représente la juxtaposition de plusieurs neurones partageant les mêmes entrées mais ayant chacun leur propre vecteur de coefficients et leur propre sortie.
+
+
+
+
+\subsection{Un réseau de neurones~: le perceptron}
+
+
+
+		\begin{xdefinition}{réseau de neurones multi-couches ou perceptron (figure~\ref{figure_peceptron-fig})}
+		\label{rn_definition_perpception_1}
+		\indexfr{perceptron}%
+		Un réseau de neurones multi-couches à $n$ sorties, $p$ entrées et $C$ couches est une liste de couches
+		$\vecteur{C_1}{C_C}$ connectées les unes aux autres de telle sorte que :
+		\begin{enumerate}
+		\item $\forall i \in \intervalle {1}{C}$, chaque couche $C_i$ possède $n_i$ neurones et $p_i$ entrées
+		\item $\forall i \in \intervalle{1}{C-1}, \; n_i = p_{i+1}$, de plus $p_1 = p$ et $n_C = n$
+		\item les coefficients de la couche $C_i$ sont notés $\pa {W_1^i,\dots,W_{n_i}^i}$, cette couche définit une fonction
+		        $F_i$
+		\item soit la suite $\pa{Z_i}_{0\infegal i \infegal C}$ définie par :
+		    $$
+		    \begin{array}{l}
+		    Z_0 \in \R^p \\
+		    \forall i \in \intervalle{1}{C}, \; Z_i = F_i \pa {W_1^i,\dots,W_{n_i}^i,Z_{i-1}}\end{array}
+		    $$
+		\end{enumerate}
+		On pose $M = M = \summy{i=1}{C}n_i\pa{p_i+1}$, le réseau de neurones ainsi défini est une fonction $F$ telle que :
+		    $$
+		    \begin{array}{lrll}
+		    F : & \R ^ M \times \R^p & \longrightarrow & \R^n \\
+		        & \pa{W,Z_0} & \longrightarrow & Z_C
+		    \end{array}
+		    $$
+		\end{xdefinition}
+		
+
+		\begin{figure}[ht]
+    \[
+    \begin{tabular}{|c|c|} \hline
+        %
+        \begin{tabular}{c}
+        \begin{tabular}{ll}
+        $\vecteur{x_1}{x_p} $           &   entrées \\ \hline
+        $C_i$                           &   nombre de neurones \\
+                                        &   sur la couche $i$ \\
+                                        &   ($C_0 = p$)\\ \hline
+        $z_{c,i}$                       &   sortie du neurone $i$ \\
+                                        &   de la couche $c$ \\
+                                        &   par extension, $z_{0,i} = x_i$ \\ \hline
+        $y_{c,i}$                       &   potentiel du neurone $i$ \\
+                                        &   de la couche $c$ \\ \hline
+        $w_{c,i,j}$                     &   coefficient associé \\
+                                        &   à l'entrée $j$ \\
+                                        &   du neurone $i$ \\
+                                        &   de la couche $c$ \\ \hline
+        $b_{c,i}$                       &   biais du neurone $i$ \\
+                                        &   de la couche $c$ \\ \hline
+        $f_{c,i}$                       &   fonction de seuil \\
+                                        &   du neurone $i$ \\
+                                        &   de la couche $c$
+        \end{tabular}
+        \\ \hline
+        alors
+        $
+        \left\{
+        \begin{array}{ccl}
+        y_{c,i} & = & \summy{j=1}{C_{c-1}} w_{c,i,j} z_{c-1,j} + b_{c,i}   \\
+        z_{c,i} & = & f \pa{y_{c,i}}
+        \end{array}
+        \right.
+        $
+        \end{tabular}
+    &
+        $
+        \begin{array}
+        [c]{c}%
+        {\includegraphics[height=6cm, width=6cm] {\filext{../dessin2/rn_gradient}}
+        }%
+        %EndExpansion
+        \\
+            \begin{array}{c}
+            \overrightarrow{\text{sens de la propagation}}\\
+            \text{pour ce cas, } C = 2
+            \end{array}
+        \end{array}
+        $%
+        \\\hline
+    \end{tabular}
+    \]
+    \caption{Modèle du perceptron multi-couche (multi-layer perceptron, MLP)\indexfr{propagation}.}
+    \label{figure_peceptron-fig}
+		\end{figure}
+
+Souvent, on considère que les entrées forment la couche $C_0$ de manière à simplifier les écritures. Ainsi, chaque couche $C_i$ du perceptron a pour entrées les sorties de la couche $C_{i-1}$. Cette définition est plus facile à illustrer qu'à énoncer (figure~\ref{figure_peceptron-fig}) et rappelle le rôle non symétrique des entrées et des poids. Le mécanisme qui permet de calculer les sorties d'un réseau de neurones sachant ses poids est appelé \emph{propagation}~: \indexfr{propagation}
+
+
+		\begin{xalgorithm}{propagation}
+		\indexfr{propagation}%
+		\label{algo_propagation}%
+		Cet algorithme s'applique à un réseau de neurones vérifiant la définition~\ref{rn_definition_perpception_1}. Il s'agit
+		de calculer les sorties de ce réseau connaissant ses poids $\pa{w_{c,i,j}}$ et ses entrées $\pa{x_j}$.
+		
+		\begin{xalgostep}{initialisation}
+		    \begin{xfor}{i}{1}{C_0}
+		    $z_{0,i} \longleftarrow x_i$
+		    \end{xfor}
+		\end{xalgostep}
+		
+		Vient ensuite le calcul itératif de la suite $\pa{Z_c}_{1 \infegal c \infegal C}$~:
+		
+		\begin{xalgostep}{récurrence}
+		    \begin{xfor}{c}{1}{C}
+		        \begin{xfor}{i}{1}{C_c}
+		            $z_{c,i} \longleftarrow 0$ \newline
+		            \begin{xfor}{j}{1}{C_{i-1}}
+		                $z_{c,i} \longleftarrow z_{c,i} + w_{c,i,j} z_{c-1,j} $
+		            \end{xfor} \newline
+		            $z_{c,i} \longleftarrow f\pa { z_{c,i} + b_{c,i}} $
+		        \end{xfor}
+		    \end{xfor}
+		\end{xalgostep}
+		
+		\end{xalgorithm}
+		
+
+Le nombre de couches d'un réseau de neurones n'est pas limité. Les réseaux de deux couches (une couche pour les entrées, une couche de sortie) sont rarement utilisés. Trois couches sont nécessaires (une couche pour les entrées, une couche dite \emph{cachée}, \indexfrr{couche}{cachée} une couche de sortie) pour construire des modèles avec une propriété intéressante de densité (théorème~\ref{theoreme_densite}).
+
+
+
+
+
+
+
+
+
+%-------------------------------------------------------------------------------------------------------------------
+\subsection{La régression}
+%-------------------------------------------------------------------------------------------------------------------
+\label{rn_section_regression}
+
+Le bruit blanc est une variable aléatoire couramment utilisé pour désigner le hasard ou la part qui ne peut être modélisée dans une régression ou tout autre problème d'apprentissage. On suppose parfois que ce bruit suive une loi normale.
+
+		\begin{xdefinition}{bruit blanc gaussien}
+		\label{bruitblanc}%
+		\indexfr{bruit blanc gaussien}
+		Une suite de variables aléatoires réelles $\pa{\epsilon_i}_{1 \infegal i \infegal N}$ 
+		est un bruit blanc gaussien~:
+		\begin{enumerate}
+		\item $\exists \sigma > 0$, $\forall i \in \intervalle{1}{N}, \; \epsilon_i \sim \loinormale{0}{\sigma}$
+		\item $\forall \pa{i,j} \in \intervalle{1}{N}^2, \; i \neq j \Longrightarrow \epsilon_i \independant \epsilon_j$
+		\end{enumerate}
+		\end{xdefinition}
+
+
+
+\indexfr{régression}
+\indexfrr{loi}{normale}
+
+Une régression consiste à résoudre le problème suivant~:
+
+
+
+		\begin{xproblem}{régression}
+		\label{problem_regression}%
+		\indexfr{régression} %
+		Soient deux variables aléatoires $X$ et $Y$, l'objectif est d'approximer la fonction 
+		$E\pa{Y \sachant X} = f\pa{X}$.\newline %
+		Les données du problème sont~:
+		\begin{itemize}
+		\item un échantillon de points~: $\accolade { \parenthese{ X_{i},Y_{i} } | 1 \infegal i \infegal N } $
+		\item un modèle~:
+		    $$   \text{soit } \theta \in \R^n, \;
+		         \forall  i \in \intervalle{1}{N}, \; Y_{i} = f \parenthese{\theta,X_{i}} + \epsilon_{i} $$
+		    avec :
+		    \begin{itemize}
+		    \item $n \in \ensembleentier $
+		    \item $\pa{\epsilon_{i}}_{1 \infegal i \infegal N}$ bruit blanc (voir définition~\ref{bruitblanc})
+		    \item $f$ est une fonction de paramètre $\theta$
+		    \end{itemize}
+		\end{itemize}
+		\end{xproblem}
+		
+
+La fonction $f$ peut être~:
+
+			\begin{itemize}
+			\item une fonction linéaire
+			\item un polynôme
+			\item un réseau de neurones
+			\item ...
+			\end{itemize}
+
+\indexfr{vraisemblance}
+
+Lorsque le bruit blanc est normal, la théorie de l'estimateur de vraisemblance (\citeindex{Saporta1990}) permet d'affirmer que le meilleur paramètre $\hat{\theta}$ minimisant l'erreur de prédiction est~:
+
+			$$
+			    \hat{\theta} = \underset {\theta \in \ensemblereel^p}{\arg \min} \; E \parenthese {\theta}
+			                 = \underset {\theta \in \ensemblereel^p}{\arg \min} 
+			                 		\cro{ \sum_{i=1}^{N} \crochet{Y_{i}-f \parenthese {\theta,X_{i}}}^{2}}
+			$$
+
+
+
+Le lien entre les variables $X$ et $Y$ dépend des hypothèses faites sur $f$. Généralement, cette fonction n'est supposée non linéaire que lorsqu'une régression linéaire donne de mauvais résultats (figure~\ref{figure_regression_lineaire}). Cette hypothèse est toujours testée car la résolution du problème dans ce cas-là est déterministe et aboutit à la résolution d'un système linéaire avec autant d'équations que d'inconnues.
+
+		\begin{figure}[ht]
+    $$\frame{$\begin{array}[c]{c}\includegraphics[height=6cm, width=9cm]
+    {\filext{../dessin2/regressionl}}\end{array}$}$$
+    \caption{Régression linéaire de $Y = \frac{3}{2} X^{2} - X + \frac{1}{4} + \epsilon $}
+    \label{figure_regression_lineaire}
+		\end{figure}
+
+
+
+Le schéma~\ref{figure_exemple_regression_un} illustre une régression non linéaire $Y = f_1 \parenthese{X} + \epsilon$ où la fonction $f_1$ est un réseau de neurones~:
+
+		\begin{itemize}
+		\item il n'y a qu'une entrée
+		\item l'unique couche cachée ne contient qu'un neurone dont la fonction de transfert est sigmoïde
+		\item la couche de sortie est linéaire
+		\item $\theta \in \R^n$ représente le vecteur des poids du réseau de neurones, ici $n=4$
+		\end{itemize}
+
+Le schéma~\ref{figure_exemple_regression_deux} illustre la même régression avec deux neurones sur la couche cachée, ou avec cent neurones sur la couche cachée, figure~\ref{figure_exemple_regression_cent}.
+
+		\begin{figure}[ht]
+    $$\frame{$\begin{array}[c]{c}\includegraphics[height=6cm, width=9cm]
+    {\filext{../dessin2/regressionnu}}\end{array}$}$$
+    \caption{	Régression non linéaire (1 neurone sur la couche cachée) 
+    					de $Y = \frac{3}{2} X^{2} - X + \frac{1}{4} + \epsilon $}
+    \label{figure_exemple_regression_un}
+		\end{figure}
+
+		\begin{figure}[ht]
+    $$\frame{$\begin{array}[c]{c}\includegraphics[height=6cm, width=9cm]
+    {\filext{../dessin2/regressionnd}}\end{array}$}$$
+    \caption{Régression non linéaire (2 neurones sur la couche cachée) de 
+    					$Y = \frac{3}{2} X^{2} - X + \frac{1}{4} + \epsilon $}
+    \label{figure_exemple_regression_deux}
+		\end{figure}
+
+		\begin{figure}[ht]
+    $$\frame{$\begin{array}[c]{c}\includegraphics[height=6cm, width=18cm]
+    	{\filext{../dessin2/regressionnc}}\end{array}$}$$
+    \caption{Régression non linéaire (100 neurones sur la couche cachée) de 
+    					$Y = \frac{3}{2} X^{2} - X + \frac{1}{4} + \epsilon $,
+             	l'erreur de prédiction de ce réseau de neurones est très inférieure à celle des 
+             	modèles des figures~\ref{figure_regression_lineaire},
+             	\ref{figure_exemple_regression_un}, \ref{figure_exemple_regression_deux}, ce modèle a appris par c\oe ur
+             	le nuage de points $\pa{X_i,Y_i}$ sans vraiment "comprendre" ce qu'il apprenait.
+             	}
+    \label{figure_exemple_regression_cent}
+    \indexfrr{apprentissage}{par c\oe ur}
+		\end{figure}
+
+\indexfrr{apprentissage}{par c\oe ur}
+
+Dans le cas d'une régression à cent neurones, le nombre de coefficients du réseau de neurones $(301)$ est largement supérieur au nombre de points $(50)$. Il en résulte que contrairement aux trois précédents cas, la "richesse" du modèle choisi lui permet d'apprendre le "hasard". Lorsque ce cas de figure se présente, on dit que le réseau de neurones a appris \emph{par c\oe ur} et que son \emph{pouvoir de généralisation} \indexfr{généralisation}est mauvais~: l'erreur minime estimée sur ce nuage de points (ou \emph{base d'apprentissage})\indexfrr{base}{apprentissage}\indexfrr{base}{test} sera considérablement accrue sur un autre nuage de points (ou \emph{base de test}) suivant la même loi.
+
+Cet exemple montre que le choix du réseau de neurones le mieux adapté au problème n'est pas évident. Il existe des méthodes permettant d'approcher l'architecture optimale mais elles sont généralement coûteuses en calcul (paragraphe~\ref{selection_connexion}).
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{La classification}
+\label{subsection_classifieur}
+
+\indexfr{classification}
+
+Comme la régression, la classification consiste aussi à trouver le lien entre une variable $X$ et une variable aléatoire discrète suivant une loi multinomiale $Y$. \indexfrr{loi}{multinomiale}
+
+
+		\begin{xproblem}{classification}
+		\label{problem_classification}%
+		\indexfr{classification} %
+		Soit une variable aléatoire $X$ et une variable aléatoire discrète $Y$,
+		l'objectif est d'approximer la fonction $E\pa{Y \sachant X} = f\pa{X}$.\newline %
+		Les données du problème sont :
+		\begin{itemize}
+		\item un échantillon de points : $\accolade { \parenthese{ X_{i},Y_{i} } | 1 \infegal i \infegal N } $ avec $ \forall i
+		\in \ensemble{1}{N}, \; Y_i \in \ensemble{1}{C} $
+		\item un modèle :
+		    $$   \text{soit } \theta \in \R^n, \;
+		         \forall  i \in \intervalle{1}{N}, \;  \forall  c \in \intervalle{1}{C}, \; 
+		         			\pr { Y_i = c \sac X_i, \theta} = h \pa{\theta,X_i,c }
+		    $$
+		    avec :
+		    \begin{itemize}
+		    \item $n \in \ensembleentier$
+		    \item $h$ est une fonction de paramètre $\theta$ à valeur dans $\cro{0,1}$ et vérifiant la 
+		    			contrainte~: $\sum_{c=1}^C h(\theta,X,c) = 1$
+		    \end{itemize}
+		\end{itemize}
+		\end{xproblem}
+		
+
+
+
+L'exemple~\ref{figure_exemple_classification_un} est une classification en deux classes, elle consiste à découvrir le lien qui unit une variable aléatoire réelle $X$ et une variable aléatoire discrète et $Y \in \accolade{0,1}$, on dispose pour cela d'une liste~:
+
+\indexfrr{loi}{binomiale}%
+
+    $$
+    \accolade { \parenthese{ X_i,Y_i } \in \ensemblereel \times \accolade{0,1} \sachant 1 \infegal i \infegal N }
+    $$
+
+Il n'est pas facile de déterminer directement une fonction $h$ qui approxime $Y\sachant X$ car $h$ et $Y$ sont toutes deux discrètes. C'est pourquoi, plutôt que de résoudre directement ce problème, il est préférable de déterminer la loi marginale $\pr{Y=c|X} = f \parenthese{X,\theta,c}$. $f$ est alors une fonction dont les sorties sont continues et peut être choisie dérivable. Par exemple, $f$ peut être un réseau de neurones dont les sorties vérifient~:
+
+    $$
+    f \parenthese{X,0} + f \parenthese{X,1} = \pr{0|X} + \pr{1|X} = 1
+    $$
+
+Le réseau de neurones utilisé pour cette tâche est légèrement différent du précédent, il sera présenté ultérieurement dans le paragraphe~\ref{classification}, page~\pageref{classification}.
+
+Dans le schéma~\ref{figure_exemple_classification_un}, un plan a été divisé en deux demi-plan par une droite délimitant deux classes, le réseau de neurones dont la couche cachée contient deux neurones linéaires, a retrouvé cette séparation malgré les quelques exemples mal classés. En revanche, un réseau de neurones comportant trop de coefficients aura tendance à apprendre par c\oe ur la classification et les quelques erreurs de classification comme le montre la figure~\ref{figure_exemple_classification_cent}.\indexfrr{apprentissage}{par c\oe ur} La séparation produite par le réseau de neurones est de manière évidente non linéaire puisqu'aucune droite ne peut séparer les deux classes déterminées par cette fonction. Cette classe de modèles permet donc de résoudre des problèmes complexes en gardant toutefois à l'esprit, comme dans le cas de la régression, qu'il n'est pas moins de facile de dénicher le bon modèle que dans le cas linéaire.
+
+		\begin{figure}[ht]
+    $$\frame{$\begin{array}[c]{c}\includegraphics[height=6cm, width=12cm]
+    {\filext{../dessin2/classificationnd}}\end{array}$}$$
+    \caption{Classification d'un plan en deux demi-plans.}
+    \label{figure_exemple_classification_un}
+		\end{figure}
+
+		\begin{figure}[ht]
+    $$\frame{$\begin{array}[c]{c}\includegraphics[height=6cm, width=12cm]
+    {\filext{../dessin2/classificationnt}}\end{array}$}$$
+    \caption{Classification rendue par un réseau de 30 neurones.}
+    \label{figure_exemple_classification_cent}
+		\end{figure}
+
+
+
+
+
+
+
+
+
+
+
+%--------------------------------------------------------------------------------------------------------------------
+\section{Régression par un réseau de neurones multi-couches} \label{regression}
+%--------------------------------------------------------------------------------------------------------------------
+\indexfr{régression}
+
+\subsection{Résolution du problème de la régression}
+
+\label{rn_enonce_probleme_regression}
+
+
+Soient deux variables aléatoires continues $ \parenthese{X,Y} \in \ensemblereel^p \times \ensemblereel^q \sim \loi $ quelconque, la résolution du problème~\ref{problem_regression} est l'estimation de la fonction~:
+
+        \begin{eqnarray}
+        \esperance{Y|X} = F\parenthese {X}
+        \end{eqnarray}
+
+Pour cela, on dispose d'un ensemble de points~:
+
+        $$
+        A = \accolade { \parenthese {X_{i},Y_{i}} \sim \loi | 1 \infegal i \infegal N }
+        $$
+
+Soit $f : \ensemblereel^M \times \ensemblereel^p \longrightarrow \ensemblereel^q$ une fonction, on définit~:
+
+        $$
+        \forall i \in \intervalle{1}{N}, \; \widehat{Y_{i}^{W}} = f \parenthese{W,X_{i}}
+        $$
+
+$\widehat{Y_{i}^{W}}$ est appelée la valeur prédite pour $X_{i}$. On pose alors~:
+
+		    $$
+		    \forall i \in \intervalle{1}{N}, \; \epsilon_{i}^{W} = Y_{i} - \widehat{Y_{i}^{W}} = Y_{i} - f \parenthese{W,X_{i}}
+		    $$
+
+\indexfr{résidus}%
+\indexfrr{résidus}{normalité}%
+\indexfrr{résidus}{indépendance}%
+\indexfr{compact}%
+\indexfr{régression}%
+\indexfrr{loi}{normale}%
+
+Les résidus sont supposés i.i.d. (identiquement et indépendemment distribués), \indexfr{i.i.d.}\indexfrr{loi}{i.i.d.} et suivant une loi normale~:
+
+    $$
+    \forall i \in \intervalle{1}{N}, \; \epsilon_{i}^{W} \sim \loinormale{\mu_{W}}{\sigma_{W}}
+    $$
+
+\indexfr{vraisemblance}%
+
+La log-vraisemblance\footnote{\indexfrr{définition}{vraisemblance}\indexfr{vraisemblance}
+    La vraisemblance d'un échantillon
+    $\pa{Z_i}_{1\infegal i \infegal N}$, où les $Z_i$ sont indépendantes entre elles et suivent la loi de densité $f \pa{z
+    | \theta}$ est la densité du vecteur $\vecteur{Z_1}{Z_N}$~:
+        $$
+        L\pa{\theta, \vecteurno{Z_1}{Z_N}} = \prody{n=1}{N} f\pa{Z_i |\theta} \Longrightarrow %
+        \ln L\pa{\theta, \vecteurno{Z_1}{Z_N}} = \summy{n=1}{N} \ln f\pa{Z_i |\theta}
+        $$
+    }de l'échantillon est alors~:
+
+			$$
+			L_{W} = -\frac{1}{2\sigma_{W}^2} \sum_{i=1}^{N}
+			\parenthese {Y_{i} - \widehat{Y_{i}^W} - \mu_{W} }^2
+			+N\ln\parenthese{\sigma_{W}\sqrt{2\pi}}
+			$$
+
+Les estimateurs du maximum de vraisemblance pour $\mu_W$ et $\sigma_W$ sont (voir \citeindex{Saporta1990})~:
+
+			\begin{eqnarray*}
+			\widehat{\mu_{W}}     &=&     \frac{1}{N} \sum_{i=1}^{N} Y_{i} - \widehat{Y_{i}^W} \quad \text{et} \quad
+			\widehat{\sigma_{W}}  =     \sqrt{ \frac{ \sum_{i=1}^{N} \parenthese {Y_{i} - \widehat{Y_{i}^W} - \mu_{W}}^2}{N}}
+			\end{eqnarray*}
+
+
+L'estimateur de $\widehat{Y}=f\pa{W,X}$ désirée est de préférence sans biais ($\mu_W = 0$) et de variance minimum, par conséquent, les paramètres $\overset{*}{W}$ qui maximisent la vraisemblance $L_W$ sont~:
+
+        \begin{eqnarray}
+        \overset{*}{W}   = \underset{W \in \ensemblereel^M}{\arg \min} \sum_{i=1}^{N} 
+        										\parenthese {Y_{i} - \widehat{Y_{i}^W}}^2
+                         = \underset{W \in \ensemblereel^M}{\arg \min} \sum_{i=1}^{N} 
+                         		\parenthese {Y_{i} - f \parenthese{W,X_{i}}}^2
+        \label{rn_eqn_regression_1}
+        \end{eqnarray}
+
+\indexfrr{vraisemblance}{estimateur du maximum (emv)}%
+\indexfr{emv}%
+
+Réciproquement, on vérifie que si $W^*$ vérifie l'équation (\ref{rn_eqn_regression_1}) alors l'estimateur défini par $f$ est sans biais\footnote{Il suffit pour s'en convaincre de poser $g = f + \alpha$ avec $\alpha \in \R$ et de vérifier que la valeur optimale pour $\alpha$ est $\alpha = - \frac{1}{N}\, \summy{i=1}{N} \, \left. Y_i - f\pa{W,X_i} \right.$.} et minimise la vraisemblance $L_W$. Cette formule peut être généralisée en faisant une autre hypothèse que celle de la normalité des résidus (l'indépendance étant conservée), l'équation (\ref{rn_eqn_regression_1}) peut généralisée par (\ref{rn_eqn_regression_2})~:
+
+\indexfrr{résidus}{normalité}%
+
+			\begin{eqnarray}
+			\overset{*}{W}     &=& \underset{W \in \ensemblereel^M}{\arg \min} \sum_{i=1}^{N} 
+															e\parenthese {Y_{i} - \widehat{Y_{i}^W}} =
+           \underset{W \in \ensemblereel^M}{\arg \min} \sum_{i=1}^{N} 
+																						e\parenthese {Y_{i} - f \parenthese{W,X_{i}}}
+			                                            \label{rn_eqn_regression_2} \\
+			&& \text{où la fonction } e : \ensemblereel^q \dans \ensemblereel \text{ est appelée fonction d'erreur} \nonumber
+			\end{eqnarray}
+
+\indexfrr{fonction}{erreur}%
+
+
+
+
+
+
+
+
+
+
+\subsection{Propriété et intérêt des réseaux de neurones}
+
+
+
+L'utilisation de réseaux de neurones s'est considérablement développée depuis que l'algorithme de rétropropagation a été trouvé (\citeindex{LeCun1985}, \citeindex{Rumelhart1986}, \citeindex{Bishop1995}). Ce dernier permet d'estimer la dérivée d'un réseau de neurones en un point donné et a ouvert la voie à des méthodes classiques de résolution pour des problèmes d'optimisation tels que la régression non linéaire.
+
+Comme l'ensemble des fonctions polynômiales, l'ensemble des fonctions engendrées par des réseaux de neurones multi-couches possède des propriétés de densité (théorème~\ref{theoreme_densite}) et sont infiniment dérivables. Les réseaux de neurones comme les polynômes sont utilisés pour modéliser la fonction $f$ de l'équation~\ref{rn_eqn_regression_2}. Ils diffèrent néanmoins sur certains points
+
+Si une couche ne contient que des fonctions de transfert bornées comme la fonction sigmoïde, \indexfrr{fonction}{sigmoïde} \indexfrr{foncton}{bornée} \indexfrr{fonction}{transfert} tout réseau de neurones incluant cette couche sera aussi borné. D'un point de vue informatique, il est préférable d'effectuer des calculs avec des valeurs du même ordre de grandeur. Pour un polynôme, les valeurs des termes de degré élevé peuvent être largement supérieurs à leur somme.
+
+Un autre attrait est la symétrie dans l'architecture d'un réseau de neurones, les neurones qui le composent jouent des rôles symétriques (corollaire~\ref{corollaire_famille_libre}). Pour améliorer l'approximation d'une fonction, dans un cas, il suffit d'ajouter un neurone au réseau, dans l'autre, il faut inclure des polynômes de degré plus élevé que ceux déjà  employés.
+
+
+
+			\begin{xtheorem}{densité des réseaux de neurones (Cybenko1989)}\label{theoreme_densite}
+			\indexfrr{fonction}{continue}%
+			(voir~\citeindex{Cybenko1989})
+			
+			Soit $E_{p}^{q}$ l'espace des réseaux de neurones à $p$ entrées et $q$ sorties, possédant une couche cachée dont la
+			fonction de seuil est une
+			fonction sigmoïde $\left(  x\rightarrow 1-\frac{2}{1+e^{x}}\right)  $,
+			une couche de sortie dont la fonction de seuil est linéaire 
+			(voir figure~\ref{figure_selection_connexion_reseau-fig}, page~\pageref{figure_selection_connexion_reseau-fig}).
+			
+			Soit $F_{p}^{q}$ l'ensemble des fonctions continues de 
+			$C\subset\ensemblereel^{p}\longrightarrow\ensemblereel^{q}$ avec $C$ compact muni de la norme~:
+			
+						$$
+						\left\| f\right\| =\underset{x\in C}{\sup}\left\|  f\left( x\right)  \right\|
+						$$
+			
+			Alors $E_{p}^{q}$ est dense dans $F_{p}^{q}$.
+			\end{xtheorem}
+			
+
+
+
+
+
+
+
+
+La démonstration de ce théorème nécessite deux lemmes. Ceux-ci utilisent la définition usuelle du produit scalaire\footnote{%
+            \indexfr{produit scalaire}%
+            \indexfrr{définition}{produit scalaire}%
+            Le produit scalaire sur $\R^p$ est défini par :
+            $$
+            \pa{x,y} = \pa{\vecteurno{x_1}{x_p},\vecteurno{y_1}{y_p}} \in \R^{2p} \longrightarrow
+            \left\langle x,y \right\rangle = \summy{i=1}{p} x_i y_i
+            $$} %
+et la norme infinie\footnote{%
+            \indexfr{norme infinie}%
+            \indexfrr{définition}{norme infinie}%
+Comme toutes les normes sont équivalentes sur $\R^p$, on définit la norme~:
+    $$
+    x = \vecteur{x_1}{x_p} \in \R^p \longrightarrow \norme{x} = \underset{i \in \intervalle{1}{p}}{\max} x_i
+    $$}.%
+
+
+
+
+
+
+
+
+
+		\begin{xlemmamine} {approximation d'une fonction créneau} \label{theoreme_densite_lemme_a}
+		Soit $C \subset \R^p, \; C= \acc { \vecteur{y_1}{y_p} \in \R^p\, \sac  
+					\forall i\in \intervalle{1}{p},\, 0 \leqslant y_{i}\leqslant1   }$, alors~:
+		
+		    $$
+		    \begin{array}{l}%
+		    \forall \varepsilon > 0, \; \forall \alpha>0, \; \exists n \in \N^*, \; 
+		    			\exists \vecteur{x_1}{x_n} 
+		        		\in\left(  \R^p\right)  ^{n}, \; \exists 
+		        \vecteur{\gamma_1}{\gamma_n} \in \R^n  \text{ tels que } \forall x\in \R^p, \\ \\
+		    \begin{array}{ll}
+		    &   \left| \underset{i=1}{\overset{n}{\sum}}\dfrac{\gamma_i}
+		    				{1+e^{\left\langle x_{i},x\right\rangle +b_{i}}}-\indicatrice{x\in C
+		        }\right| \leqslant1 \\ \\
+		    \text{ et } &   \underset{y\in Fr\left( C\right)  }{\inf }\left\| x-y\right\| > 
+		    				\alpha\Rightarrow\left| \underset{i=1}{\overset
+		        {n}{\sum}}\dfrac{\gamma_i}{1+e^{\left\langle x_{i},x\right\rangle +b_{i}}} 
+		        		-\indicatrice{x\in C}\right| \leqslant\varepsilon
+		    \end{array}
+		    \end{array}
+		    $$
+		
+		\end{xlemmamine}
+		
+		
+
+
+
+
+
+
+
+\begin{xdemomine}{lemme}{\ref{theoreme_densite_lemme_a}}
+
+\itemdemo \label{demo_densite_partie_1}
+
+Soit $h$ la fonction définie par : $h\pa{x} = \pa{\dfrac{1}{1+e^{-kx}}}^p$ avec $p>0$ et $0 < \epsilon < 1$.
+
+A $\alpha$, $\epsilon$ fixé, $0 < \epsilon < 1$, on cherche $k$ tel que~:
+    
+    $$
+    \begin{array}{crcl}
+                    &   \epsilon                    &=& h\pa{\alpha} = \pa{\dfrac{1}{1+e^{-k\alpha}}}^p \\
+    \Longrightarrow &   \epsilon^{-\frac{1}{p}}               &=& 1+e^{-k\alpha} \\
+    \Longrightarrow &   \epsilon^{-\frac{1}{p}} -1            &=& e^{-k\alpha} \\
+    \Longrightarrow &   \ln \pa{\epsilon^{-\frac{1}{p}} -1}   &=& -k\alpha \\
+    \Longrightarrow &   k                           &=& - \dfrac{ \ln\pa{\epsilon^{-\frac{1}{p}} -1}}{\alpha} =
+                                                            k_0\pa{\epsilon,\alpha,p}
+    \end{array}
+    $$
+
+
+\itemdemo
+
+    Soit $\alpha>0$ et $1\geqslant\varepsilon>0,$ $k>0$,
+
+    On pose $f\left(  y_{1},...,y_{p}\right)  =\underset{i=1}{\overset{p}{\prod}%
+    }\dfrac{1}{1+e^{-ky_{i}}}\underset{i=1}{\overset{p}{\prod}}\dfrac {1}{1+e^{-k\left(  1-y_{i}\right)  }},$ d'après sa définition, $0\leqslant
+    f\left(  y_{1},...,y_{p}\right)  \leqslant1$
+
+    Pour $k \supegal k_0\pa{\epsilon,\alpha,2p}$ obtenu dans la partie~\ref{demo_densite_partie_1}, on a~:
+    
+    $$
+    \underset{_{i\in\left\{ 1,...,p\right\}}}{\inf} \cro { \min\left\{  \left|  y_{i}\right|  ,\left|  1-y_{i}\right|  \right\}
+     } >\alpha  
+    \Longrightarrow\left\|  f\left(  y_{1},...,y_{p}\right)  -\indicatrice{x\in C}\right\|  \leqslant\varepsilon
+    $$
+
+\itemdemo
+
+    Soit $g$ la fonction définie par :
+    $$
+    \begin{array}{rcl}
+    g\pa{x}     &=&     \pa{\dfrac{1}{1+e^{-kx}}}\pa{\dfrac{1}{1+e^{-k\pa{1-x}}}} 
+                =     \dfrac{1}{1+e^{-kx}+e^{-k\pa{1-x}}+e^{-k}} \\ \\
+                &=&     \dfrac{1}{1+e^{-kx}+e^{-k}e^{kx}+e^{-k}} 
+                =     \dfrac{e^{kx}}{e^{kx}\pa{1+e^{-k}}+1+e^{-k}e^{2kx}}
+    \end{array}
+    $$
+
+    La fonction $x \longrightarrow e^{kx}\pa{1+e^{-k}}+1+e^{-k}e^{2kx}$ est un polynôme en $e^{kx}$ dont le
+    discriminant est positif. Par conséquent la fraction rationnelle $g\pa{x}$ admet une décomposition en éléments
+    simples du premier ordre \indexfrr{fraction}{rationnelle}
+    \indexfrr{fraction}{décomposition}\indexfrr{fraction}{élément simple} 
+    et il existe quatre réels $\eta_1$, $\eta_2$, $\delta_1$, $\delta_2$ tels que~:
+
+    $$
+    g\pa{x} = \dfrac{\eta_1}{1+ e^{kx+\delta_1}} + \dfrac{\eta_2}{1+ e^{kx+\delta_2}}
+    $$
+
+    Par conséquent :
+
+    $$
+    f\vecteur{y_1}{y_p} = \prody{i=1}{p} g\pa{y_i} =
+                          \prody{i=1}{p} \cro { \dfrac{\eta_1^i}{1+ e^{ky_i+\delta_1^i}} + \dfrac{\eta_2^i}{1+
+                          e^{ky_i+\delta_2^i}} }
+    $$
+
+    Il existe $n \in \N$ tel qu'il soit possible d'écrire $f$ sous la forme~:
+
+    $$
+    f\pa{y} = \summy{i=1}{n}  \dfrac{\gamma_i}{ 1 + e^{ <x_i,y> + b_i } }
+    $$
+
+\end{xdemomine}
+
+
+
+
+
+
+
+			\begin{xlemmamine}{approximation d'une fonction indicatrice}
+							\label{theoreme_densite_lemme_b}
+			Soit $C\subset\ensemblereel^p,C$ compact, alors : \newline
+			    $$
+			    \begin{array}{c}
+			    \forall\varepsilon>0, \; \forall\alpha>0, \; \exists\left(  x_{1},...,x_{n}\right) 
+			    		\in\left(  \ensemblereel ^{p}\right)  ^{n},$ $\exists\left(
+			    b_{1},...,b_{n}\right)  \in\ensemblereel^n \text{ tels que } \forall x\in\R^{p},\\ \\
+			    \begin{array}{ll}
+			    &   \left|  \underset{i=1}{\overset{n}{\sum}}\dfrac{\gamma_i}
+			    			{1+e^{\left\langle x_{i},x\right\rangle +b_{i}}}-\indicatrice{x\in C
+			        }\right|  \leqslant1+2\varepsilon^2\\ \\
+			    \text{ et } &   \underset{y\in Fr\left( C\right)  }{\inf}\left\|  x-y\right\|
+			        >\alpha\Rightarrow\left| \underset{i=1}{\overset{n}{\sum}}
+			        			\dfrac{\gamma_i}{1+e^{\left\langle x_{i} ,x\right\rangle +b_{i}}}-
+			        \indicatrice{x\in C}\right| \leqslant\varepsilon
+			    \end{array}
+			    \end{array}
+			    $$
+			\end{xlemmamine}
+
+
+
+\begin{xdemomine}{lemme}{\ref{theoreme_densite_lemme_b}}
+
+\itemdemo
+
+    Soit $C_1=\left\{  y=\left(  y_{1},...,y_{p}\right)  \in\ensemblereel%
+    ^{p}\,\left| \, \forall i\in\left\{  1,...,n\right\}  ,\,0\leqslant y_{i}\leqslant1\right.  \right\}  $
+    et \newline $C_{2}^{j}=\left\{  y=\left(
+    y_{1},...,y_{p}\right)  \in\ensemblereel^p\,\left| \,
+    \forall i\neq j,\,0\leqslant y_{i}\leqslant1 \text{ et }1\leqslant y_{j}\leqslant2\right.
+    \right\}  $
+
+    Le lemme~\ref{theoreme_densite_lemme_a} suggère que la fonction cherchée pour ce lemme dans le cas particulier $C_1\cup
+    C_2^j$ est :
+
+    \begin{eqnarray*}
+    f\left(  y_{1},...,y_{p}\right) &=&     \underset{i=1}{\overset{p}{\prod}}\dfrac
+                                            {1}{1+e^{-ky_{i}}}\underset{i=1}{\overset{p}{\prod}}\dfrac{1}{1+e^{-k\left( 1-y_{i}\right)
+                                            }}+ \\
+                                    &&      \quad \left(  \underset{i\neq j}{\overset{}{\prod}}\dfrac
+                                            {1}{1+e^{-ky_{i}}}\right)  \left(  \underset{i\neq j}{\overset{}{\prod}}%
+                                            \dfrac{1}{1+e^{-k\left(  1-y_{i}\right)  }}\right)
+                                            \dfrac{1}{1+e^{k\left( 1-y_{j}\right)  }}\dfrac{1}{1+e^{-k\left(  2-y_{j}\right)
+                                            }}\\
+    %
+                                    &=&  \left(  \underset{i\neq j}{\overset{}{\prod}}\dfrac{1}{1+e^{-ky_{i}}}\right)
+                                        \left(  \underset{i\neq j}{\overset {}{\prod}}\dfrac{1}{1+e^{-k\left(  1-y_{i}\right)
+                                        }}\right) \\
+                                    &&  \quad  \left( \dfrac{1}{1+e^{-ky_{j}}}\dfrac{1}{1+e^{-k\left(  1-y_{j}\right)  }}
+                                         +\dfrac {1}{1+e^{k\left(  1-y_{j}\right)  }}
+                                         			\dfrac{1}{1+e^{-k\left(2-y_{j}\right) }}\right)
+                                         \\
+    %
+                                    &=& \left(  \underset{i\neq j}{\overset{}%
+                                        {\prod}}\dfrac{1}{1+e^{-ky_{i}}}\right)
+                                         \left(  \underset{i\neq j}{\overset {}
+                                         {\prod}}\dfrac{1}{1+e^{-k\left(  1-y_{i}\right)  }}\right) \\
+                                    &&  \quad \left[\dfrac{1}{1+e^{-ky_{j}}}\left(  \dfrac{1}{1+e^{-k\left(  1-y_{j}\right)  }%
+                                        }+1-1\right)  +\left(  1-\dfrac{1}{1+e^{-k\left(  1-y_{j}\right)  }}\right)
+                                        \dfrac{1}{1+e^{-k\left(  2-y_{j}\right)  }}\right]
+    \end{eqnarray*}
+
+    \bigskip Pour $k \supegal k_0\pa{\epsilon,\alpha,2p}$, on a :
+
+    \begin{eqnarray*}
+        f\left(  y_{1},...,y_{p}\right)  &=& \left(  \underset{i\neq j}{\overset{}
+        {\prod}}\dfrac{1}{1+e^{-ky_{i}}}\right)  \left(  \underset{i\neq j}
+        		{\overset {}{\prod}}\dfrac{1}{1+e^{-k\left(  1-y_{i}\right)  }}\right)
+        \\
+        && \quad \left(  \dfrac{1}%
+        {1+e^{-ky_{j}}}+\dfrac{1}{1+e^{-k\left(  2-y_{j}\right)  }}+\underset {\leqslant\varepsilon^{2}}{\underbrace{\dfrac{1}{1+e^{k\left( 1-y_{j}\right)
+        }}\dfrac{1}{1+e^{-ky_{j}}}}}-\underset{\leqslant\varepsilon^{2}}%
+        {\underbrace{\dfrac{1}{1+e^{-k\left(  1-y_{j}\right)  }}\dfrac{1}%
+        {1+e^{-k\left(  2-y_{j}\right)  }}}}\right)
+    \end{eqnarray*}
+
+    Par conséquent, il est facile de construire la fonction cherchée pour tout compact connexe par arc.
+
+\itemdemo
+
+    Si un compact $C$ n'est pas connexe par arc, on peut le recouvrir par une somme finie de
+    compacts connexes par arcs et disjoints $\left(
+    C_{k}\right)
+    _{1\leqslant k\leqslant K}$ de telle sorte que :%
+
+    \[
+    \forall y\in\underset{k=1}{\overset{K}{\cup}}C_{k},\,\inf\left\{  \left\|
+    x-y\right\|  ,\,x\in C\right\}  \leqslant\dfrac{\alpha}{2}%
+    \]
+
+\end{xdemomine}
+
+
+
+
+
+
+\begin{xdemomine}{théorème}{\ref{theoreme_densite}}
+
+\itemdemo
+
+    On démontre le théorème dans le cas où $q=1$
+
+    Soit $f$ une fonction continue du compact $C\subset\ensemblereel^p\dans \ensemblereel,$ et soit $\varepsilon>0$
+
+    On suppose également que $f$ est positive, dans le cas contraire, on pose 
+    $f=\underset{\text{fonction positive}}{\underbrace{f-\inf f}}+\inf f$
+
+    Si $f$ est nulle, alors c'est fini, sinon, on pose $M=\underset{x\in C}{\sup }f\left(  x\right)$. 
+    $M$ existe car $f$ est continue et $C$ est compact (de même, $\inf f$ existe également).
+
+    On pose $C_{k}=f^{-1}\left(  \left[  k\varepsilon,M\right]  \right)  ,$ $C_{k}$ est compact car il est l'image
+    réciproque d'un compact par une fonction continue et $C_{k}\subset C$ compact (voir
+    figure~\ref{figure_rn_densite_idee-fig}).
+
+    		\begin{figure}[t]
+        $$\frame{$\begin{array}[c|c]{c}\includegraphics[height=6cm, width=8cm]
+        {\filext{../dessin2/rn_densite_idee}}\end{array}$}$$
+        \caption{Idée de la démonstration du théorème de densité~\ref{theoreme_densite}.}
+        \label{figure_rn_densite_idee-fig}
+    		\end{figure}
+
+
+    Par construction, $C_{k+1}\subset C_{k}$ et $C=\underset{k=0}{\overset {\frac{M}{\varepsilon}}
+    {\bigcup}}C_{k}=C_{0},$ on définit~:
+      $$
+      \forall x\in
+      C,\; g_{\varepsilon}\left(  x\right)  =
+      			\varepsilon\overset{\frac {M}{\varepsilon}}{\underset{k=0}{\sum}}\indicatrice{x\in C_{k}}
+      $$
+      
+      D'où~:
+      %
+      
+    \begin{eqnarray}
+    f\left(  x\right)  -g_{\varepsilon}\left(  x\right)  &=& 
+    					f\left(  x\right)-\varepsilon\overset{\frac{M}{\varepsilon}}{\underset{k=0}{\sum}}
+        \indicatrice{x\in C_{k}} \nonumber 
+    = f\left(  x\right)  -\varepsilon \overset{\frac{M}{\varepsilon}}
+    			{\underset{k=0}{\sum}}\indicatrice
+    			    { f\pa{x} \supegal k \varepsilon } \nonumber \\
+    &=& f\left( x\right)  -\varepsilon\left[  \dfrac{f\left(  x\right) }
+    				{\varepsilon}\right] \quad \text{ (partie entière)}\nonumber  \\
+    & \text{d'où }&  0\leqslant f\left(  x\right)  -g_{\varepsilon}\left(  x\right)  \leqslant \frac{\varepsilon}{4}
+    \end{eqnarray}
+    
+    
+    Comme $f$ est continue sur un compact, elle est uniformément continue sur ce compact :
+    
+			    $$
+			    \begin{array}{l}
+			    \exists\alpha>0 \text{ tel que } \forall\left(  x,y\right)  \in C^{2},$ 
+			    				$\left\| x-y\right\|  \leqslant\alpha\Longrightarrow\left|  f\left(
+			        x\right) -f\left(  y\right)  \right|  \leqslant \frac{ \varepsilon}{2} \\ \\
+			    \text{ d'où } \left|  f\left(  x\right)  -f\left(  y\right)  \right| \supegal \varepsilon
+			    				 \Longrightarrow\left\|  x-y\right\|  >\alpha
+			    \end{array}
+			    $$
+    
+    Par conséquent :
+    
+			    $$
+			    \inf\left\{  \left\|  x-y\right\|  \,\left|  \,x\in Fr\left(  C_{k}\right) ,\,y\in 
+			    				Fr\left(  C_{k+1}\right)  \right.  \right\}
+			    >\alpha
+			    $$
+    
+    D'après le lemme~\ref{theoreme_densite_lemme_b}, on peut construire des fonctions $h_{k}\left( x\right)
+    =\underset{i=1}{\overset{n}{\sum}}\dfrac{1}{1+e^{\left\langle x_{i}^{k},x\right\rangle +b_{i}^{k}}}$ telles que :
+    
+    $$
+    \left(  \left\|  h_{k}\left(  x\right)  -\indicatrice{x\in C_{k}}\right\|  
+    	\leqslant1 \right)  \text{ et } \left( \underset{y\in
+    Fr\left(  C\right)  }{\inf}\left\|  x-y\right\|  >\dfrac{\alpha}{2}%
+    \Rightarrow\left\|  h_{k}\left(  x\right)  -\indicatrice{x\in C_{k}}\right\|  \leqslant\varepsilon^{2}\right)
+    $$
+
+    On en déduit que :
+    \begin{eqnarray*}
+    \left|  f\left(  x\right)  -\varepsilon\overset{\frac{M}{\varepsilon}}
+    		{\underset{k=0}{\sum}}h_{k}\left(  x\right)  \right|  &\leqslant&
+        \left| f\left(  x\right)  -g_{\varepsilon}\left(  x\right)  \right| 
+        	 +\left|g_{\varepsilon}\left(  x\right)  -\varepsilon
+        \overset{\frac{M}{\varepsilon}}{\underset{k=0}{\sum}}h_{k}\left(  x\right)  \right| \\
+    &\leqslant& \varepsilon+ \varepsilon^2 \left[  \dfrac{M}{\varepsilon}\right] + 2\varepsilon^2 \\
+    &\leqslant& \varepsilon\left(  M+3\right)
+    \end{eqnarray*}
+
+    Comme $\varepsilon\overset{\frac{M}{\varepsilon}}{\underset{k=1}{\sum}}%
+    h_{k}\left(  x\right)  $ est de la forme désirée, le théorème est démontré dans le cas $q=1$
+
+\itemdemo
+
+    Dans le cas $q>1$, on utilise la méthode précédente pour chacune des projections de $f$ 
+   	dans un repère orthonormé de $\ensemblereel^{q}.$ Il suffit de
+    sommer sur chacune des dimensions.
+
+\end{xdemomine}
+
+
+Ce théorème montre qu'il est judicieux de modéliser la fonction $f$ dans l'équation~\ref{rn_eqn_regression_2} par un réseau de neurones puisqu'il possible de s'approcher d'aussi près qu'on veut de la fonction $E\pa{Y \sachant X}$, il suffit d'ajouter des neurones sur la couche cachée du réseau. Ce théorème permet de déduire le corollaire suivant~:
+
+
+
+			\begin{xcorollarymine}{base} \label{corollaire_famille_libre}
+			\indexfrr{famille}{libre}\indexfrr{famille}{génératrice}
+			\indexfrr{famille}{base}
+			Soit $F_{p}$ l'ensemble des fonctions continues de $C\subset\ensemblereel^{p}\longrightarrow\ensemblereel$ avec $C$
+			compact muni de la
+			norme~:
+			    $$
+			    \left\| f\right\| =\underset{x\in C}{\sup}\left\|  f\left( x\right)  \right\|
+			    $$
+			
+			Alors l'ensemble $E_{p}$ des fonctions sigmoïdes~: \indexfrr{fonction}{sigmoïde}
+			  $$
+			  E_{p} =  \acc{ x \longrightarrow 1 - \dfrac{2}{1 + e^{<y,x>+b}} \sachant y \in \R^p \text{ et } b \in \R}
+			  $$
+			
+			est une base de $F_{p}$.
+			\end{xcorollarymine}
+
+
+
+
+
+\begin{xdemomine}{corollaire}{\ref{corollaire_famille_libre}}
+ 
+ 
+Le théorème~\ref{theoreme_densite} montre que la famille $E_{p}$ est une famille génératrice. Il reste à montrer que c'est une famille libre. Soient $\pa{y_i}_{1 \infegal i \infegal N} \in \pa{\R^p}^N$ et $\pa{b_i}_{1 \infegal i \infegal N} \in \R^N$ vérifiant~:
+
+    $$
+    i \neq j \Longrightarrow y_i \neq y_j \text{ ou } b_i \neq b_j
+    $$
+ 
+Soit $\pa{\lambda_i}_{1 \infegal i \infegal N} \in \R^N$, il faut montrer que~:
+
+    \begin{eqnarray}
+    \forall x \in \R^p, \; \summy{i=1}{N} \lambda_i \pa{ 1 - \dfrac{2}{1 + e^{<y_i,x>+b_i}  }} = 0
+    \Longrightarrow \forall i \, \lambda_i = 0 \label{corollaire_demo_recurrence_base}
+    \end{eqnarray}
+ 
+(\ref{corollaire_demo_recurrence_base}) est évidemment pour $N=1$. La démonstration est basée sur un raisonnement par récurrence, l'assertion (\ref{corollaire_demo_recurrence_base}) est supposée vraie pour $N-1$, démontrons qu'elle est vraie pour $N$. On suppose donc $N \supegal 2$. S'il existe $i \in \ensemble{1}{N}$ tel que $y_i = 0$, la fonction $x \longrightarrow 1 - \dfrac{2}{1 + e^{<y_i,x>+b_i}}$ est une constante, par conséquent, dans ce cas, (\ref{corollaire_demo_recurrence_base}) est vraie pour $N$. Dans le cas contraire, $\forall i \in \ensemble{1}{N}, \; y_i \neq 0$. On définit les vecteurs $X_i = \pa{x_i,1}$ et $Y_i = \pa{y_j, b_j}$. On cherche à résoude le système de $N$ équations à~$N$ inconnues~:
+ 
+    \begin{eqnarray}
+    \left\{
+    \begin{array}{ccc}
+    \summy{j=1}{N} \lambda_j \pa{ 1 - \dfrac{2}{1 + e^{<Y_j,X_1>}}} &=& 0 \\
+    \ldots \\
+    \summy{j=1}{N} \lambda_j \pa{ 1 - \dfrac{2}{1 + e^{<Y_j,X_i>}}} &=& 0 \\
+    \ldots \\
+    \summy{j=1}{N} \lambda_j \pa{ 1 - \dfrac{2}{1 + e^{<Y_j,X_N>}}} &=& 0
+    \end{array}
+    \right.
+    \label{rn_coro_eq_1}
+    \end{eqnarray}
+ 
+On note le vecteur $\Lambda = \pa{\lambda_i}_{ 1 \infegal i \infegal N}$ et $M$ la matrice~:
+ 
+    $$
+    M= \pa{m_{ij}}_{ 1 \infegal i,j \infegal N} = \pa{ 1 - \dfrac{2}{1 + e^{<Y_j,X_i>}} }_{ 1 \infegal i,j \infegal N}
+    $$
+ 
+L'équation (\ref{rn_coro_eq_1}) est équivalente à l'équation matricielle : $ M\Lambda = 0$. On effectue une itération du pivot de Gauss~:\indexfr{Gauss}\indexfr{pivot}
+ 
+    \begin{eqnarray*}
+    (\ref{rn_coro_eq_1}) &\Longleftrightarrow& \left\{ \begin{array}{ccllllllll}
+                                    \lambda_1  m_{11} &+& \lambda_2 & m_{12} &+& \ldots &+& \lambda_N & m_{1N} & = 0 \\
+                                    0                 &+& \lambda_2 & \pa{ m_{22} m_{11} - m_{12} m_{21} } 
+                                    									&+& \ldots &+& \lambda_N & \pa{ m_{2N} m_{11} - m_{1N} m_{21} }
+                                    									 & = 0 \\
+                                    \ldots \\
+                                    0                 &+& \lambda_2 & \pa{ m_{N2} m_{11} - m_{12} m_{N1} } &+& \ldots 
+                                    									&+& \lambda_N & \pa{ m_{NN} m_{11} - m_{1N} m_{N1} } & = 0
+                                    \end{array}
+                                    \right. 
+    \end{eqnarray*}
+ 
+On note $\Lambda_* = \pa{\lambda_i}_{ 2 \infegal i \infegal N}$ et $\Delta_*$, $M_*$ les matrices~:
+ 
+    $$
+    \begin{array}{rcl}
+    M_*         &=&     \pa{m_{ij}}_{ 2 \infegal i,j \infegal N} \\
+    \Delta_*    &=&     \pa{ m_{1j} \, m_{i1} }_{ 2 \infegal i,j \infegal N}
+    \end{array}
+    $$
+ 
+Donc~:
+ 
+    \begin{eqnarray}
+    \begin{array}{ccl}
+    (\ref{rn_coro_eq_1})
+                         &\Longleftrightarrow& \left\{ \begin{array}{cccc}
+                                    \lambda_1  m_{11}&+& \lambda_2  m_{12} + \ldots + \lambda_N  m_{1N}  &= 0 \\
+                                    0                &+&   \pa{ m_{11} M_* -  \Delta_*} \Lambda_* & = 0
+                                    \end{array}
+                                    \right.
+    \end{array}\label{rn_coro_eq_3}
+    \end{eqnarray}
+ 
+ 
+Il est possible de choisir $X_1\pa{\alpha} = \pa{\alpha x_1, 1}$ de telle sorte qu'il existe une suite $\pa{s_l}_{ 1 \infegal l \infegal N } \in \acc{-1,1}^{N}$  avec $s_1=1$ et vérifiant~:
+
+    $$
+    \forall j \in \vecteur{1}{N}, \; 
+    \underset{\alpha \longrightarrow +\infty} {\lim }  \cro{ 1 - \dfrac{2}{1 + e^{<Y_j, \, X_1\pa{\alpha}   >}} } = 
+    \underset{\alpha \longrightarrow +\infty} {\lim }  m_{1j}\pa{\alpha} = 
+    s_j
+    $$
+ 
+On définit~:
+
+    $$
+    \begin{array}{rll}
+    U_* &=& \vecteur{m_{21}}{m_{N1}}' \\
+    V_* &=& \vecteur{s_2 \, m_{21}}{s_N \, m_{N1}}' \\
+    \text{ et la matrice } L_* &=& \pa{V_*}_ { 2 \infegal i \infegal N } \text{ dont les $N-1$ colonnes sont identiques }
+    \end{array}
+    $$
+    
+On vérifie que~:
+
+		$$
+		\underset{\alpha \longrightarrow +\infty} {\lim } \Delta\pa{\alpha} = V_*
+		$$
+ 
+On obtient~:
+ 
+    \begin{eqnarray}
+    (\ref{rn_coro_eq_1})
+                         &\Longleftrightarrow& \left\{ \begin{array}{cclc}
+                                    \lambda_1  m_{11}\pa{\alpha}	&+& 
+                                    							\lambda_2  m_{12}\pa{\alpha} + \ldots + \lambda_N  m_{1N}\pa{\alpha}  &= 0 \\
+                                    0                &+&   \cro{m_{11}\pa{\alpha} M_* -   
+                                    													\pa{ L_* + \pa{ \Delta_*\pa{\alpha} - L_* } } } 
+                                    												\Lambda_* & = 0
+                                    \end{array}
+                                    \right. \label{rn_coro_eq_2}\\ \nonumber\\
+                         &\Longleftrightarrow& \left\{ \begin{array}{cclc}
+                                    \lambda_1  m_{11}\pa{\alpha}	&+& 
+                                    							\lambda_2  m_{12}\pa{\alpha} + \ldots + \lambda_N  m_{1N}\pa{\alpha}  &= 0 \\
+                                    0                &+&   \pa{m_{11}\pa{\alpha} M_* -    L_* }      \Lambda_*
+                                                         +  \pa{ \Delta_*\pa{\alpha} - L_* }     \Lambda_* &  = 0
+                                    \end{array}
+                                    \right. \nonumber
+    \end{eqnarray}
+ 
+On étudie la limite lorsque $\alpha \longrightarrow +\infty$~:
+ 
+    $$
+    \begin{array}{crcl}
+                        & \pa{ \Delta_*\pa{\alpha} - L_* }   &   
+                        												\underset{ \alpha \rightarrow +\infty}{ \longrightarrow} & 0                 \\
+    \Longrightarrow     & \pa{m_{11}\pa{\alpha} M_* -   L_* }      \Lambda_* &   
+    																						\underset{ \alpha \rightarrow +\infty}{ \longrightarrow} &  0\\
+    \Longrightarrow     & \pa{M_* -  L_* }      \Lambda_* &   = &  0\\
+    \Longrightarrow     & M_* \Lambda_* -    \pa{  \summy{j=2}{N} \lambda_j   }   V_*   &   = &  0\\
+    \end{array}
+    $$
+    
+Donc~:
+ 
+    \begin{eqnarray}
+    M_* \Lambda_* -    \pa{  \summy{j=2}{N} \lambda_j   }   V_*   &   = &  0 \label{rn_coro_eq_5}
+    \end{eqnarray}
+    
+D'après l'hypothèse de récurrence, (\ref{rn_coro_eq_5}) implique que : $\forall i \in \ensemble{2}{N}, \; \lambda_i = 0$. Il reste à montrer que $\lambda_1$ est nécessairement nul ce qui est le cas losque $\alpha \longrightarrow +\infty$, alors $\lambda_1  m_{11}\pa{\alpha} \longrightarrow \lambda_1 = 0$. La récurrence est démontrée.
+    
+\end{xdemomine}
+
+
+
+
+
+A chaque fonction sigmoïde \indexfrr{fonction}{sigmoïde} du corollaire~\ref{corollaire_famille_libre} correspond un neurone de la couche cachée. Tous ont des rôles symétriques les uns par rapport aux autres ce qui ne serait pas le cas si les fonctions de transfert étaient des polynômes. \indexfr{polynôme} C'est une des raisons pour lesquelles les réseaux de neurones ont du succès. Le théorème~\ref{theoreme_densite} et le corollaire~\ref{corollaire_famille_libre} sont aussi vraies pour des fonctions du type exponentielle~: $\pa{y,b} \in \R^p \times \R \longrightarrow e^{-\pa{<y,x>+b}^2}$. Maintenant qu'il est prouvé que les réseaux de neurones conviennent pour modéliser $f$ dans l'équation (\ref{rn_eqn_regression_2}), il reste à étudier les méthodes qui permettent de trouver les paramètres $W^*$ optimaux de cette fonction.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%--------------------------------------------------------------------------------------------------------------------
+\section{Méthode d'optimisation de Newton} \label{optimisation_newton}
+%--------------------------------------------------------------------------------------------------------------------
+
+\indexfr{apprentissage}%
+\indexfr{optimisation}%
+\indexfr{gradient}%
+\indexfrr{gradient}{descente}%
+\indexfrr{descente}{gradient}%
+
+Lorsqu'un problème d'optimisation n'est pas soluble de manière déterministe, il existe des algorithmes permettant de trouver une solution approchée à condition toutefois que la fonction à maximiser ou minimiser soit dérivable, ce qui est le cas des réseaux de neurones. Plusieurs variantes seront proposées regroupées sous le terme de descente de gradient.
+
+
+
+\subsection{Algorithme et convergence}
+
+
+Soit $g : \ensemblereel \dans \ensemblereel $ une fonction dérivable dont il faut trouver $ \overset{*}{x} = \underset{x \in \ensemblereel}{\arg \min} \; g\parenthese{x}  $, le schéma~\ref{figure_descente_gradient} illustre la méthode de descente de gradient dans le cas où $ g \parenthese{x} = x^2 $.
+
+		\begin{figure}[ht]
+    \[
+    \frame{$%
+    \begin{array}
+    [c]{lc}%
+    \begin{array}
+    [c]{l}%
+    \text{On note }x_{t}\text{ l'abscisse à l'itération }t\text{.}\\
+    \text{On note }\dfrac{\partial g\left(  x_{t}\right)  }{\partial x}\text{ le
+    gradient de }g\left(  x\right)  =x^{2}\text{.}\\
+    \text{L'abscisse à l'itération }t+1\text{ sera :}\\
+    x_{t+1}=x_{t}-\varepsilon_{t}\left[  \dfrac{\partial g\left(  x_{t}\right)
+    }{\partial x}\right] \\
+    \varepsilon_{t}\text{ est le pas de gradient à l'itération }t\text{.}\\
+    \end{array}
+    &
+    \begin{array}
+    [c]{c}%
+    {\includegraphics[ height=1.8593in, width=3.096in]{\filext{../dessin2/rn_courbe}}}%
+    \end{array}
+    \end{array}
+    $}%
+    \]
+    \caption{Minimisation par descente de gradient.}
+    \label{figure_descente_gradient}
+    \indexfrr{gradient}{descente}
+		\end{figure}
+
+On suppose maintenant que $g$ est une fonction dérivable $g : \ensemblereel^q \dans \ensemblereel $ dont il faut trouver le minimum, le théorème suivant démontre la convergence de l'algorithme de descente de gradient à condition que certaines hypothèses soient vérifiées. Une généralisation de ce théorème est présentée dans \citeindex{Driancourt1996}.
+
+
+
+
+
+		\begin{xtheorem}{convergence de la méthode de Newton (Bottou1991)} \label{theoreme_convergence}
+		
+		Soit une fonction continue $ g : W \in \ensemblereel^M \dans \ensemblereel $, de classe $C^{1}$
+		
+		On suppose les hypothèses suivantes vérifiées :
+		
+		\begin{description}
+		
+		\item[\textbf{H1}] $\underset{W\in \ensemblereel^q}{\arg\min} \; 
+												g\left(  W\right) =\left\{  W^{\ast}\right\} $ est un singleton
+		
+		\item[\textbf{H2}] $\forall\varepsilon>0, \; \underset{\left|  W-W^{\ast}\right|
+		            >\varepsilon}{\inf}\left[  \left(  W-W^{\ast}\right)  ^{\prime}.\nabla
+		            g\left(  W\right)  \right]  >0$
+		
+		\item[\textbf{H3}] $\exists\left(  A,B\right)  \in \ensemblereel^2$ tels que $\forall W\in\ensemblereel^p,\; \left\|
+		            \nabla g\left( W\right) \right\| ^{2}\leqslant A^{2}+B^{2}\left\|  W-W^{\ast}\right\|  ^{2}$
+		
+		\item[\textbf{H4}] la suite $\left(  \varepsilon_{t}\right)  _{t\geqslant0}$ vérifie,
+								 $\forall t>0,\quad\varepsilon_{t}\in
+		            \ensemblereel_{+}^{\ast}\; $ et\quad\ $\underset{t\geqslant0}{\sum}\varepsilon_{t}=+\infty,\quad
+		            \underset{t\geqslant0}{\sum}\varepsilon_{t}^{2}<+\infty$
+		
+		\end{description}
+		
+		Alors la suite $\left(  W_{t}\right)  _{t\geqslant0}$ construite de la manière suivante :
+		$$W_{0}\in \ensemblereel^M \text{ et } \forall t\geqslant0, 
+					\; W_{t+1}=W_{t}-\varepsilon_{t}\,\nabla g\left(  W_{t}\right) $$
+		 vérifie $\underset{t \dans+\infty}{\lim}W_{t}=W^{\ast}$
+		\end{xtheorem}
+
+
+
+L'hypothèse \textit{H1} implique que le minimum de la fonction $g$ est unique et l'hypothèse \textit{H2} implique que le demi-espace défini par l'opposé du gradient contienne toujours le minimum de la fonction $g$. L'hypothèse \textit{H3} est vérifiée pour une fonction sigmoïde, \indexfrr{fonction}{sigmoïde} elle l'est donc aussi pour toute somme finie
+de fonctions sigmoïdes que sont les réseaux de neurones à une couche cachée.
+
+
+
+
+
+
+\begin{xdemo}{théorème}{\ref{theoreme_convergence}}
+
+\itemdemo
+
+Soit la suite $u_{t}=\ln\left(  1+\varepsilon_{t}^{2}x^{2}\right)$ avec $x\in\ensemblereel,$ comme $\underset {t\geqslant0}
+{\sum}\varepsilon_{t}^{2} < +\infty, \; u_{t}\thicksim\varepsilon_{t}^{2}x^{2},$ on a $\underset{t\geqslant0} {\sum}u_{t} < +\infty $
+
+Par conséquent, si $v_{t}=e^{u_{t}}$ alors $\overset{T} {\underset{t=1}{\prod} } v_{t}\overset{T \rightarrow \infty}{\longrightarrow}D \in \ensemblereel$
+
+\itemdemo
+
+On pose $h_{t}=\left\|  W_{t}-W^{\ast}\right\|  ^{2}$
+
+Donc :
+
+    \begin{eqnarray}
+    h_{t+1} -h_{t} &=&\left\|  W_{t}-\varepsilon_{t}\,\nabla g\left( W_{t}\right) -W^{\ast }\right\|
+    			  ^{2}-\left\|W_{t}-W^{\ast}\right\| ^{2}
+    \label{equation_convergence_un}
+    \end{eqnarray}
+
+Par conséquent :
+
+    $$
+    h_{t+1}-h_{t}=-2\varepsilon_{t}\underset{>0} {\underbrace{\left(  W_{t}-W^{\ast}\right) 
+     ^{\prime}\,\nabla g\left( W_{t}\right)
+    }}+\varepsilon_{t}^{2}\,\left\|  \,\nabla C\left( W_{t}\right) \right\|  
+    ^{2}\leqslant\varepsilon_{t}^{2}\,\left\|  \,\nabla g\left( W_{t}\right)
+    \right\|  ^{2}\leqslant\varepsilon_{t}^{2}\,\left(  A^{2}  +B^{2}h_{t}\right)
+    $$
+    
+D'où :
+
+    $$
+    h_{t+1}-h_{t}\left(  1+\varepsilon_{t}^{2}B^{2}\right) \leqslant\varepsilon_{t}^{2}\,A^{2}
+    $$
+    
+On pose $\pi_{t}=\overset{t}{\underset{k=1}{ {\displaystyle\prod} }}\left(  1+\varepsilon_{k}^{2}B^{2}\right)  ^{-1}$ alors, en multipliant des deux côtés par $\pi_{t+1},$ on obtient~:
+
+    \begin{eqnarray*}
+    \pi_{t+1}h_{t+1}-\pi_{t}h_{t} &\leqslant& \varepsilon_{t}^{2}\,A^{2}\pi_{t+1}\\
+    \text{d'où }\pi_{q+1}h_{q+1}-\pi_{p}h_{p} &\leqslant&
+    				 \underset{t=p}{\overset{q}{\sum}}\varepsilon_{t}^{2}\,A^{2}\pi_{t+1} \leqslant
+    \summy{t=p}{q} \varepsilon_{t}^{2} \, A^{2}\Pi  \leqslant \summy{t=p}{q} \varepsilon_{t}^{2}\,A^{2}\Pi
+    			 \underset{t \longrightarrow
+    \infty}{\longrightarrow} 0
+    \end{eqnarray*}
+
+Comme la série $\; \summyone{t} \pa{\pi_{t+1}h_{t+1}-\pi_{t}h_{t}} \;$ vérifie le critère de Cauchy, \indexfr{Cauchy}
+\indexfrr{critère}{Cauchy} elle est convergente. Par conséquent~:
+    
+    $$
+    \underset{q\rightarrow\infty}{\lim}\pi_{q+1}h_{q+1}=0=\underset{q\rightarrow \infty}{\lim}\Pi h_{q+1}
+    $$
+    
+D'où :
+    
+    \begin{eqnarray}
+    \underset{q\rightarrow\infty}{\lim}h_{q}=0
+    \end{eqnarray}
+
+\itemdemo
+
+
+La série $\;\summyone{t}\pa{h_{t+1}-h_{t}}\;$ est convergente car $\Pi h_t \sim \pi_t h_t$.
+
+$\underset{t\geqslant0}{\sum}\varepsilon_{t}^{2}\,\left\| \,\nabla g\left( W_{t}\right) \right\|  ^{2}$ l'est aussi (d'après H3).
+
+D'après (\ref{equation_convergence_un}), la série $\underset{t\geqslant0}{\sum}\varepsilon_{t}\left( W_{t}-W^{\ast }\right) ^{\prime}\,\nabla g\left( W_{t}\right)  $ est donc convergente. Or d'après les hypothèses (H2, H4), elle ne peut l'être que si~:
+    
+    \begin{eqnarray}
+    \underset{t\rightarrow\infty}{\lim}W_{t}=W^{\ast}
+    \end{eqnarray}
+
+\end{xdemo}
+
+
+
+
+
+Si ce théorème prouve la convergence \indexfr{convergence} de la méthode de Newton, il ne précise pas à quelle vitesse cette convergence s'effectue et celle-ci peut parfois être très lente. Plusieurs variantes ont été développées regroupées sous le terme de méthodes de quasi-Newton \indexfr{quasi-Newton} dans le but d'améliorer la vitesse de convergence (voir paragraphe~\ref{rn_section_train_rn}). \indexfrr{convergence}{vitesse}
+
+Ce théorème peut être étendu dans le cas où la fonction $g$ n'a plus un seul minimum global mais plusieurs minima locaux \citeindex{Bottou1991}, dans ce cas, la suite $\parenthese{W_{t}}$ converge vers un mimimum local. Dans le cas des réseaux de neurones, la fonction à optimiser est~:
+
+    \begin{eqnarray}
+    G\parenthese{W}   =   \sum_{i=1}^{N} e\parenthese {Y_{i}, \widehat{Y_{i}^W}}
+                      =   \sum_{i=1}^{N} e\parenthese {Y_{i}, f \parenthese{W,X_{i}}}
+    \label{equation_fonction_erreur_g}
+    \end{eqnarray}
+
+Dès que les fonctions de transfert ne sont pas linéaires, il existe une multitude de minima locaux, ce nombre croissant avec celui des coefficients.
+
+
+
+
+
+
+
+\subsection{Calcul du gradient ou \emph{rétropropagation}}
+
+
+\indexfrr{gradient}{calcul}%
+\indexfr{rétropropagation}%
+
+Afin de minimiser la fonction $G$ décrite en (\ref{equation_fonction_erreur_g}), l'algorithme de descente du gradient nécessite de calculer le gradient de cette fonction $G$ qui est la somme des gradients $\partialfrac{e}{W}$ pour chaque couple $\pa{X_i,Y_i}$~:
+
+    \begin{eqnarray}
+    \partialfrac{G}{W}\pa{W} &=& \sum_{i=1}^{N} \partialfrac{e\pa {Y_{i}, f \pa{W,X_{i}}}}{W} \nonumber\\
+                             &=& \sum_{i=1}^{N} \sum_{k=1}^{C_C}
+                                    \partialfrac{e\pa {Y_{i}, f \pa{W,X_{i}}}}{z_{C,k}}
+                                    \partialfrac{z_{C,k}}{W}
+    \label{algo_retro_1}
+    \end{eqnarray}
+
+Les notations utilisées sont celles de la figure~\ref{figure_peceptron-fig} page~\pageref{figure_peceptron-fig}. Les résultats qui suivent sont pour $X_i=X$ donné appartenant à la suite $\pa{X_i}$. On remarque tout d'abord que~:
+
+    \begin{eqnarray}
+    \partialfrac{e}{w_{c,i,j}} \pa{W,X} &=&  z_{c-1,j} \partialfrac{e}{y_{c,i}} \pa{W,X} \label{algo_retro_2}\\
+    \partialfrac{e}{b_{c,i}} \pa{W,X}   &=& \partialfrac{e}{y_{c,i}} \pa{W,X} \label{algo_retro_3}
+    \end{eqnarray}
+
+La rétropropagation du gradient consiste donc à calculer les termes : $\partialfrac{e}{y_{.,.}}\pa{W,X}$ puisque le gradient s'en déduit facilement. La dernière couche du réseau de neurones nous permet d'obtenir~:
+
+    \begin{eqnarray}
+    \partialfrac{e}{y_{C,i}} \pa{W,X} &=& \sum_{k=1}^{C_{C}} \partialfrac{e}{z_{C,k}} \pa{W,X} \partialfrac{z_{C,k}}{y_{C,i}}
+                                            \pa{W,X} \nonumber\\
+                                      &=& \partialfrac{e}{z_{C,i}} \pa{W,X} f'_{c,i}\pa{y_{C,i}} \label{algo_retro_4}
+    \end{eqnarray}
+
+Pour les autres couches $c$ telles que $ 1 \infegal c \infegal C-1$, on a~:
+
+    \begin{eqnarray}
+    \partialfrac{e}{y_{c,i}}    &=& \sum_{l=1}^{C_{c+1}}              \partialfrac {e}{y_{c+1,l}}
+                                                                \partialfrac{y_{c+1,l}}{y_{c,i}} \nonumber \\
+                                &=& \sum_{l=1}^{C_{c+1}}              \partialfrac {e}{y_{c+1,l}}
+                                    \crochet { \sum_{l=1}^{C_{c}}   \partialfrac {y_{c+1,l}}{z_{c,l}}
+                                                                    \underset{=0\,si\,l\neq                                                                 i}{\underbrace{\partialfrac{z_{c,l}}{y_{c,i}}}} } \nonumber \\
+                                &=& \sum_{l=1}^{C_{c+1}}              \partialfrac{e}{y_{c+1,l}}
+                                                                    \partialfrac{y_{c+1,l}}{z_{c,i}}
+                                                                    \partialfrac{z_{c,i}}{y_{c,i}}
+                                                                    \label{retro_eq_nn_3}
+    \end{eqnarray}
+
+Par conséquent~:
+
+    \begin{eqnarray}
+    \partialfrac{e}{y_{c,i}} &=&    \crochet{ \sum_{l=1}^{C_{c+1}} \partialfrac{e}{y_{c+1,l}}w_{c+1,l,i} } \,
+                                    f_{c,i}^{\prime} \pa{y_{c,i}}  \label{algo_retro_5}
+    \end{eqnarray}
+
+Cette dernière formule permet d'obtenir par récurrence les dérivées $\partialfrac{e}{y_{.,.}}$ de la dernière couche $C$ à la première et ce, quel que soit le nombre de couches. Cette récurrence inverse de la propagation est appelée \emph{rétropropagation}. \indexfr{rétropropagation} Cet algorithme se déduit des équations (\ref{algo_retro_1}), (\ref{algo_retro_2}), (\ref{algo_retro_3}), (\ref{algo_retro_4})  et (\ref{algo_retro_5})~:
+
+		\begin{xalgorithm}{rétropropagation} \label{algo_retropropagation}
+		\indexfr{rétropropagation}%
+		Cet algorithme s'applique à un réseau de neurones vérifiant la définition~\ref{rn_definition_perpception_1}. Il s'agit
+		de calculer sa dérivée par rapport aux poids. Il se déduit des formules
+		(\ref{algo_retro_1}), (\ref{algo_retro_2}), (\ref{algo_retro_3}), (\ref{algo_retro_4})  et (\ref{algo_retro_5})
+		et suppose que l'algorithme de propagation (\ref{algo_propagation}) a été préalablement exécuté.\newline%
+		On note $y'_{c,i} = \partialfrac{e}{y_{c,i}}$, $w'_{c,i,j} = \partialfrac{e}{w_{c,i,j}}$ et $b'_{c,i} =
+		\partialfrac{e}{b_{c,i}}$. \medskip
+		
+		\begin{xalgostep}{initialisation}\label{algo_retropropagation_init}
+		    \begin{xfor}{i}{1}{C_C}
+		    $y'_{C,i} \longleftarrow \partialfrac{e}{z_{C,i}} \pa{W,X} f'_{c,i}\pa{y_{C,i}}$
+		    \end{xfor}
+		\end{xalgostep}
+		
+		\begin{xalgostep}{récurrence}\label{algo_retropropagation_recurrence}
+		    \begin{xfor}{c}{C-1}{1}
+		        \begin{xfor}{i}{1}{C_c}
+		            $y'_{c,i} \longleftarrow 0$ \newline%
+		            \begin{xfor}{j}{1}{C_{c+1}}
+		            $y'_{c,i} \longleftarrow y'_{c,i} + y'_{c+1,j} \; w_{c+1,j,i}$
+		            \end{xfor} \newline%
+		            $y'_{c,i} \longleftarrow y'_{c,i} \; f'_{c,i}\pa{y'_{c,i}}$
+		        \end{xfor}
+		    \end{xfor}
+		\end{xalgostep}
+		
+		\begin{xalgostep}{terminaison}\label{algo_retropropagation_terminaison}
+		    \begin{xfor}{c}{1}{C}
+		        \begin{xfor}{i}{1}{C_c}
+		            \begin{xfor}{j}{1}{C_{c-1}}
+		                $
+		                \begin{array}{lcl}
+		                w'_{c,i,j} &\longleftarrow &z_{c-1,j} \; y'_{c,i} \\
+		                b'_{c,i,j} &\longleftarrow &y'_{c,i}
+		                \end{array}
+		                $
+		            \end{xfor}
+		        \end{xfor}
+		    \end{xfor}
+		\end{xalgostep}
+		
+		
+		\end{xalgorithm}
+		
+		
+		
+		
+		
+
+
+
+
+
+%-------------------------------------------------------------------------------------------------------------------
+\section{Apprentissage d'un réseau de neurones}
+%-------------------------------------------------------------------------------------------------------------------
+\label{rn_section_train_rn}
+\indexfr{apprentissage}%
+\indexfrr{apprentissage}{global}%
+\indexfr{optimisation}
+
+Le terme apprentissage est encore inspiré de la biologie et se traduit par la minimisation de la fonction
+(\ref{equation_fonction_erreur_g}) où $f$ est un réseau de neurone défini par (\ref{rn_definition_perpception_1}). Il existe plusieurs méthodes pour effectuer celle-ci. Chacune d'elles vise à minimiser la fonction d'erreur~:
+
+    $$
+        E\pa{W}   = G \pa{W}  =   \sum_{i=1}^{N} e\pa {Y_{i} - \widehat{Y_{i}^W}}
+                                            =   \sum_{i=1}^{N} e\pa {Y_{i} - f \pa{W,X_{i}}}
+    $$
+
+Dans tous les cas, les différents apprentissages utilisent la suite suivante $\pa{ \epsilon_{t}}$ vérifiant (\ref{rn_suite_epsilon_train}) et proposent une convergence vers un minimum local (figure~\ref{figure_modele_optimal}).
+
+    \begin{eqnarray}
+    \forall t>0,\quad\varepsilon_{t}\in \ensemblereel_{+}^{\ast} \text{ et }
+    \underset{t\geqslant0}{\sum}\varepsilon_{t}=+\infty,\quad
+    \underset{t\geqslant0}{\sum}\varepsilon_{t}^{2}<+\infty
+    \label{rn_suite_epsilon_train}
+    \end{eqnarray}
+
+Il est souhaitable d'apprendre plusieurs fois la même fonction en modifiant les conditions initiales de ces méthodes de manière à améliorer la robustesse de la solution.
+
+
+
+
+
+
+
+
+\subsection{Apprentissage avec gradient global}
+
+\indexfrr{gradient}{global}%
+
+L'algorithme~\ref{algo_retropropagation} permet d'obtenir la dérivée de l'erreur $e$ pour un vecteur d'entrée $X$. Or l'erreur $E\pa{W}$ à minimiser est la somme des erreurs pour chaque exemple $X_i$, le gradient global $\partialfrac{E\pa{W}}{W}$ de cette erreur globale est la somme des gradients pour chaque exemple (voir équation~\ref{algo_retro_1}). Parmi les méthodes d'optimisation basées sur le gradient global, on distingue deux catégories~:
+
+\begin{enumerate}
+\item Les méthodes du premier ordre, elles sont calquées sur la méthode de Newton et n'utilisent que le gradient.
+\item Les méthodes du second ordre ou méthodes utilisant un gradient conjugué,
+        \indexfrr{gradient}{conjugué} elles sont plus coûteuses en calcul mais plus performantes
+        puisqu'elles utilisent la dérivée seconde ou une valeur approchée.
+\end{enumerate}
+
+
+
+
+
+
+
+
+
+\subsubsection{Méthodes du premier ordre}
+\label{rn_optim_premier_ordre}
+
+
+\indexfrr{apprentissage}{premier ordre}
+\indexfrr{méthode}{premier ordre} 
+\indexfrr{ordre}{méthode du premier ordre}
+
+Les méthodes du premier ordre sont rarement utilisées. Elles sont toutes basées sur le principe de la descente de gradient de Newton présentée dans la section~\ref{optimisation_newton} page~\pageref{theoreme_convergence}~:
+
+
+		\begin{xalgorithm} {optimisation du premier ordre}
+		\label{rn_algorithme_apprentissage_1}%
+		\label{rn_apprentissage_global}
+		\indexfr{Newton}
+		
+		\begin{xalgostep}{initialisation}
+		    Le premier jeu de coefficients $W_0$ du réseau de neurones est choisi aléatoirement. \newline%
+		    $
+		    \begin{array}{rcl}
+		    t   &\longleftarrow&    0 \\
+		    E_0 &\longleftarrow&    \summy{i=1}{N} e\pa {Y_{i} - f \pa{W_0,X_{i}}}
+		    \end{array}
+		    $
+		\end{xalgostep}
+		
+		\begin{xalgostep}{calcul du gradient}\label{algo_global1_step_back}
+		    $g_t \longleftarrow \partialfrac{E_t}{W} \pa {W_t} = \summy{i=1}{N} e'\pa {Y_{i} - f \pa{W_t,X_{i}}}$
+		\end{xalgostep}
+		
+		\begin{xalgostep}{mise à jour} \label{algo_global1_step_maj}
+		    $
+		    \begin{array}{rcl}
+		    W_{t+1} &\longleftarrow& W_t - \epsilon_t g_t \\
+		    E_{t+1} &\longleftarrow& \summy{i=1}{N} e\pa {Y_i - f \pa{W_{t+1},X_i}} \\
+		    t       &\longleftarrow& t+1
+		    \end{array}
+		    $
+		\end{xalgostep}
+		
+		\begin{xalgostep}{terminaison}
+		    si $\frac{E_t}{E_{t-1}} \approx 1 $ (ou $\norme{g_t} \approx 0$) alors l'apprentissage a convergé sinon retour à
+		    l'étape~\ref{algo_global1_step_back}
+		\end{xalgostep}
+		\end{xalgorithm}
+
+
+La condition d'arrêt peut-être plus ou moins stricte selon les besoins du problème. Cet algorithme converge vers un minimum local de la fonction d'erreur (d'après le théorème~\ref{theoreme_convergence}) mais la vitesse de convergence est inconnue.
+
+
+
+
+
+
+
+\subsubsection{Méthodes du second ordre}
+
+\indexfrr{apprentissage}{second ordre}%
+\indexfrr{méthode}{second ordre} 
+\indexfrr{ordre}{méthode du second ordre}
+\label{rn_optim_second_ordre}
+
+L'algorithme~\ref{rn_apprentissage_global} fournit le canevas des méthodes d'optimisation du second ordre. La mise à jour des coefficients (étape~\ref{algo_global1_step_maj}) est différente car elle prend en compte les dernières valeurs des coefficients ainsi que les derniers gradients calculés. Ce passé va être utilisé pour estimer une direction de recherche pour le minimum différente de celle du gradient, cette direction est appelée gradient conjugué (voir \citeindex{Moré1977}). \indexfrr{gradient}{conjugué}
+
+Ces techniques sont basées sur une approximation du second degré de la fonction à minimiser. On note $M$ le nombre de coefficients du réseau de neurones (biais compris). Soit $h: \ensemblereel^{M} \dans \ensemblereel $ la fonction d'erreur associée au réseau de neurones~:
+
+    $$
+    h \pa {W} = \summyone{i} e \pa{Y_i,f \pa{ W,X_i} }
+    $$
+
+Au voisinage de $W_{0}$, un développement limité donne~:
+    $$
+    h \pa {W}     =   h\pa {W_0}  + \frac{\partial h\left( W_{0}\right)  }{\partial W}\left( W-W_{0}\right) +\left(
+    W-W_{0}\right) ^{\prime}\frac{\partial^{2}h\left(  W_{0}\right)  }{\partial W^{2}}\left( W-W_{0}\right) +o\left\|
+    W-W_{0}\right\|  ^{2}
+    $$
+
+Par conséquent, sur un voisinage de $W_{0}$, la fonction $h\left( W\right)$ admet un minimum local si
+$\frac{\partial^{2}h\left( W_{0}\right) }{\partial W^{2}}$ est définie positive strictement\footnote{
+    \para{Rappel :} $\dfrac{\partial^{2}h\left(  W_{0}\right)  }{\partial W^{2}%
+    }$ est définie positive strictement $\Longleftrightarrow\forall Z\in\R^{N},\; Z\neq0\Longrightarrow
+    Z^{\prime}\dfrac{\partial ^{2}h\left( W_{0}\right)  }{\partial W^{2}}Z>0$
+    }. Une matrice symétrique définie strictement positive est inversible, et le minimum est atteint pour la valeur :
+    
+    
+    \begin{eqnarray}
+    W_{\min}= W_0 + \frac{1}{2}\left[  \dfrac{\partial^{2}h\left(  W_{0}\right) }
+    		{\partial W^{2}}\right]  ^{-1}\left[  \frac{\partial h\left(  W_{0}\right)
+    }{\partial W}\right] \label{rn_hessien}
+    \end{eqnarray}
+
+Néanmoins, pour un réseau de neurones, le calcul de la dérivée seconde est coûteux, son inversion également. C'est pourquoi les dernières valeurs des coefficients et du gradient sont utilisées afin d'approcher cette dérivée seconde ou directement son inverse. Deux méthodes d'approximation sont présentées~:
+
+    \begin{enumerate}
+    \item l'algorithme BFGS (Broyden-Fletcher-Goldfarb-Shano), \citeindex{Broyden1967}, \citeindex{Fletcher1993}
+                                                                \indexfr{BFGS}
+    \item l'algoritmhe DFP  (Davidon-Fletcher-Powell), \citeindex{Davidon1959}, \citeindex{Fletcher1963}
+                                                                \indexfr{DFP}
+    \end{enumerate}
+
+La figure~\ref{figure_gradient_conjugue} est couramment employée pour illustrer l'intérêt des méthodes de gradient conjugué. \indexfrr{gradient}{conjugué} Le problème consiste à trouver le minimum d'une fonction quadratique, par exemple, $G\pa{x,y} = 3x^2 + y^2$. Tandis que le gradient est orthogonal aux lignes de niveaux de la fonction $G$, le gradient conjugué se dirige plus sûrement vers le minimum global.
+
+		\begin{figure}[ht]
+    \[
+    \begin{tabular}{|c|} \hline
+		\filefig{../rn/fig_rn_02}
+    \\ \hline
+    \end{tabular}
+    \]
+    \caption{Gradient et gradient conjugué sur une ligne de niveau de la fonction $G\pa{x,y} = 3x^2 + y^2$, 
+    					le gradient est
+              orthogonal aux lignes de niveaux de la fonction $G$, mais cette direction est rarement la bonne à moins
+              que le point $\pa{x,y}$ se situe sur un des axes des ellipses, le gradient conjugué agrège les derniers
+              déplacements et propose une direction de recherche plus plausible pour le minimum de la fonction.}
+    \label{figure_gradient_conjugue}
+		\end{figure}
+
+
+
+
+Ces méthodes proposent une estimation de la dérivée seconde (ou de son inverse) utilisée en (\ref{rn_hessien}). Dans les méthodes du premier ordre, une itération permet de calculer les poids $W_{t+1}$ à partir des poids $W_t$ et du gradient $G_t$. Si ce gradient est petit, on peut supposer que $G_{t+1}$ est presque égal au produit de la dérivée seconde par $G_t$. Cette relation est mise à profit pour construire une estimation de la dérivée seconde. Cette matrice notée $B_t$ dans l'algorithme~\ref{rn_algo_bfgs} est d'abord supposée égale à l'identité puis actualisée à chaque itération en tenant de l'information apportée par chaque déplacement. 
+
+
+
+		\begin{xalgorithm} {algorithme BFGS}
+		\label{rn_algo_bfgs}%
+		\indexfr{BFGS}
+		
+		Le nombre de paramètres de la fonction $f$ est $M$.
+		
+		\begin{xalgostep}{initialisation}
+		    Le premier jeu de coefficients $W_0$ du réseau de neurones est choisi aléatoirement. \newline%
+		    $
+		    \begin{array}{lcl}
+		    t   &\longleftarrow&    0 \\
+		    E_0 &\longleftarrow&    \summy{i=1}{N} e\pa {Y_{i} - f \pa{W_0,X_{i}}} \\
+		    B_0 &\longleftarrow&    I_M \\
+		    i   &\longleftarrow&    0
+		    \end{array}
+		    $
+		\end{xalgostep}
+		
+		\begin{xalgostep}{calcul du gradient}\label{algo_global_bfgs_step_back}
+		    $
+		    \begin{array}{lcl}
+		    g_t &\longleftarrow& \partialfrac{E_t}{W} \pa {W_t}= \summy{i=1}{N} e'\pa {Y_{i} - f \pa{W_t,X_{i}}} \\
+		    c_t &\longleftarrow& B_t g_t
+		    \end{array}
+		    $
+		\end{xalgostep}
+		
+		\begin{xalgostep}{mise à jour des coefficients}\label{algo_global_bfgs_step_maj}
+		    $
+		    \begin{array}{lcl}
+		    \epsilon^*  &\longleftarrow&    \underset{\epsilon}{\arg \inf} \; \summy{i=1}{N}
+		    		 e\pa {Y_i - f \pa{W_t - \epsilon c_t,X_i}}  \\
+		    W_{t+1}     &\longleftarrow&    W_t - \epsilon^* c_t \\
+		    E_{t+1}     &\longleftarrow&    \summy{i=1}{N} e\pa {Y_i - f \pa{W_{t+1},X_i}} \\
+		    t           &\longleftarrow&    t+1
+		    \end{array}
+		    $
+		\end{xalgostep}
+		
+		\begin{xalgostep}{mise à jour de la matrice $B_t$}
+		    \begin{xif}{   $t - i \supegal M$ ou %
+		            $g'_{t-1} B_{t-1} g_{t-1} \infegal 0$ ou %
+		            $g'_{t-1} B_{t-1} \pa {g_t - g_{t-1}} \infegal 0$}
+		        $
+		        \begin{array}{lcl}
+		        B_{t}       &\longleftarrow&    I_M \\
+		        i           &\longleftarrow&    t
+		        \end{array}
+		        $
+		    \xelse
+		        $
+		        \begin{array}{lcl}
+		        s_t         &\longleftarrow&    W_t - W_{t-1} \\
+		        d_t         &\longleftarrow&    g_t - g_{t-1} \\
+		        B_{t}       &\longleftarrow&    B_{t-1} +   \pa{1 + \dfrac{ d'_t B_{t-1} d_t}{d'_t s_t}}
+		                                                            \dfrac{s_t s'_t} {s'_t d_t}
+		                                                - \dfrac{s_t d'_t B_{t-1} +  B_{t-1} d_t s'_t } { d'_t s_t }
+		        \end{array}
+		        $
+		    \end{xif}
+		\end{xalgostep}
+		
+		\begin{xalgostep}{terminaison}
+		    si $\frac{E_t}{E_{t-1}} \approx 1 $ alors l'apprentissage a convergé sinon retour à
+		    l'étape~\ref{algo_global_bfgs_step_back}
+		\end{xalgostep}
+		\end{xalgorithm}
+
+
+
+
+Lorsque la matrice $B_t$ est égale à l'identité, le gradient conjugué est égal au gradient. Au fur et à mesure des itérations, cette matrice toujours symétrique évolue en améliorant la convergence de l'optimisation. Néanmoins, la matrice $B_t$ doit être "nettoyée" (égale à l'identité) fréquemment afin d'éviter qu'elle n'agrège un passé trop lointain. Elle est aussi nettoyée lorsque le gradient conjugué semble trop s'éloigner du véritable gradient et devient plus proche d'une direction perpendiculaire.
+
+La convergence de cet algorithme dans le cas des réseaux de neurones est plus rapide qu'un algorithme du premier ordre, une preuve en est donnée dans \citeindex{Driancourt1996}.
+
+En pratique, la recherche de $\epsilon^*$ est réduite car le calcul de l'erreur est souvent coûteux, il peut être effectué sur un grand nombre d'exemples. C'est pourquoi on remplace l'étape~\ref{algo_global_bfgs_step_maj} par celle-ci les étapes~\ref{algo_global_bfgs_p_step_back} et~\ref{algo_global_bfgs_p_step_back_2}~:
+
+
+
+		\begin{xalgorithm} {algorithme BFGS'}
+		\label{rn_algo_bfgs_prime}%
+		\indexfr{BFGS'} Le nombre de paramètre de la fonction $f$ est $M$.
+		
+		\begin{xalgostep}{initialisation}
+		    voir algorithme~\ref{rn_algo_bfgs}
+		\end{xalgostep}
+		
+		\begin{xalgostep}{calcul du gradient}\label{algo_global_bfgs_p_step_back}
+		    voir algorithme~\ref{rn_algo_bfgs}
+		\end{xalgostep}
+		
+		\begin{xalgostep}{recherche de $\epsilon^*$}
+		    $\epsilon^*  \longleftarrow    \epsilon_0$ \newline
+		    \begin{xdowhile}{$E_{t+1} \supegal E_t$ et $\epsilon^* \gg 0$}
+		        $
+		        \begin{array}{lcl}
+		        \epsilon^*  &\longleftarrow&   \frac{\epsilon^*}{2} \\
+		        W_{t+1}     &\longleftarrow&    W_t - \epsilon^* c_t \\
+		        E_{t+1}     &\longleftarrow&    \summy{i=1}{N} e\pa {Y_i - f \pa{W_{t+1},X_i}}
+		        \end{array}
+		        $
+		    \end{xdowhile}\newline
+		    \begin{xif}{$\epsilon_* \approx 0$ et $B_t \neq I_M$}
+		        $
+		        \begin{array}{lcl}
+		        B_{t}       &\longleftarrow&    I_M \\
+		        i           &\longleftarrow&    t
+		        \end{array}
+		        $ \newline
+		        retour à l'étape~\ref{algo_global_bfgs_p_step_back}
+		    \end{xif}
+		\end{xalgostep}
+		
+		\begin{xalgostep}{mise à jour des coefficients}\label{algo_global_bfgs_p_step_back_2}
+		    $
+		    \begin{array}{lcl}
+		    W_{t+1}     &\longleftarrow&    W_t - \epsilon^* c_t \\
+		    E_{t+1}     &\longleftarrow&    \summy{i=1}{N} e\pa {Y_i - f \pa{W_{t+1},X_i}} \\
+		    t           &\longleftarrow&    t+1
+		    \end{array}
+		    $
+		\end{xalgostep}
+		
+		\begin{xalgostep}{mise à jour de la matrice $B_t$}
+		    voir algorithme~\ref{rn_algo_bfgs}
+		\end{xalgostep}
+		
+		\begin{xalgostep}{terminaison}
+		    voir algorithme~\ref{rn_algo_bfgs}
+		\end{xalgostep}
+		\end{xalgorithm}
+		
+		
+L'algorithme DFP est aussi un algorithme de gradient conjugué qui propose une approximation différente de l'inverse de la dérivée seconde.
+		
+		
+		\begin{xalgorithm} {algorithme DFP}
+		\label{rn_algo_dfp}%
+		\indexfr{DFP} Le nombre de paramètre de la fonction $f$ est $M$.
+		
+		\begin{xalgostep}{initialisation}
+		    Le premier jeu de coefficients $W_0$ du réseau de neurones est choisi aléatoirement. \newline%
+		    $
+		    \begin{array}{lcl}
+		    t   &\longleftarrow&    0 \\
+		    E_0 &\longleftarrow&    \summy{i=1}{N} e\pa {Y_{i} - f \pa{W_0,X_{i}}} \\
+		    B_0 &\longleftarrow&    I_M \\
+		    i   &\longleftarrow&    0
+		    \end{array}
+		    $
+		\end{xalgostep}
+		
+		\begin{xalgostep}{calcul du gradient}\label{algo_global_dfp_step_back}
+		    $
+		    \begin{array}{lcl}
+		    g_t &\longleftarrow& \partialfrac{E_t}{W} \pa {W_t}= \summy{i=1}{N} e'\pa {Y_{i} - f \pa{W_t,X_{i}}} \\
+		    c_t &\longleftarrow& B_t g_t
+		    \end{array}
+		    $
+		\end{xalgostep}
+		
+		\begin{xalgostep}{mise à jour des coefficients}
+		    $
+		    \begin{array}{lcl}
+		    \epsilon^*  &\longleftarrow&    \underset{\epsilon}{\arg \inf} \;
+		    							 \summy{i=1}{N} e\pa {Y_i - f \pa{W_t - \epsilon c_t,X_i}}  \\
+		    W_{t+1}     &\longleftarrow&    W_t - \epsilon^* c_t \\
+		    E_{t+1}     &\longleftarrow&    \summy{i=1}{N} e\pa {Y_i - f \pa{W_{t+1},X_i}} \\
+		    t           &\longleftarrow&    t+1
+		    \end{array}
+		    $
+		\end{xalgostep}
+		
+		\begin{xalgostep}{mise à jour de la matrice $B_t$}\label{algo_global_dfp_step_same}
+		    \begin{xif}{   $t - i \supegal M$ ou %
+		            $g'_{t-1} B_{t-1} g_{t-1} \infegal 0$ ou %
+		            $g'_{t-1} B_{t-1} \pa {g_t - g_{t-1}} \infegal 0$}
+		        $
+		        \begin{array}{lcl}
+		        B_{t}       &\longleftarrow&    I_M \\
+		        i           &\longleftarrow&    t
+		        \end{array}
+		        $
+		    \xelse
+		        $
+		        \begin{array}{lcl}
+		        d_t         &\longleftarrow&    W_t - W_{t-1} \\
+		        s_t         &\longleftarrow&    g_t - g_{t-1} \\
+		        B_{t}       &\longleftarrow&    B_{t-1} +     \dfrac{d_t d'_t} {d'_t s_t}
+		                                                    - \dfrac{B_{t-1} s_t s'_t B_{t-1} } { s'_t B_{t-1} s_t }
+		        \end{array}
+		        $
+		    \end{xif}
+		\end{xalgostep}
+		
+		\begin{xalgostep}{terminaison}
+		    si $\frac{E_t}{E_{t-1}} \approx 1 $ alors l'apprentissage a convergé sinon retour à    
+		    l'étape~\ref{algo_global_dfp_step_back}
+		\end{xalgostep}
+		\end{xalgorithm}
+
+
+
+Seule l'étape~\ref{algo_global_dfp_step_same} de mise à jour de $B_t$ diffère dans les algorithmes~\ref{rn_algo_bfgs} et~\ref{rn_algo_dfp}. Comme l'algorithme BFGS (\ref{rn_algo_bfgs}), on peut construire une version DFP' inspirée de l'algorithme~\ref{rn_algo_bfgs_prime}. \indexfr{DFP'} 
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Apprentissage avec gradient stochastique}
+
+\indexfrr{apprentissage}{stochastique} 
+\indexfr{stochastique}%
+
+Compte tenu des courbes d'erreurs très "accidentées" (figure~\ref{figure_courbe_accident}) dessinées par les réseaux de neurones, il existe une multitude de minima locaux. De ce fait, l'apprentissage global converge rarement vers le minimum global de la fonction d'erreur lorsqu'on applique les algorithmes basés sur le gradient global. L'apprentissage avec gradient stochastique est une solution permettant de mieux explorer ces courbes d'erreurs. De plus, les méthodes de gradient conjugué nécessite le stockage d'une matrice trop grande parfois pour des fonctions ayant quelques milliers de paramètres. C'est pourquoi l'apprentissage avec gradient stochastique est souvent préféré à l'apprentissage global pour de grands réseaux de neurones alors que les méthodes du second ordre trop coûteuses en calcul sont cantonnées à de petits réseaux. En contrepartie, la convergence est plus lente. La démonstration de cette convergence nécessite l'utilisation de quasi-martingales et est une convergence presque sûre \citeindex{Bottou1991}.
+
+		\begin{figure}[ht]
+    $$\frame{$\begin{array}[c|c]{c}\includegraphics[height=3cm, width=6cm] 
+    {\filext{../dessin2/errminloc}}\end{array}$}$$
+    \caption{Exemple de minima locaux.}
+    \label{figure_courbe_accident}
+		\end{figure}
+
+
+		\begin{xalgorithm} {apprentissage stochastique}
+		\label{rn_algorithme_apprentissage_2}%
+		\indexfr{stochastique}
+		\indexfrr{optimisation}{stochastique}
+		
+		\begin{xalgostep}{initialisation}
+		    Le premier jeu de coefficients $W_0$ du réseau de neurones est choisi aléatoirement. \newline%
+		    $
+		    \begin{array}{lcl}
+		    t       &\longleftarrow&    0 \\
+		    E_0 &\longleftarrow&    \summy{i=1}{N} e\pa {Y_{i} - f \pa{W_0,X_{i}}}
+		    \end{array}
+		    $
+		\end{xalgostep}
+		
+		\begin{xalgostep}{récurrence}\label{algo_global_sto_step_back}
+		    $W_{t,0} \longleftarrow    W_0$ \newline
+		    \begin{xfor}{t'}{0}{N-1}
+		        $
+		        \begin{array}{lcl}
+		        i           &\longleftarrow&    \text{ nombre aléatoire dans } \ensemble{1}{N} \\
+		        g           &\longleftarrow&    \partialfrac{E}{W} \pa {W_{t,t'}}=  e'\pa {Y_{i} - f
+		                                    \pa{W_{t,t'},X_{i}}} \\
+		        W_{t,t'+1}  &\longleftarrow&    W_{t,t'} - \epsilon_t g
+		        \end{array}
+		        $
+		    \end{xfor} \medskip \newline
+		    $
+		    \begin{array}{lcl}
+		        W_{t+1}     &\longleftarrow& W_{t,N} \\
+		        E_{t+1}     &\longleftarrow& \summy{i=1}{N} e\pa {Y_{i} - f \pa{W_{t+1},X_{i}}} \\
+		        t           &\longleftarrow& t+1
+		    \end{array}
+		    $
+		\end{xalgostep}
+		
+		\begin{xalgostep}{terminaison}
+		    si $\frac{E_t}{E_{t-1}} \approx 1 $ alors l'apprentissage a convergé sinon retour à
+		    l'étape~\ref{algo_global_sto_step_back}.
+		\end{xalgostep}
+		\end{xalgorithm}
+		
+
+En pratique, il est utile de converser le meilleur jeu de coefficients : $W^* = \underset{u \supegal 0}{\arg \min} \; E_{u}$ car la suite $\pa {E_u}_{u \supegal 0}$ n'est pas une suite décroissante. 
+
+
+
+
+
+
+
+
+
+
+
+
+
+%--------------------------------------------------------------------------------------------------------------------
+\section{Classification} \label{classification}
+%--------------------------------------------------------------------------------------------------------------------
+
+
+\subsection{Vraisemblance d'un échantillon de variable suivant une loi multinomiale}
+
+
+Soit $\pa{Y_i}_{1 \infegal i \infegal N}$ un échantillon de variables aléatoires i.i.d. \indexfr{i.i.d.} suivant la loi multinomiale $\loimultinomiale { \vecteurno{p_1}{p_C}}$. On définit~:
+\indexfrr{loi}{multinomiale}%
+
+    $$
+    \forall k \in \intervalle{1}{C}, \; d_k = \frac{1}{N} \summy{i=1}{N} \indicatrice{Y_i = k}
+    $$
+
+La vraisemblance de l'échantillon est~:
+
+    \begin{eqnarray}
+    L\pa{\vecteurno{Y_1}{Y_N}, \vecteurno{p_1}{p_C}} &=& \prody{i=1}{n} p_{Y_i} \nonumber\\
+    \ln L\pa{\vecteurno{Y_1}{Y_N}, \vecteurno{p_1}{p_C}} &=& \summy{i=1}{n} \ln p_{Y_i}  \nonumber\\
+    \ln L\pa{\vecteurno{Y_1}{Y_N}, \vecteurno{p_1}{p_C}} &=& \summy{k=1}{C} \cro{ \pa{\ln p_k}
+                                                                    \summy{i=1}{N}  \indicatrice{Y_i = k}}  \nonumber\\
+    \ln L\pa{\vecteurno{Y_1}{Y_N}, \vecteurno{p_1}{p_C}} &=& N \summy{k=1}{C} d_k \ln p_k
+                    \label{rn_equation_vraisemblance_kullbck_leiber}
+    \end{eqnarray}
+
+Cette fonction est aussi appelée distance de Kullback-Leiber (\citeindex{Kullback1951}), elle mesure la distance entre deux distributions de variables aléatoires discrètes. L'estimateur de maximum de vraisemblance (emv) \indexfr{emv}\indexfr{estimateur} est la solution du problème suivant~:
+
+		\begin{xproblem}{estimateur du maximum de vraisemblance} \label{problem_emv}
+		\indexfr{emv}
+		Soit un vecteur $\vecteur{d_1}{d_N}$ tel que~:
+		    $$
+		    \left\{
+		    \begin{array}{l}
+		    \summy{k=1}{N} d_k = 1 \\
+		    \forall k \in \ensemble{1}{N}, \; d_k \supegal 0 
+		    \end{array}
+		    \right.
+		    $$
+		
+		On cherche le vecteur $\vecteur{p_1^*}{p_N^*}$ vérifiant~:
+		
+		    $$
+		    \begin{array}{l}
+		    \vecteur{p_1^*}{p_N^*} = \underset{ \vecteur{p_1}{p_C} \in \R^C }{\arg \max} \summy{k=1}{C} d_k \ln p_k \medskip \\
+		    \quad \text{avec } \left \{
+		        \begin{array}{l}
+		        \forall k \in \intervalle{1}{C}, \; p_k \supegal 0 \\
+		        \text{et } \summy{k=1}{C} p_k = 1
+		        \end{array}
+		        \right.
+		    \end{array}
+		    $$
+		
+		\end{xproblem}
+
+
+
+		\begin{xtheorem}{résolution du problème~\ref{problem_emv}} \label{theorem_problem_emv}
+		La solution du problème~\ref{problem_emv} est le vecteur~:
+		
+		    $$
+		    \vecteur{p_1^*}{p_N^*} = \vecteur{d_1}{d_N}
+		    $$
+		    
+		\end{xtheorem}
+		
+		
+
+
+\begin{xdemo}{théorème}{\ref{theorem_problem_emv}}
+
+Soit un vecteur $\vecteur{p_1}{p_N}$ vérifiant les conditions~:
+
+    $$
+    \left\{
+    \begin{array}{l}
+    \summy{k=1}{N} p_k = 1 \\
+    \forall k \in \ensemble{1}{N}, \;  p_k \supegal 0
+    \end{array}
+    \right.
+    $$
+
+La fonction $x \longrightarrow \ln x$ est concave, d'où~:
+
+    \begin{eqnarray*}
+    \Delta  &=&         \summy{k=1}{C} d_k \ln p_k - \summy{k=1}{C} d_k \ln d_k \\
+            &=&         \summy{k=1}{C} d_k \pa{ \ln p_k - \ln d_k } = \summy{k=1}{C} d_k \ln \frac{p_k}{d_k} \\
+            &\infegal&  \ln \pa{ \summy{k=1}{C} d_k \frac{p_k}{d_k} } = \ln \pa { \summy{k=1}{C} p_k } = \ln 1 = 0 \\
+            &\infegal&  0
+    \end{eqnarray*}
+
+\end{xdemo}
+
+
+
+La distance de KullBack-Leiber compare deux distributions de probabilités entre elles. C'est elle qui va faire le lien entre le problème de classification discret (\ref{problem_classification}) et les réseaux de neurones pour lesquels il faut impérativement une fonction d'erreur dérivable. 
+
+
+
+
+
+
+
+
+\subsection{Problème de classification pour les réseaux de neurones}
+\indexfr{classification}%
+
+
+Le problème de classification~\ref{problem_classification} est un cas particulier de celui qui suit pour lequel il n'est pas nécessaire de connaître la classe d'appartenance de chaque exemple mais seulement les probabilités d'appartenance de cet exemple à chacune des classes.
+
+Soient une variable aléatoire continue $ X \in \ensemblereel^p $ et une variable aléatoire discrète multinomiale $Y \in \intervalle{1}{C}$, on veut estimer la loi de~:
+
+\indexfrr{loi}{multinomiale}%
+
+    $$
+    Y|X \sim \loimultinomiale {p_1\pa{W,X},\dots , p_C\pa{W,X}} \text { avec } W \in \ensemblereel^M
+    $$
+
+Le vecteur $\vecteur{p_1\pa{W,X}}{p_C\pa{W,X}}$ est une fonction $f$ de $\pa{W,X}$ où $W$ est l'ensemble des $M$ paramètres du modèle. Cette fonction possède $p$ entrées et $C$ sorties. Comme pour le problème de la régression, on cherche les poids $W$ qui correspondent le mieux à l'échantillon~:
+
+    $$
+    A = \accolade {\left. \pa {X_i,y_i=\pa{\eta_i^k}_{1 \infegal k \infegal C}} \in \R^p \times \cro{0,1}^C
+                        \text{ tel que } \summy{k=1}{c}y_i^k=1 \right| 1 \infegal i \infegal N }
+    $$
+
+
+On suppose que les variables $\pa{Y_i|X_i}_{1 \infegal i \infegal N}$ suivent les lois respectives $\pa{\loimultinomiale{y_i}}_{1 \infegal i \infegal N}$ et sont indépendantes entre elles, la vraisemblance du modèle vérifie d'après l'équation (\ref{rn_equation_vraisemblance_kullbck_leiber})~: \indexfr{vraisemblance}%
+\indexfr{logit}%
+
+    \begin{eqnarray*}
+    L_W & \propto & \prody{i=1}{N}\prody{k=1}{C} \crochet{p_k \pa{W,X_i}}^{\pr{Y_i=k}} \\
+    \ln L_W & \propto & \summy{i=1}{N}\summy{k=1}{C} \eta_i^k \ln\crochet { p_k\pa{W,X_i}}
+    \end{eqnarray*}
+
+La solution du problème  $\overset{*}{W} = \underset{W \in \R^l}{\arg \max} \; L_W$ est celle d'un problème d'optimisation sous contrainte. Afin de contourner ce problème, on définit la fonction $f$~:
+
+    $$
+    \begin{array}{l}
+    f : \R^M \times \R^p \longrightarrow \R^C \\
+    \forall \pa{W,x} \in \R^M \times \R^p, \; f\pa{W,x} = \pa{f_1\pa{W,x}}, \dots , f_C\pa{W,x} \vspace{0.5ex}\\
+    \text{et }\forall i \in \intervalle{1}{N}, \; \forall k \in \intervalle{1}{C}, \; 
+    				p^k \pa{W,X_i} = \dfrac{e^{f_k\pa{W,X_i}}}
+    {\summy{l=1}{C}e^{f_l\pa{W,X_i}}}
+    \end{array}
+    $$
+
+Les contraintes sur $\pa{p^k\pa{W,X_i}}$ sont bien vérifiées~:
+
+    $$
+    \begin{array}{l}
+    \forall i \in \intervalle{1}{N},\; \forall k \in \intervalle{1}{C}, \; p^k\pa{W,X_i} \supegal 0 \\
+    \forall i \in \intervalle{1}{N},\; \summy{k=1}{C} p^k\pa{W,X_i} = 1
+    \end{array}
+    $$
+
+On en déduit que~:
+
+		\begin{eqnarray*}
+		\ln L_W & \propto & \summy{i=1}{N}\summy{k=1}{C} \; \eta_i^k  \crochet { f_k\pa{W,X_i} - \ln 
+		\crochet{\summy{l=1}{C}e^{f_l\pa{W,X_i}}}} \\
+		\ln L_W & \propto & \summy{i=1}{N}\summy{k=1}{C} \; \eta_i^k  f_k\pa{W,X_i} -
+		                  \summy{i=1}{N}  \ln \crochet{\summy{l=1}{C}e^{f_l\pa{W,X_i}}}
+		                  \underset{=1}{\underbrace{\summy{k=1}{C} \eta_i^k}}
+		\end{eqnarray*}
+
+D'où~:
+
+			\begin{eqnarray}
+			    \begin{array}[c]{c}
+			    \ln L_W \propto  \summy{i=1}{N} \summy{k=1}{C} \eta_i^k  f_k\pa{W,X_i} - \summy{i=1}{N} 
+			     \ln \crochet{ \summy{l=1}{C} e^{f_l\pa{W,X_i} }}
+			    \end{array}
+			\label{nn_classification_vraisemblance_error}			    
+			\end{eqnarray}
+
+
+Ceci mène à la définition du problème de classification suivant~:
+
+
+		\begin{xproblemmine}{classification}\label{problem_classification_2}
+		\indexfr{classification}
+		
+		Soit $A$ l'échantillon suivant~:
+		
+		    $$
+		    A = \accolade {\left. \pa {X_i,y_i=\pa{\eta_i^k}_{1 \infegal k \infegal C}} \in 
+		    										\ensemblereel^p \times \ensemblereel^C
+		                        \text{ tel que } \summy{k=1}{c}\eta_i^k=1 \right| 1 \infegal i \infegal N }
+		    $$
+		
+		$y_i^k$ représente la probabilité que l'élément $X_i$ appartiennent à la classe $k$~:
+		
+		    $$
+		    \eta_i^k = \pr{Y_i = k \sachant X_i}
+		    $$
+		
+		Le classifieur cherché est une fonction $f$ définie par~:
+		
+		    $$
+		    \begin{array}{rcl}
+		    f : \R^M \times \R^p &\longrightarrow& \R^C \\
+		    \pa{W,X}    &\longrightarrow&  \vecteur{f_1\pa{W,X}}{f_p\pa{W,X}} \\
+		    \end{array}
+		    $$
+		
+		%Vérifiant~:
+		%		
+		%    $$
+		%    \forall \pa{W,X} \in \R^M \times \R^p, \; \left\{
+		%        \begin{array}{l}
+		%        f_1\pa{W,X} + ... + f_C\pa{W,X} = 1 \\
+		%        \forall k \in \ensemble{1}{C}, \; f_k\pa{W,X} \supegal 0
+		%        \end{array}
+		%        \right.
+		%    $$
+		
+		Dont le vecteur de poids $W^*$ est égal à~:
+		
+		    $$
+		    W^* =   \underset{W}{\arg \max} \;
+		            \summy{i=1}{N} \summy{k=1}{C} \eta_i^k  f_k\pa{W,X_i} - 
+		            \summy{i=1}{N}  \ln \crochet{ \summy{l=1}{C} e^{f_l\pa{W,X_i} }}
+		    $$
+		
+		\end{xproblemmine}
+		
+		
+		
+		
+		
+
+
+
+
+
+\subsection{Réseau de neurones adéquat}
+
+\indexfrr{classification}{réseau de neurones adéquat}
+
+Dans le problème précédent, la maximisation de $\overset{*}{W} = \underset{W \in \R^M}{\arg \max} \, L_W$ aboutit au choix d'une fonction~:
+
+    $$
+    X \in \R^p \longrightarrow f(\overset{*}{W},X) \in \R^C 
+    $$
+
+Le réseau de neurones (voir figure~\ref{figure_rn_classification_adequat_figure}) $g : \pa{W,X} \in \R^M \times \R^p \longrightarrow \R^C$ choisi pour modéliser $f$ aura pour sorties~:
+
+    $$
+    \begin{array}{l}
+    X \in \R^p \longrightarrow g(\overset{*}{W},X) \in \R^C\\
+    \forall k \in \intervalle{1}{C}, \; g_k \pa{W,X} = e^{f_k\pa{W,X}}
+    \end{array}
+    $$
+
+    \begin{figure}[t]
+    $$\frame{$\begin{array}[c|c]{c}\includegraphics[height=8cm, width=12cm]
+    {\filext{../dessin2/rn_clad}}\end{array}$}$$
+    \caption{Réseau de neurones adéquat pour la classification.}
+    \label{figure_rn_classification_adequat_figure}
+    \end{figure}
+
+
+Les conséquences sont~:
+
+\begin{enumerate}
+\item la fonction de transert des neurones de la couche de sortie est : $x \longrightarrow e^x$
+\item la probabilité pour le vecteur $x\in\R^p$ d'appartenir à la classe $k\in\intervalle{1}{C}$ est :
+              $$
+              p_k(\overset{*}{W},x) = \pr{Y=k|x} = \dfrac { g_k(\overset{*}{W},x)}
+              			 {\summy {l=1}{C} g_l(\overset{*}{W},x) }
+              $$
+\item la fonction d'erreur à minimiser est l'opposé de la log-vraisemblance du modèle :
+              \begin{eqnarray*}
+              \overset{*}{W} &=& \underset{W \in \R^M}{\arg \min}
+                      \crochet {\summy{i=1}{N} \pa { - \summy{k=1}{C} \eta_i^k  \ln \pa{g_k\pa{W,X_i}} +
+                                    \ln \crochet{ \summy{l=1}{C} g_l\pa{W,X_i} }}} \\
+                      &=& \underset{W \in \R^M}{\arg \min}  \crochet {\summy{i=1}{N} h\pa{W,X_i,\eta_i^k}}
+              \end{eqnarray*}
+              \end{enumerate}
+
+On note $C_{rn}$ le nombre de couches du réseau de neurones, $z_{C_{rn}}^k$ est la sortie $k$ avec $k \in \intervalle{1}{C}$, $g_k\pa{W,x} = z_{C_{rn}}^k = e^{y_{C_{rn}}^k}$ où $y_{C_{rn}}^k$ est le potentiel du neurone $k$ de la couche de sortie.
+
+On calcule~:
+
+    \begin{eqnarray*}
+    \partialfrac{h\pa{W,X_i,y_i^k}}{y_{C_{rn}}^k} &=& - \eta_i^k +  \dfrac{z_{C{rn}}^i}{\summy {m=1}{C}z_{C{rn}}^m} \\
+    &=& p_k(\overset{*}{W},x) - \eta_i^k
+    \end{eqnarray*}
+
+\indexfr{classifieur}%
+
+Cette équation permet d'adapter l'algorithme~\ref{algo_retropropagation} décrivant rétropropagation pour le problème de la classification et pour un exemple $\pa {X,y=\pa{\eta^k}_{1 \infegal k \infegal C}}$. Seule la couche de sortie change.
+
+
+		\begin{xalgorithm}{rétropropagation} \label{algo_retropropagation_class}
+		\indexfr{rétropropagation}%
+		Cet algorithme de rétropropagation est l'adaptation de \ref{algo_retropropagation} pour le problème
+		de la classification. Il suppose que l'algorithme de propagation (\ref{algo_propagation}) 
+		a été préalablement exécuté.\newline%
+		On note $y'_{c,i} = \partialfrac{e}{y_{c,i}}$, $w'_{c,i,j} = \partialfrac{e}{w_{c,i,j}}$ et $b'_{c,i} =
+		\partialfrac{e}{b_{c,i}}$. \medskip
+		
+		\begin{xalgostep}{initialisation}
+		    \begin{xfor}{i}{1}{C_C}
+		    $y'_{C,i} \longleftarrow \dfrac{z_{C,i}} {\summy{l=1}{C} z_{C,l} } - \eta_i$
+		    \end{xfor}
+		\end{xalgostep}
+		
+		\begin{xalgostep}{récurrence}
+		    voir étape~\ref{algo_retropropagation_recurrence} et l'algorithme~\ref{algo_retropropagation}
+		\end{xalgostep}
+		
+		\begin{xalgostep}{terminaison}
+		    voir étape~\ref{algo_retropropagation_terminaison} et l'algorithme~\ref{algo_retropropagation}
+		\end{xalgostep}
+		
+		\end{xalgorithm}
+
+
+
+
+\begin{xremark}{nullité du gradient}
+On vérifie que le gradient s'annule lorsque le réseau de neurones retourne pour l'exemple $\pa{X_i,y_i}$ la
+distribution de $Y|X_i \sim \loimultinomiale{y_i}$.
+\end{xremark}
+
+\begin{xremark}{probabilité de sortie}
+L'algorithme de rétropropagation~\ref{algo_retropropagation_class} utilise un vecteur désiré de probabilités $\vecteur{\eta_1}{\eta_{C_C}}$ vérifiant $\sum_{i=1}^{C_C} \, \eta_i = 1$. L'expérience montre qu'il est préférable d'utiliser un vecteur vérifiant la contrainte~:
+\label{nn_remark_classification_output_alpha}
+\indexfrr{probabilité}{sortie}
+
+				\begin{eqnarray}
+				&& \forall i \in \ensemble{1}{C_C}, \;  \min\acc{ \eta_i, 1-\eta_i} > \alpha \\
+				&& \text{avec } \alpha > 0 \nonumber
+				\end{eqnarray}
+
+Généralement, $\alpha$ est de l'ordre de $0,1$ ou $0,01$. Cette contrainte facilite le calcul de la vraisemblance (\ref{nn_classification_vraisemblance_error}) et évite l'obtention de gradients quasi-nuls qui freinent l'apprentissage lorsque les fonctions exponnetielles sont saturées (voir \citeindex{Bishop1995}). 
+\end{xremark}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%--------------------------------------------------------------------------------------------------------------------
+\section{Prolongements}
+%--------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+\subsection{Base d'apprentissage et base de test}
+
+\indexfrr{apprentissage}{base}%
+\indexfrr{base}{test}%
+\indexfrr{base}{apprentissage}%
+
+
+
+Les deux exemples de régression et de classification (paragraphes~\ref{rn_section_regression} et~\ref{subsection_classifieur} ) ont montré que la structure du réseau de neurones la mieux adaptée a une grande importance. Dans ces deux cas, une rapide vérification visuelle permet de juger de la qualité du modèle obtenu après apprentissage, mais bien souvent, cette "vision" est inaccessible pour des dimensions supérieures à deux. Le meilleur moyen de jauger le modèle appris est de vérifier si l'erreur obtenue sur une base ayant servi à l'apprentissage (ou \emph{base d'apprentissage}) est conservée sur une autre base (ou \emph{base de test}) que le modèle découvre pour la première fois.
+
+Soit $B=\accolade{\pa{X_i,Y_i} \sachant 1 \infegal i \infegal N}$ l'ensemble des observations disponibles. Cet ensemble est aléatoirement scindé en deux sous-ensembles $B_a$ et $B_t$ de telle sorte que :
+
+    $$
+    \begin{array}{l}
+    B_a \neq \emptyset \text{ et } B_t \neq \emptyset \\
+    B_a \cup B_t = B \text{ et } B_a \cap B_t = \emptyset \\
+    \frac{\card{B_a}}{\card{B_a \cup B_t}} = p \in \crochetopen{0,1} 
+    			\text{, en règle générale, } p \in \crochet{\frac{1}{2},\frac{3}{4}}
+    \end{array}
+    $$
+
+Ce découpage est valide si tous les exemples de la base $B$ obéissent à la même loi, les deux bases $B_a$ et $B_t$ sont dites \emph{homogènes}. \indexfrr{base}{homogène} Le réseau de neurones sera donc appris sur la base d'apprentissage $B_a$ et "testé" sur la base de test $B_t$. Le test consiste à vérifier que l'erreur sur $B_t$ est sensiblement égale à celle sur $B_a$, auquel cas on dit que le modèle (ou réseau de neurones) généralise bien. \indexfr{généralisation} Le modèle trouvé n'est pas pour autant le bon modèle mais il est robuste. La courbe figure~\ref{figure_modele_optimal} illustre une définition du modèle optimal comme étant celui qui minimise l'erreur sur la base de test. Lorsque le modèle choisi n'est pas celui-là, deux cas sont possibles~:
+
+\begin{enumerate}
+\item Le nombre de coefficients est trop petit~: le modèle généralise bien mais il existe d'autres modèles meilleurs pour lesquels l'erreur d'apprentissage et de test est moindre.
+\item Le nombre de coefficients est trop grand~: le modèle généralise mal, l'erreur d'apprentissage est faible et l'erreur de test élevée, le réseau a appris la base d'apprentissage par c\oe ur.
+\end{enumerate}
+
+		\begin{figure}[ht]
+    $$\frame{$\begin{array}[c|c]{c}\includegraphics[height=6cm, width=12cm]
+    {\filext{../dessin2/errapptest}}\end{array}$}$$
+    \caption{Modèle optimal pour la base de test}
+    \label{figure_modele_optimal}
+		\end{figure}
+
+Ce découpage des données en deux bases d'apprentissage et de test est fréquemment utilisé pour toute estimation de modèles résultant d'une optimisation réalisée au moyen d'un algorithme itératif. C'est le cas par exemple des modèles de Markov cachés\seeannex{annexe_hmm_def}{modèles de Markov cachés}. Elle permet de s'assurer qu'un modèle s'adapte bien à de nouvelles données.
+
+
+
+
+\subsection{Fonction de transfert à base radiale}
+\label{rnn_fonction_base_radiale_rbf}
+\indexfr{RBF}
+\indexsee{Radial basis function}{RBF}
+\indexsee{fonction à base radiale}{RBF}
+\indexfrr{fonction}{transfert} 
+
+La fonction de transfert est dans ce cas à base radiale (souvent abrégée par RBF pour "radial basis function"). Elle ne s'applique pas au produit scalaire entre le vecteur des poids et celui des entrées mais à la distance euclidienne entre ces vecteurs.
+
+
+		\begin{xdefinition}{neurone distance}
+		\label{rn_definition_neurone_dist}
+		\indexfrr{neurone}{distance}%
+		Un neurone distance à $p$ entrées est une fonction 
+		$f : \R^{p+1} \times \R^p \longrightarrow \R$ définie par~:
+		\begin{enumerate}
+		    \item $g : \R \dans \R$
+		    \item $W \in \R^{p+1}$, $W=\pa{w_1,\dots,w_{p+1}} = \pa{W',w_{p+1}}$
+		    \item $\forall x \in \R^p, \; f\pa{W,x} = e^{-\norme{W'-x}^2 + w_{p+1}}$ \newline
+		        avec $x = \pa{x_1,\dots,x_p}$
+		\end{enumerate}
+		\end{xdefinition}
+
+
+Ce neurone est un cas particulier du suivant qui pondère chaque dimension par un coefficient. Toutefois, ce neurone possède $2p+1$ coefficients où $p$ est le nombre d'entrée.
+
+
+		\begin{xdefinition}{neurone distance pondérée}
+		\label{rn_definition_neurone_dist_pond}
+		\indexfrr{neurone}{distance pondérée}%
+		Pour un vecteur donné $W \in \R^p = \pa{w_1,\dots,w_p}$, on note $W_i^j = \pa{w_i,\dots,w_j}.$
+		Un neurone distance pondérée à $p$ entrées est une fonction 
+		$f : \R^{2p+1} \times \R^p \longrightarrow \R$ définie par~:
+		\begin{enumerate}
+		    \item $g : \R \dans \R$
+		    \item $W \in \R^{2p+1}$, $W=\pa{w_1,\dots,w_{2p+1}} = \pa{w_1,w_{2p+1}}$
+		    \item $\forall x \in \R^p, \; f\pa{W,x} = 
+		    		\exp \cro {-\cro{\summy{i=1}{p} w_{p+i}\pa{w_i - x_i}^2 } + w_{p+1}}$ \newline
+		        avec $x = \pa{x_1,\dots,x_p}$
+		\end{enumerate}
+		\end{xdefinition}
+
+
+La fonction de transfert est $x \longrightarrow e^x$ est le potentiel de ce neurone donc~:
+    $$
+    y = -\cro{\summy{i=1}{p} w_{p+i}\pa{w_i - x_i}^2 } + w_{p+1}
+    $$
+
+L'algorithme de rétropropagation~\ref{algo_retropropagation}\indexfr{rétropropagation} est modifié par l'insertion d'un tel neurone dans un réseau ainsi que la rétropropagation. Le plus simple tout d'abord~:
+
+    \begin{eqnarray}
+    1 \infegal i \infegal p, & \dfrac{\partial y}{\partial w_{i}} = & - 2 w_{p+i}\pa{w_i - x_i} \\  
+    p+1 \infegal i \infegal 2p, & \dfrac{\partial y}{\partial w_{i}} = & - \pa{w_i - x_i}^2 \label{eq_no_distance_nn} \\  
+    i = 2p+1, & \dfrac{\partial y}{\partial w_{i}} = & -1
+    \end{eqnarray}
+    
+Pour le neurone distance simple, la ligne (\ref{eq_no_distance_nn}) est superflue, tous les coefficients $(w_i)_{p+1 \infegal i \infegal 2p}$ sont égaux à~1. La relation (\ref{retro_eq_nn_3}) reste vraie mais n'aboutit plus à (\ref{algo_retro_5}), celle-ci devient en supposant que la couche d'indice~$c+1$ ne contient que des neurones définie par~(\ref{rn_definition_neurone_dist_pond})~:
+
+    \begin{eqnarray}
+    \partialfrac{e}{y_{c,i}}  
+                                &=& \sum_{l=1}^{C_{c+1}}              \partialfrac{e}{y_{c+1,l}}
+                                                                    \partialfrac{y_{c+1,l}}{z_{c,i}}
+                                                                    \partialfrac{z_{c,i}}{y_{c,i}} \nonumber \\
+         &=& \cro{ \sum_{l=1}^{C_{c+1}}              
+         						\partialfrac{e}{y_{c+1,l}}
+                    \pa{ 2 w_{c+1,l,p+i} \pa{ w_{c+1,l,i} - z_{c,i} } } }
+                    \partialfrac{z_{c,i}}{y_{c,i}} 
+    \end{eqnarray}
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Poids partagés}
+
+
+
+\indexfrr{neurone}{poids partagés}%
+
+Les poids partagés sont simplement un ensemble de poids qui sont contraints à conserver la même valeur. Soit $G$ un groupe de poids partagés dont la valeur est $w_{G}$. Soit $X_k$ et $Y_k$ un exemple de la base d'apprentissage (entrées et sorties désirées), l'erreur commise par le réseau de neurones est $e\left(  W,X_k,Y_k\right)$.
+
+    $$
+    \dfrac{\partial e\left(  W,X_{k},Y_{k}\right)  }
+    {\partial w_{G}}=\underset{w\in G}{\sum}\dfrac{\partial e\left(  W,X_{k},Y_{k}\right) }{\partial
+    w_G}\dfrac{\partial w_{G}}{\partial w}=\underset{w\in G}
+    {\sum} \dfrac{\partial e\left(  W,X_{k},Y_{k}\right)  }{\partial w_G}
+    $$
+
+Par conséquent, si un poids $w$ appartient à un groupe $G$ de poids partagés, sa valeur à l'itération suivante sera~:
+
+    $$
+    w_{t+1}=w_{t}-\varepsilon_{t}\left(  \underset{w\in G}
+    {\sum}\dfrac{\partial e\left(  W,X_{k},Y_{k}\right)  }{\partial w}\right)
+    $$
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Dérivée par rapport aux entrées}
+
+\indexfrr{neurone}{entrée}
+\indexfrr{gradient}{entrée}
+
+On note $\left(  X_k,Y_k\right)  $ un exemple de la base d'apprentissage. Le réseau de neurones est composé de $C$ couches, $C_i$ est le nombre de neurones sur la $i^{ième}$ couche, $C_0$ est le nombre d'entrées. Les entrées sont appelées $\left( z_{0,i}\right) _{1\leqslant i\leqslant C_{0}}$, $\left(  y_{1,i}\right)  _{1\leqslant i\leqslant C_{1}}$ sont les potentiels des neurones de la première couche, on en déduit que, dans le cas d'un neurone classique (non distance) :%
+
+		$$
+		\dfrac{\partial e\left(  W,X_{k},Y_{k}\right)  }{\partial z_{0,i}} =
+			\underset{j=1}{\overset{C_{1}}{\sum}}\dfrac{\partial e\left(  W,X_{k}
+		,Y_{k}\right)  }{\partial y_{1,j}}\dfrac{\partial y_{1,j}}{\partial z_{0,i}
+		 }=\underset{j=1}{\overset{C_{1}}{\sum}}\dfrac{\partial e\left( W,X_{k}
+		,Y_{k}\right)  }{\partial y_{1,j}}w_{1,j,i}
+		$$
+
+Comme le potentiel d'un neurone distance n'est pas linéaire par rapport aux entrées $\left( y=\overset{N} {\underset{i=1}{\sum}}\left( w_{i}-z_{0,i}\right)  ^{2}+b\right)  $, la formule devient dans ce cas~:%
+
+		$$
+		\dfrac{\partial e\left(  W,X_{k},Y_{k}\right)  }{\partial z_{0,i}} =
+				\underset{j=1}{\overset{C_{1}}{\sum}}\dfrac{\partial e\left(  W,X_{k}
+		,Y_{k}\right)  }{\partial y_{1,j}}\dfrac{\partial y_{1,j}}{\partial z_{0,i}
+			 }=-2\underset{j=1}{\overset{C_{1}}{\sum}}\dfrac{\partial e\left(
+		W,X_{k},Y_{k}\right)  }{\partial y_{1,j}}\left(  w_{1,j,i}-z_{0,i}\right)
+		$$
+
+
+
+
+
+
+
+
+\subsection{Régularisation ou Decay} \label{rn_decay}
+\indexfr{decay}
+\indexfr{régularisation}
+
+Lors de l'apprentissage, comme les fonctions de seuil du réseau de neurones sont bornées, pour une grande variation des coefficients, la sortie varie peu. De plus, pour ces grandes valeurs, la dérivée est quasi nulle et l'apprentissage s'en trouve ralenti. Par conséquent, il est préférable d'éviter ce cas et c'est pourquoi un terme de régularisation est ajouté lors de la mise à jour des coefficients (voir~\citeindex{Bishop1995}). L'idée consiste à ajouter à l'erreur une pénalité fonction des coefficients du réseau de neurones~:
+
+			\begin{eqnarray}
+			E_{reg} = E + \lambda \; \summy{i} \; w_i^2
+			\end{eqnarray}
+
+Et lors de la mise à jour du poids $w_i^t$ à l'itération $t+1$~:
+
+			\begin{eqnarray}
+			w_i^{t+1} &=& w_i^t - \epsilon_t \cro{ \partialfrac{E}{w_i} - 2\lambda w_i^t }
+			\end{eqnarray}
+
+Le coefficient $\lambda$ peut décroître avec le nombre d'itérations et est en général de l'ordre de $0,01$ pour un apprentissage avec gradient global, plus faible pour un apprentissage avec gradient stochastique.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%--------------------------------------------------------------------------------------------------------------------
+\section{Sélection de connexions}
+%--------------------------------------------------------------------------------------------------------------------
+
+\label{selection_connexion}
+\indexfrr{sélection}{architecture}
+\indexfrr{architecture}{sélection}
+
+Ce paragraphe présente un algorithme de sélection de l'architecture d'un réseau de neurones proposé par Cottrel et Al. dans \citeindex{Cottrel1995}. La méthode est applicable à tout réseau de neurones mais n'a été démontrée que pour la classe de réseau de neurones utilisée pour la régression (paragraphe~\ref{regression}, page~\pageref{regression}). Les propriétés qui suivent ne sont vraies que des réseaux à une couche cachée et dont les sorties sont linéaires. Soit $\pa{X_k,Y_k}$ un exemple de la base d'apprentissage, les résidus de la régression sont supposés normaux et i.i.d. \indexfr{i.i.d.}\indexfrr{loi}{normale}\indexfr{résidus} L'erreur est donc (voir paragraphe~\ref{rn_enonce_probleme_regression})~:
+
+    $$
+    e\left( W,X_k,Y_k\right) =\left(f\left( W,X_k\right)  -Y_k\right)^2
+    $$
+
+On peut estimer la loi asymptotique des coefficients du réseau de neurones. Des connexions ayant un rôle peu important peuvent alors être supprimées sans nuire à l'apprentissage en testant la nullité du coefficient associé. On note $\widehat{W}$ les poids trouvés par apprentissage et $\overset{\ast}{W}$ les poids optimaux. On définit~:
+
+    \begin{eqnarray}
+    \text{la suite } \widehat{\varepsilon_{k}} &=&   f\left(  \widehat{W} ,X_{k}\right)  -Y_{k}, \;
+    							 \widehat{\sigma}_{N}^{2}=\dfrac{1}{N}\underset
+                                    {k=1}{\overset{N}{\sum}}\widehat{\varepsilon_{k}}^{2} \label{rn_selection_suite}\\
+    \text{la matrice }
+    \widehat{\Sigma_{N}}      &=&   \dfrac{1}{N}\left[  \nabla_{\widehat{W}%
+                                    }e\left(  W,X_{k},Y_{k}\right)  \right]  
+                                    \left[  \nabla_{\widehat{W}}
+                                    e\left(  W,X_{k},Y_{k}\right)  \right]  ^{\prime} \label{rn_selection_matrice}
+    \end{eqnarray}
+
+
+
+		\begin{xtheorem}{loi asymptotique des coefficients} \label{theoreme_loi_asym}
+		\indexfrr{loi}{asymptotique}
+		Soit $f$ un réseau de neurone défini par (\ref{rn_definition_perpception_1}) composé de~:
+		\begin{itemize}
+		\item une couche d'entrées
+		\item une couche cachée dont les fonctions de transfert sont sigmoïdes \indexfrr{fonction}{sigmoïde}
+		\item une couche de sortie dont les fonctions de transfert sont linéaires \indexfrr{fonction}{linéaire}
+		\end{itemize}
+		
+		Ce réseau sert de modèle pour la fonction $f$ dans le problème~\ref{problem_regression} avec un échantillon
+		$\vecteur{\pa{X_1,Y_1}}{\pa{X_N,Y_N}}$, les résidus sont supposés normaux.
+		
+		La suite $\pa{\widehat{\epsilon_k}}$ définie par (\ref{rn_selection_suite}) vérifie~:
+		    $$
+		    \dfrac{1}{N} \summy{i=1}{N} \widehat{\epsilon_k} = 0 = \esperance {f\pa{\widehat{W},X} - Y}
+		    $$
+		
+		Et le vecteur aléatoire  $\widehat{W} - W^*$ vérifie~:
+		
+		    $$
+		    \sqrt{N} \cro { \widehat{W} - W^* } \; \overset{T \rightarrow + \infty}{\longrightarrow} \;
+		            \loinormale{0}{\widehat{\sigma_N}^2  \widehat{\Sigma_N}}
+		    $$
+		Où la matrice $\widehat{\Sigma_N}$ est définie par (\ref{rn_selection_matrice}).
+		
+		\end{xtheorem}
+
+
+		\begin{figure}[t]
+    $$\frame{$\begin{array}[c]{c}\includegraphics[height=9cm, width=14cm] 
+    {\filext{../dessin2/selection_connexion}}\end{array}$}$$
+    \caption{Réseau de neurones pour lequel la sélection de connexions s'applique.}
+    \label{figure_selection_connexion_reseau-fig}
+		\end{figure}
+
+
+La démonstration de ce théorème est donnée par l'article \citeindex{Cottrel1995}. Ce théorème mène au corollaire suivant~:
+
+		\begin{xcorollary}{nullité d'un coefficient}
+		\indexfrr{loi}{normale}
+		\indexfrr{loi}{$\chi_2$}
+		\indexfrr{test}{$\chi_2$}
+		\indexfrr{test}{statistique}
+		
+		Les notations utilisées sont celles du théorème~\ref{theoreme_loi_asym}. Soit $w_k$ un poids du réseau de neurones
+		d'indice quelconque $k$. Sa valeur estimée est $\widehat{w_k}$, sa valeur optimale $w^*_k$. D'après
+		le théorème~\ref{theoreme_loi_asym}~:
+		
+		    $$
+		    N \dfrac{ \pa{\widehat{w_k} - w^*_k}^2  } { \widehat{\sigma_N}^2 \pa{\widehat{\Sigma_N}^{-1}}_{kk} }
+		    \; \overset{T \rightarrow + \infty}{\longrightarrow} \; \chi^2_1
+		    $$
+		
+		\end{xcorollary}
+
+
+Ce résultat permet, à partir d'un réseau de neurones, de supprimer les connexions pour lesquelles l'hypothèse de nullité n'est pas réfutée. Afin d'aboutir à l'architecture minimale adaptée au problème, Cottrel et Al. proposent dans \citeindex{Cottrel1995} l'algorithme suivant~:
+
+
+		\begin{xalgorithm}{sélection d'architecture}
+		\label{rn_algorithme_selection_connexion_1}%
+		\indexfrr{sélection}{architecture}
+		\indexfrr{architecture}{sélection}
+		Les notations utilisées sont celles du théorème~\ref{theoreme_loi_asym}. $f$ est un réseau de neurones
+		de paramètres $W$. On définit la constante $\tau$, en général $\tau = 3,84$ puisque 
+		$\pr {X < \tau} = 0,95$ si $X \sim \chi_1^2$.
+		
+		\begin{xalgostep}{initialisation}
+		    Une architecture est choisie pour le réseau de neurones $f$ incluant un nombre~$M$ de paramètres.
+		\end{xalgostep}
+		
+		\begin{xalgostep}{apprentissage}\label{algo_selection_apprentissage}
+		    Le réseau de neurones $f$ est appris. On calcule les nombre et matrice 
+		    $\widehat{\sigma_N}^2$ et $\widehat{\Sigma_N}$. La base d'apprentissage contient $N$ exemples.
+		\end{xalgostep}
+		
+		\begin{xalgostep}{test}
+		    \begin{xfor}{k}{1}{M}
+		    $t_k \longleftarrow N \dfrac{ \widehat{w_k} ^2  } 
+		    	{ \widehat{\sigma_N}^2 \pa{\widehat{\Sigma_N}^{-1}}_{kk} }$
+		    \end{xfor}
+		\end{xalgostep}
+		
+		\begin{xalgostep}{sélection}\label{algo_selection_selection}
+		    $k' \longleftarrow \underset{k}{\arg \min} \; t_k$ \\
+		    \begin{xif}{$t_{k'} < \tau$}
+		        Le modèle obtenu est supposé être le modèle optimal. L'algorithme s'arrête.
+		    \xelse
+		        La connexion $k'$ est supprimée ou le poids $w_{k'}$ est maintenue à zéro. \newline%
+		        $M \longleftarrow M-1$ \newline%
+		        Retour à l'étape~\ref{algo_selection_apprentissage}.
+		    \end{xif}
+		\end{xalgostep}
+		
+		\end{xalgorithm}
+
+
+
+\begin{xremark}{minimum local}
+Cet algorithme est sensible au minimum local trouvé lors de l'apprentissage, il est préférable d'utiliser des méthodes
+du second ordre afin d'assurer une meilleure convergence du réseau de neurones.
+\end{xremark}
+
+\begin{xremark}{suppression de plusieurs connexions simultanément}
+L'étape~\ref{algo_selection_selection} ne supprime qu'une seule connexion. Comme l'étape~\ref{algo_selection_apprentissage}
+est coûteuse en calcul, il peut être intéressant de supprimer toutes les connexions $k$ qui vérifient $t_k < \tau$. Il est toutefois conseillé de ne pas enlever trop de connexions simultanément puisque la suppression d'une connexion nulle peut
+réhausser le test d'une autre connexion, nulle à cette même itération, mais non nulle à l'itération suivante.
+\end{xremark}
+
+
+\begin{xremark}{minimum local}
+Dans l'article \citeindex{Cottrel1995}, les auteurs valident leur algorithme dans le cas d'une régression grâce à l'algorithme~\ref{nn_algorithme_valid_selection}.
+\end{xremark}
+
+		\begin{xalgorithm}{validation de l'algorithme~\ref{rn_algorithme_selection_connexion_1}}
+		\label{nn_algorithme_valid_selection}
+		\indexfr{validation}%
+		
+		\begin{xalgostep}{choix aléatoire d'un modèle}\label{algo_validation_init}
+		    \begin{enumerate}
+		    \item Un réseau de neurones est choisi aléatoirement, soit $f : \R^p \dans \R$ la fonction qu'il représente.
+		    \item Une base d'apprentissage $A$ (ou échantillon) 
+		    			de $N$ observations est générée aléatoirement à partir de ce modèle~:
+		        \indexfrr{loi}{normale}%
+		        \indexfrr{loi}{bruit blanc}%
+		        
+		        $$
+		        \begin{array}{l}
+		        \text{soit } \pa{\epsilon_i}_{1 \infegal i \infegal N} \text{ un bruit blanc 
+		        					(voir définition~\ref{bruitblanc})} \\
+		        A = \accolade{ \left. \pa{X_i,Y_i}_{1 \infegal i \infegal N} \right| 
+		        			\forall i \in \intervalle{1}{N}, \; Y_i = f\pa{X_i} + \epsilon_i }
+		        \end{array}
+		        $$
+		    \end{enumerate}
+		\end{xalgostep}
+		
+		\begin{xalgostep}{choix aléatoire d'un modèle}
+		    L'algorithme~\ref{rn_algorithme_selection_connexion_1} à un réseau de neurone plus riche que le modèle choisi
+		    dans l'étape~\ref{algo_validation_init}. Le modèle sélectionné est noté $g$.
+		\end{xalgostep}
+		
+		\begin{xalgostep}{validation}
+		    Si $\norme{f-g} \approx 0$, l'algorithme~\ref{rn_algorithme_selection_connexion_1} est validé.
+		\end{xalgostep}
+		
+		\end{xalgorithm}
+		
+		
+		
+		
+		
+
+
+
+
+
+
+
+
+
+
+
+%--------------------------------------------------------------------------------------------------------------------
+\section{Analyse en composantes principales (ACP)} \label{ACP}
+%--------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+\indexfr{ACP}%
+\indexsee{analyse en composantes principales}{ACP}
+
+Cet algorithme est proposé dans \citeindex{Song1997}.
+
+
+
+\subsection{Principe}
+
+\indexfrr{réseau}{diabolo}%
+\indexfr{diabolo}%
+\indexfr{projection}%
+\indexfr{compression}%
+
+L'algorithme implémentant l'analyse en composantes principales est basé sur un réseau linéaire dit "diabolo", ce réseau
+possède une couche d'entrées à $N$ entrées, une couche cachée et une couche de sortie à $N$ sorties. L'objectif est
+d'apprendre la fonction identité sur l'espace $\R^N$. Ce ne sont plus les sorties qui nous intéressent mais la couche
+cachée intermédiaire qui effectue une compression ou projection des vecteurs d'entrées puisque les entrées et les
+sorties du réseau auront pour but d'être identiques (voir figure~\ref{figure_rn_acp-fig}). La
+figure~\ref{figure_rn_acp-exemple} illustre un exemple de compression de vecteur de $\R^3$ dans $\R^2$.
+
+
+		\begin{figure}[ht]
+    \[
+    \begin{tabular}{|c|}
+    \hline
+    \filefig{../rn/fig_rn_03}
+    \\ \hline
+    \end{tabular}
+    \]
+    \caption{Principe de la compression par un réseau diabolo}
+    \label{figure_rn_acp-fig}
+		\end{figure}
+
+
+		\begin{figure}[ht]
+    \[
+    \begin{tabular}{|c|c|} \hline
+        \begin{minipage}{9cm}
+        Le réseau suivant possède 3 entrées et 3 sorties. Minimiser l'erreur~:
+            $$
+            \underset{k=1}{\overset{N}{{\displaystyle\sum}}}E\left(  X_{k},X_{k}\right)
+            $$
+        revient à compresser un vecteur de dimension 3 en un vecteur de dimension 2. Les coefficients de la
+        première couche du réseau de neurones permettent de compresser les données. 
+        Les coefficients de la seconde couche permettent de les décompresser.
+        \end{minipage}
+        &
+				\filefig{../rn/fig_rn_04}        
+    \\ \hline
+    \end{tabular}
+    \]
+    \caption{Réseau diabolo : réduction d'une dimension}
+    \label{figure_rn_acp-exemple}
+		\end{figure}
+
+
+
+La compression et décompression ne sont pas inverses l'une de l'autre, à moins que l'erreur (\ref{rn_equation_acp_error}) soit nulle. La décompression s'effectue donc avec des pertes d'information. L'enjeu de l'ACP est de trouver un bon compromis entre le nombre de coefficients et la perte d'information tôlérée. Dans le cas de l'ACP, la compression est "linéaire", c'est une projection.
+
+
+
+
+
+
+
+
+\subsection{Problème de l'analyse en composantes principales}
+\label{par_ACP_un}
+
+
+L'analyse en composantes principales ou ACP \indexfr{ACP} est définie de la manière suivante~:
+
+		\begin{xproblem}{analyse en composantes principales (ACP)}
+		\label{problem_acp} 
+		\indexfr{ACP}
+		Soit $\pa{X_i}_{1 \infegal i \infegal N}$ avec $\forall i \in \ensemble{1}{N}, \; X_i \in \R^p$.\newline%
+		Soit $W \in M_{p,d}\pa{\R}$, $W = \vecteur{C_1}{C_d}$ où les vecteurs $\pa{C_i}$ 
+		sont les colonnes de $W$ et $d < p$.
+		On suppose également que les $\pa{C_i}$ forment une base othonormée.
+		\indexfrr{famille}{base}\indexfr{orthonormée} Par conséquent~:
+		
+		    $$
+		    W'W = I_d
+		    $$
+		
+		$\pa{W'X_i}_{1 \infegal i \infegal N}$ est l'ensemble des vecteurs $\pa{X_i}$ projetés sur le sous-espace vectoriel
+		engendré par les vecteurs $\pa{C_i}$.
+		
+		Réaliser une analyse en composantes principales, c'est trouver le meilleur plan de projection pour les vecteurs
+		$\pa{X_i}$, celui qui maximise l'inertie de ce nuage de points, c'est donc trouver $W^*$ tel que~:
+		
+		    \begin{eqnarray}
+		    W^* &=& \underset{ \begin{subarray}{c} W \in M_{p,d}\pa{\R} \\ W'W = I_d \end{subarray} } 
+		    									{ \arg \max } \; E\pa{W}
+		        =  \underset{ \begin{subarray}{c} W \in M_{p,d}\pa{\R} \\ W'W = I_d \end{subarray} } { \arg \max } \;
+		                        \cro { \summy{i=1}{N} \norme{W'X_i}^2 } \label{rn_equation_acp_error}
+		    \end{eqnarray}
+		
+		Le terme $E\pa{W}$ est l'inertie du nuage de points $\pa{X_i}$ projeté sur le sous-espace vectoriel défini par les
+		vecteurs colonnes de la matrice $W$.
+		
+		\end{xproblem}
+		
+		
+
+
+
+
+
+
+\subsection{Résolution d'une ACP avec un réseau de neurones diabolo}
+
+Un théorème est nécessaire avant de construire le réseau de neurones menant à la résolution du problème~\ref{problem_acp} afin de passer d'une optimisation sous contrainte à une optimisation sans contrainte. 
+
+\indexfrr{optimisation}{contrainte}
+
+
+		\begin{xtheoremmine}{résolution de l'ACP}
+		\label{theorem_acp_resolution}
+		\indexfr{optimisation}%
+		Les notations utilisées sont celles du problème~\ref{problem_acp}. Dans ce cas~:
+		
+		    \begin{eqnarray}
+		    S =
+		    \underset{ \begin{subarray}{c} W \in M_{p,d}\pa{\R} \\ W'W = I_d \end{subarray} } { \arg \max } \;
+		                        \cro { \summy{i=1}{N} \norme{W'X_i}^2 } &=&
+		    \underset{ W \in M_{p,d}\pa{\R} } { \arg \min } \;  \cro { \summy{i=1}{N} \norme{WW'X_i - X_i}^2 }
+		    \label{rn_acp_contrainte}
+		    \end{eqnarray}
+		
+		De plus $S$ est l'espace vectoriel engendré par les~$d$ vecteurs propres de la matrice 
+		$XX' = \summy{i=1}{N} X_i X_i'$ associés aux $d$ valeurs propres de plus grand module. 
+		\indexfr{valeur propre}
+		\indexfr{vecteur propre}
+		\indexfr{module}
+		
+		\end{xtheoremmine}
+
+
+
+\begin{xdemomine}{théorème}{\ref{theorem_acp_resolution}}
+
+\itemdemo
+
+L'objectif de cette partie est de chercher la valeur de~:
+
+    $$
+    \underset{ \begin{subarray}{c} W \in M_{p,d}\pa{\R} \\ W'W = I_d \end{subarray} } { \max }\; E\pa{W}
+    $$
+
+Soit $X=\vecteur{X_1}{X_N} \in \pa{\R^p}^N$, alors~:
+    $$
+    E\pa{W} = \summy{i=1}{N} \norme{W'X_i}^2 = \trace{X'WW'X} = \trace{XX'WW'}
+    $$
+
+La matrice $XX'$ est symétrique, elle est donc diagonalisable et il existe une matrice $P \in M_p\pa{\R}$ telle que~:
+
+    \begin{eqnarray}
+    \begin{array}{l}
+    P'XX'P = D_X \text{ avec } D_X \text{ diagonale} \\
+    P'P = I_p
+    \end{array}
+    \label{acp_equation_memo_1}
+    \end{eqnarray}
+
+Soit $P = \vecteur{P_1}{P_p}$ les vecteurs propres de la matrice $XX'$ associés aux valeurs propres
+$\vecteur{\lambda_1}{\lambda_p}$ telles que $\abs{\lambda_1} \supegal ... \supegal \abs{\lambda_p}$. Pour mémoire, $W =
+\vecteur{C_1}{C_d}$, et on a~:
+
+    $$
+    \begin{array}{l}
+    \forall i \in \ensemble{1}{p}, \; XX'P_i = \lambda_i P_i \\
+    \forall i \in \ensemble{1}{d}, \; C_i = P_i \Longrightarrow XX'WW' = D_{X,d} = \pa{
+                                                        \begin{array}{ccc}
+                                                        \lambda_1 & 0 & 0 \\
+                                                        0  & \ldots & 0 \\
+                                                        0 & 0 & \lambda_d
+                                                        \end{array}
+                                                        }
+    \end{array}
+    $$
+
+D'où~:
+
+    $$
+    E\pa{W} = \trace{ XX'WW' } = \trace{P D_X P' WW'} = \trace{ D_X P'WW'P }
+    $$
+
+Donc~:
+
+    \begin{eqnarray}
+    \underset{ \begin{subarray}{c} W \in M_{p,d}\pa{\R} \\ W'W = I_d \end{subarray} } { \max }\; E\pa{W} = %
+            \underset{ \begin{subarray}{c} W \in M_{p,d}\pa{\R} \\ W'W = I_d \end{subarray} } { \max }\; 
+            	\trace{ D_X P'WW'P }
+    = \underset{ \begin{subarray}{c} Y \in M_{p,d}\pa{\R} \\ Y'Y = I_d \end{subarray} } { \max }\; \trace{ D_X YY'
+                }
+    = \summy{i=1}{d} \lambda_i
+    \label{acp_demo_partie_a}
+    \end{eqnarray}
+
+
+\itemdemo
+
+
+
+Soit $Y \in \underset{ \begin{subarray}{c} W \in M_{p,d}\pa{\R} \\ W'W = I_d \end{subarray} } { \max }\;
+\trace{X'WW'X}$, $Y = \vecteur{Y_1}{Y_d} = \pa{y_i^k}_{ \begin{subarray}{c} 1 \infegal i \infegal d \\ 1 \infegal k
+\infegal p \end{subarray} }$.
+
+Chaque vecteur $Y_i$ est écrit dans la base $\vecteur{P_1}{P_p}$ définie en (\ref{acp_equation_memo_1})~:
+
+    $$
+    \forall i \in \ensemble{1}{d}, \; Y_i = \summy{k=1}{p} y_i^k P_p
+    $$
+
+Comme $Y'Y = I_d$, les vecteurs $\vecteur{Y_1}{Y_d}$ sont orthogonaux deux à deux et normés, ils vérifient donc~:
+
+    $$
+    \left\{
+    \begin{array}{rl}
+    \forall i \in \ensemble{1}{d},          & \summy{k=1}{p} \pa{y_i^k}^2 = 1 \\
+    \forall \pa{i,j} \in \ensemble{1}{d}^2, & \summy{k=1}{p} y_i^k y_j^k = 0
+    \end{array}
+    \right.
+    $$
+
+
+De plus~:
+
+    $$
+    XX'YY' = XX' \pa{ \summy{i=1}{d} Y_i Y_i'} =   \summy{i=1}{d} XX' Y_i Y_i'
+    $$
+
+On en déduit que~:
+
+    \begin{eqnarray*}
+    \forall i \in \ensemble{1}{d}, \; XX' Y_i Y'_i
+                &=& XX' \pa{ \summy{k=1}{p} y_i^k P_k }\pa{ \summy{k=1}{p} y_i^k P_k }' \\
+                &=& \pa{ \summy{k=1}{p} \lambda_k y_i^k P_k }\pa{ \summy{k=1}{p} y_i^k P_k }'
+    \end{eqnarray*}
+
+D'où~:
+
+    $$
+    \forall i \in \ensemble{1}{d}, \; \trace{ XX' Y_i Y'_i} = \summy{k=1}{p} \lambda_k \pa{y_i^k}^2
+    $$
+
+Et~:
+
+    \begin{eqnarray*}
+    \trace{ XX' YY'} &=& \summy{i=1}{d} \summy{k=1}{p} \lambda_k \pa{y_i^k}^2 \\
+    \trace{ XX' YY'} &=& \summy{k=1}{p} \lambda_k \pa {\summy{i=1}{d} \pa{y_i^k}^2} =
+    				\summy{k=1}{p} \; \lambda_k
+    \end{eqnarray*}
+
+Ceci permet d'affirmer que~:
+
+    \begin{eqnarray}
+    Y \in \underset{ \begin{subarray}{c} W \in M_{p,d}\pa{\R} \\ W'W = I_d \end{subarray} } { \max }\;
+                \trace{X'WW'X}  \Longrightarrow
+    vect \vecteur{Y_1}{Y_d} = vect \vecteur{P_1}{P_d}
+    \label{acp_demo_partie_b}
+    \end{eqnarray}
+
+Les équations (\ref{acp_demo_partie_a}) et (\ref{acp_demo_partie_b}) démontrent la seconde partie du
+théorème~\ref{theorem_acp_resolution}.
+
+
+\itemdemo
+
+    \begin{eqnarray*}
+    \underset{i=1}{\overset{n}{\sum}}\left\|  WW^{\prime}X_{i}-X_{i}\right\|^{2} &=&
+    \underset{i=1}{\overset{n}{\sum}}\left\|
+        \left(  WW^{\prime} -I_{N}\right)  X_{i}\right\|  ^{2} \\
+    &=& tr\left(  X^{\prime}\left(  WW^{\prime }-I_{p}\right)  ^{2}X\right)  \\
+    &=& tr\left(  XX^{\prime}\left(  \left( WW^{\prime}\right) ^{2}-2WW^{\prime}+I_{p}\right)  \right) \\
+    &=& tr\left(  XX^{\prime}\left(  WW^{\prime}WW^{\prime}-2WW^{\prime}+I_{p}\right)  \right) \\
+    &=& tr\left(  XX^{\prime}\left(  -WW^{\prime} +I_{p}\right)  \right) \\
+    &=& -tr\left(  XX^{\prime}WW^{\prime}\right)  +tr\left(XX^{\prime}\right)
+    \end{eqnarray*}
+
+D'où :
+
+    \begin{eqnarray}
+    \underset{ \begin{subarray} \, W \in M_{p,d} \pa{\R} \\ 
+    						W'W=I_d \end{subarray}} { \; \max \; } \;  \pa {  \summy{i=1}{N} \norme{ W'X_i}^2 }  =%
+    \underset{ \begin{subarray} \, W \in M_{p,d} \pa{\R} \\ 
+    						W'W=I_d \end{subarray}} { \; \min \; } \;  \pa {  \summy{i=1}{N} \norme{ WW'X_i - X_i}^2 }
+    \label{acp_demo_partie_c}
+    \end{eqnarray}
+
+
+\itemdemo
+
+$XX'$ est une matrice symétrique, elle est donc diagonalisable~:
+
+    $$
+    \exists P\in GL_N \pa{\R}  \text{ telle que } P'XX'P=D_p \text{ où } D_p \text{ est diagonale}
+    $$
+
+On en déduit que~:
+
+    \begin{eqnarray*}
+        \summy{i=1}{N} \norme{  WW' X_i - X_i }^2
+    &=& \trace{ XX' \pa{ WW'-I_p }^{2} } \\
+    &=& \trace{ PP' XX' PP' \pa{ WW'-I_p }^{2} } \\
+    &=& \trace{ P D_p P' \pa{ WW'-I_p }^{2} } \\
+    &=& \trace{ D_p \pa{ P'WW'P-I_p }^{2} } \\
+    &=& \trace{ D_p \pa{ YY'-I_p }^{2} } \text{ avec } Y = P'W
+    \end{eqnarray*}
+
+D'où~:
+
+    \begin{eqnarray}
+    \underset{Y}{\arg\min}\accolade{ tr\left(  D_{p}\left( YY^{\prime}-I_{p}\right)  ^{2}\right)}  = \left\{  Y\in
+    M_{Nd}\left( \R\right) \left|
+        YY^{\prime}=I_{d}\right.  \right\}
+    \label{acp_demo_partie_d}
+    \end{eqnarray}
+
+
+Finalement, l'équation (\ref{acp_demo_partie_d}) permet de démontrer la première partie du théorème~\ref{theorem_acp_resolution}, à savoir (\ref{rn_acp_contrainte})~:
+
+    \begin{eqnarray*}
+    S =
+    \underset{ \begin{subarray}{c} W \in M_{p,d}\pa{\R} \\ W'W = I_d \end{subarray} } { \arg \max } \;
+                        \cro { \summy{i=1}{N} \norme{W'X_i}^2 } &=&
+    \underset{ W \in M_{p,d}\pa{\R} } { \arg \min } \;  \cro { \summy{i=1}{N} \norme{WW'X_i - X_i}^2 }
+    \end{eqnarray*}
+
+
+
+\end{xdemomine}
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Calcul de valeurs propres et de vecteurs propres}
+\label{par_ACP_deux}%
+\indexfr{valeur propre}%
+\indexfr{vecteur propre}%
+
+Le calcul des valeurs propres et des vecteurs propres d'une matrice fait intervenir un réseau diabolo composé d'une
+seule couche cachée et d'une couche de sortie avec des fonctions de transfert linéaires. On note sous forme de matrice
+$\left( W\right)  $ les coefficients de la seconde couche du réseau dont les biais sont nuls. On note $d$ le nombre de
+neurones sur la couche cachée, et $p$ le nombre d'entrées.
+
+    $$
+    \forall i\in\left\{  1,...,d\right\}  ,\,y_{1,i}=\overset{p}{\underset
+    {j=1}{\sum}}w_{ji}x_{j}%
+    $$
+    
+Soit $X\in\R^{p}$ les entrées, $Y=\left(  y_{1,1},...,y_{1,d}\right)  \in\R^{d}$, on obtient que : $Y=W'X$.
+
+Les poids de la seconde couche sont définis comme suit~:
+
+    $$
+    \forall\left( i,j\right)  \in\left\{  1,...,p\right\}  \times\left\{ 1,...,d\right\} \,w_{2,j,i}=w_{1,i,j}
+    $$
+Par conséquent, le vecteur des sorties $Z\in\R^{p}$ du réseau ainsi construit est : $Z=WW'X$
+
+On veut minimiser l'erreur pour $\left(  X_{i}\right)  _{1\leqslant i\leqslant N}$~:
+
+    $$
+    E=\underset{i=1}{\overset{N}{\sum}}\left\|  WW'X_{i}-X_{i}\right\|  ^{2}
+    $$
+
+Il suffit d'apprendre le réseau de neurones pour obtenir~:
+
+    $$
+    W_{d}^{\ast}=\underset{W\in M_{pd}\left(  \R\right)  }
+    {\arg\max }\,\underset{i=1}{\overset{N}{\sum}}\left\| WW'X_{i}-X_{i}\right\|
+    ^{2}%
+    $$
+
+D'après ce qui précède, l'espace engendré par les vecteurs colonnes de $W$ est l'espace engendré par les $k$ premiers vecteurs propres de la matrice $XX^{\prime}=\left(  X_{1},...,X_{P}\right)  \left( X_{1},...,X_{P}\right)  ^{\prime}$ associés aux $k$ premières valeurs propres classées par ordre décroissant de module.
+
+\indexfr{Schmidt}
+
+On en déduit que $W_{1}^{\ast}$ est le vecteur propre de la matrice $M$ associée à la valeur propre de plus grand module. $W_{2}^{\ast}$ est l'espace engendré par les deux premiers vecteurs. Grâce à une orthonormalisation de Schmidt (voir définition~\ref{orthonormalisation_schmidt}), on en déduit à partir de $W_{1}^{\ast}$ et $W_{2}^{\ast}$, les deux premiers vecteurs propres. Par récurrence, on trouve l'ensemble des vecteurs propres de la matrice $XX^{\prime}$.
+
+
+		\begin{xdefinition}{orthonormalisation de Schmidt} \label{orthonormalisation_schmidt}
+		\indexfr{orthonormalisation de Schmidt}
+		\indexfr{Schmidt}
+		
+		L'orthonormalisation de Shmidt :
+		
+		Soit $\left(  e_{i}\right)  _{1\leqslant i\leqslant N}$ une base de $\R^{p}$
+		
+		On définit la famille $\left(  \varepsilon_{i}\right)  _{1\leqslant i\leqslant p}$ par :
+		    \begin{eqnarray*}
+		    \varepsilon_{1} &=& \dfrac{e_{1}}{\left\| e_{1}\right\|}\\
+		    \forall i \in \intervalle{1}{p}, \; \varepsilon_{i} &=& \dfrac{e_{i}-\overset{i-1}{\underset{j=1}
+		    {\sum}}<e_{i},\varepsilon_{j}>\varepsilon_{j}}{\left\| 
+		    			e_{i}-\overset {i-1}{\underset{j=1}{\sum}}<e_{i},\varepsilon_{j}>\varepsilon_{j}\right\| }
+		    \end{eqnarray*}
+		\end{xdefinition}
+		
+		
+
+\begin{xremark}{dénominateur non nul}
+$e_{i}-\overset{i-1}{\underset{j=1}{\sum}}<e_{i},\varepsilon_{j}>\varepsilon_{j}\neq0$ car $\forall k\in\left\{ 1,...,N\right\}  ,\; vect\left( e_{1},...,e_{k}\right)  =vect\left(  \varepsilon_{1} ,...,\varepsilon_{k}\right)  $
+\end{xremark}
+
+
+		\begin{xproperty}{base orthonormée}
+		\indexfrr{famille}{base}
+		\indexfr{orthonormée}
+		La famille $\left(  \varepsilon_{i}\right)  _{1\leqslant i\leqslant p}$ est une base orthonormée de $\R^{p}$
+		\end{xproperty}
+
+
+L'algorithme qui permet de déterminer les vecteurs propres de la matrice $XX'$ définie par le
+théorème~\ref{theorem_acp_resolution} est le suivant~:
+
+
+		\begin{xalgorithm}{vecteurs propres}\label{algorithm_vecteur_propre}
+		\indexfr{vecteur propre}%
+		Les notations utilisées sont celles du théorème~\ref{theorem_acp_resolution}. On note $V^*_d$ la matrice des $d$
+		vecteurs propres de la matrice $XX'$ associés aux $d$ valeurs propres de plus grands module.
+		
+		\begin{xfor2}{d}{1}{p}
+		    Un réseau diabolo est construit avec les poids $W_d \in M_{p,d}\pa{\R}$ puis appris. 
+		    Le résultat de cet apprentissage sont
+		    les poids $W^*_d$. \newline
+		    \begin{xif}{$d > 1$}
+		        L'orthonormalisation de Schmit permet de déduire $V^*_d$ de $V^*_{d-1}$ et $W^*_d$.
+		    \xelse
+		        $V^*_d = W^*_d$
+		    \end{xif}
+		\end{xfor2}
+		
+		\end{xalgorithm}
+
+
+
+
+
+
+
+
+
+\subsection{Analyse en Composantes Principales (ACP)}
+
+\indexfr{ACP}%
+
+L'analyse en composantes principales permet d'analyser une liste d'individus décrits par des variables. Comme exemple, il suffit de prendre les informations extraites du recensement de la population française qui permet de décrire chaque habitant par des variables telles que la catégorie socio-professionnelle, la salaire ou le niveau d'étude.
+
+Soit $\left(  X_{1},...,X_{N}\right)  $ un ensemble de $N$ individus décrits par $p$ variables~:
+
+    $$
+    \forall i\in\left\{  1,...,N\right\},\;X_{i}\in\R^{p}
+    $$
+    
+L'ACP consiste à projeter ce nuage de point sur un plan qui conserve le maximum d'information. Par conséquent, il
+s'agit de résoudre le problème~:
+
+    $$
+    W^{\ast}=\underset{ \begin{subarray} \, W\in M_{p,d}\left(  \R\right)  \\ 
+    W^{\prime }W=I_{d} \end{subarray}}{\arg\min}%
+    \left(\underset{i=1}{\overset{N}{\sum}}\left\| W'X_{i}\right\|  ^{2}\right)  \text{ avec }d<N
+    $$
+
+Ce problème a été résolu dans les paragraphes~\ref{par_ACP_un} et~\ref{par_ACP_deux}, il suffit d'appliquer
+l'algorithme~\ref{algorithm_vecteur_propre}.
+
+
+
+\begin{xremark}{expérience}
+
+Soit $\left(  X_{i}\right)  _{1\leqslant i\leqslant N}$ avec $\forall i\in\left\{  1,...,N\right\} ,\,X_{i}\in\R^{p}$. Soit $\pa{P_1,\dots,P_p}$ l'ensemble des vecteurs propres normés de la matrice $XX'$ associés aux valeurs propres $\pa{\lambda_1,\dots,\lambda_p}$ classées par ordre décroissant de modules. On définit $\forall d \in \intervalle{1}{p}, \; W_d = \pa{P_1,\dots,P_d} \in M_{p,d}$. On définit alors l'inertie $I_d$ du nuage de points projeté sur l'espace vectoriel défini par $P_d$.
+On suppose que le nuage de points est centré, alors~:
+
+		$$
+		\forall d \in \intervalle{1}{p}, \; I_d = \summy{k=1}{N} 
+		\pa{P_d' X_k}^2 = tr \pa{X' P_d P_d' X} = tr \pa{XX' P_d P_d'} = \lambda_d
+		$$
+
+Comme $\pa{P_1,\dots,P_p}$ est une base orthonormée de $\R^p$, on en déduit que :
+
+    $$
+    I = \summy{k=1}{P} X_k'X_k = \summy{d=1}{N} I_d = \summy{d=1}{p} \lambda_d
+    $$
+
+De manière empirique, on observe fréquemment que la courbe $\pa{d,I_d}_{1 \infegal d \infegal p}$ montre un point
+d'inflexion (figure~\ref{figure_point_inflexion}). Dans cet exemple, le point d'inflexion correspond à $d=4$. En
+analyse des données, on considère empiriquement que seuls les quatres premières dimensions contiennent de l'information.
+
+		\begin{figure}[ht]
+    $$\frame{$\begin{array}[c]{c}\includegraphics[height=4cm, width=8cm] 
+    {\filext{../dessin2/acp_inertie}}\end{array}$}$$
+    \caption{Courbe d'inertie : point d'inflexion pour $d=4$, l'expérience montre que généralement, seules les
+                projections sur un ou plusieurs des quatre premiers vecteurs propres reflètera l'information
+                contenue par le nuage de points.}
+    \label{figure_point_inflexion}
+		\end{figure}
+
+\end{xremark}
+
+
+
+
+\newpage
+
+
+
+\firstpassagedo{
+	\begin{thebibliography}{99}
+	\input{rn_bibliographie.tex}
+	\end{thebibliography}
+}
+
+
+\input{../../common/livre_table_end.tex}
+\input{../../common/livre_end.tex}
+
+
+

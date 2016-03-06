@@ -1,0 +1,44 @@
+\input{../../common/livre_begin.tex}%
+
+
+\sloppy
+
+\chapter{Conclusion et perspectives}
+\label{conclusion_these}
+
+Ce document a présenté l'ensemble du processus de reconnaissance d'un mot manuscrit, depuis l'image jusqu'au résultat final constitué d'une réponse et d'un critère de confiance. La première direction de recherche envisagée a été l'amélioration des modèles de reconnaissance mais au fur et à mesure des articles lus et des expériences realisées, les limites de cette voie sont apparues. Les méthodes de sélection des coefficients des modèles présentées dans ces travaux n'ont pas de véritable impact sur les performances. Toutefois, si cette voie n'a pas permis d'établir une méthode efficace de construction de l'architecture des modèles de reconnaissance associés aux lettres, elle a débouché sur un nouvel agencement des modèles de mot permettant d'inclure des modèles de reconnaissance associés aux erreurs fréquemment produites par le traitement d'images.
+
+Plutôt que de chercher à améliorer les performances des modèles de reconnaissance, ces travaux ont ensuite été orientés vers les traitements d'images et notamment la segmentation en graphèmes. L'objectif était dans un premier temps de fabriquer une segmentation délivrée des habituelles heuristiques introduites dans le traitement d'image, c'est-à-dire une segmentation capable d'être apprise à partir d'images présegmentées avec, à plus long terme, l'intention d'appliquer cette méthode à la segmentation d'une image en lettres. Les premiers résultats obtenus sur un problème classique de segmentation en lignes ont été décevants et cette piste a été abandonnée au profit d'une segmentation en graphèmes à nouveau basée sur des heuristiques mais traitant les accents de manière séparée, améliorant légèrement les performances pour une langue incluant ces particules aériennes.
+
+Les systèmes de reconnaissance de mots cursifs utilisent souvent un seul modèle de reconnaissance alors que la reconnaissance de caractères agrège les résultats de plusieurs classifieurs qui améliorent les performances de chacun pris séparément. Par extension, un système de reconnaissance ne devrait pas fonder sa décision sur un seul jeu de modèles de lettre. Il apparaît donc préférable de varier les traitements plutôt que de trop chercher à les perfectionner. Ce constat a orienté les recherches vers une méthode permettant d'accroître la vitesse du système de décision en restreignant la recherche d'une solution à une partie seulement du dictionnaire. Le temps ainsi gagné encourage l'utilisation simultanée de plusieurs jeux de modèles de reconnaissance.
+
+La suite pressentie à ces travaux s'articule autour de trois axes principaux. Le premier consiste à utiliser le temps gagné par l'optimisation en vitesse du processus de décision afin de filtrer successivement les résultats de la reconnaissance par plusieurs jeux de modèles de Markov cachés. Tout d'abord, un premier reconnaisseur "dégrossit" le problème, le second reconnaisseur et les suivants effectuent une reconnaissance plus poussée sur un ensemble de solutions réduit par le filtre précédent. C'est une perspective de recherche centrée sur des méthodes de décision.
+
+Le second axe de recherche concerne l'interprétation des modèles de reconnaissance ou leur estimation de manière à ce qu'ils soient plus interprétables. Pour le moment, la reconnaissance de l'écriture est contrainte à l'utilisation d'un dictionnaire. En résumé, les reconnaisseurs savent comparer deux solutions et déterminer la meilleure mais ne peuvent pas encore aboutir à cette solution sans a priori, ce qui caractérise la reconnaissance sans dictionnaire. La création de modèles de groupe de lettres a été envisagée dans le but de modéliser les défauts de la segmentation en graphèmes. Toutefois, même définis ainsi, ces modèles agrègent trop de bruit lors de l'apprentissage, en particulier pour les lettres insuffisamment représentées. Les premières réponses envisagées sont la suppression des images aberrantes ou la multiplication des images peu fréquentes. Le but visé reste malgré tout une méthode pertinente de sélection de la structure des modèles.
+
+La dernière perspective concerne l'apprentissage d'une segmentation. Cette étape ne permet pas encore d'ajustements autre que manuel, les objets sont scindés selon des heuristiques, des seuils, qui ne sont pas dérivables. Il n'existe pas encore d'algorithme capable d'optimiser ces seuils. Peu de résultats ont été trouvés dans ce domaine. L'idée développée dans ce document n'a pas abouti à des résultats satisfaisants car elle s'appuyait sur un diagramme de Voronoï. Celui-ci pourrait être remplacé en première approche par des cartes de Kohonen, moins sensibles aux pixels isolés. Cette direction demeure attrayante.
+
+Ce manuscrit décrit tous les algorithmes entrant dans la conception d'un système de reconnaissance de mots isolés. La plupart de ces méthodes sont indépendantes du problème à résoudre. Les trois étapes fondamentales sont la segmentation en graphèmes, la reconnaissance à l'aide de modèles probabilistes et la décision. Ce sont généralement les trois briques communes à tout système de reconnaissance de l'écriture cursive. Ce rappel succinct met en relief la multitude d'algorithmes qui participe à l'élaboration d'un logiciel de reconnaissance et pour laquelle il est difficile de contourner une première phase de réflexion autour d'une architecture logicielle. Celle-ci doit être capable notamment d'intégrer à la fois la reconnaissance et l'apprentissage qui nécessitent la manipulation de grandes quantités d'information. L'exigence de rapidité implique souvent une chasse constante de la redondance dans les programmes informatiques. Ainsi, les différentes contributions de ces travaux de thèse, souvent implémentées de manière séparée, sont sur le point de trouver un refuge commun au sein d'une même architecture.
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\newpage
+
+
+\input{../../common/livre_end.tex}%

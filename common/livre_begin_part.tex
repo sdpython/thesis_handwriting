@@ -1,0 +1,684 @@
+%-----------------------------------------------------------------------------------------------------------
+% packages
+%------------------------------------------------------------------------------------------------------------
+
+
+\ifx\firstpassage\undefined
+\def\firstpassage{1}
+\newcount\nbpassages
+\nbpassages=1
+
+
+
+%-----------------------------------------------------------------------------------------------------------
+% packages
+%------------------------------------------------------------------------------------------------------------
+%\documentclass[french,11pt]{report}
+\documentclass[french,11pt]{../../common/thesis_x}
+\usepackage[french]{babel}
+\usepackage{a4}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{subfigure}
+\usepackage{float}
+\usepackage{latexsym}
+\usepackage{amsfonts}
+\usepackage{epic}
+\usepackage{eepic}
+\usepackage{makeidx}
+\usepackage{multido}
+\usepackage{varindex}
+
+\usepackage[lmargin=2cm,rmargin=2cm,tmargin=2cm,bmargin=2cm]{geometry}
+
+\usepackage{graphicx}   %[pdftex]
+\usepackage{shorttoc}
+
+
+%-----------------------------------------------------------------------------------------------------------
+% graphics path
+%-----------------------------------------------------------------------------------------------------------
+%\graphicspath{d:/home/dupre/rapport/these/dessin2}
+
+
+% note de bas de page : \footnote
+% reference (section, theoreme) : \label{a} ... ~\ref{a}...~\pageref{a}
+% reference (figure) : \label{a-fig} ... ~\ref{a-fig}...~\pageref{a-fig}
+% chapter, section, subsection, ..., plus dans la table des matières, ..., subsubsection, paragraph,
+% subparagraphe
+% cadre : \frame{$ ... $}
+% tableau, matrice : \begin{array}{lll} (alignement des colonnes) ... \end{array}
+% liste d'équation non numérotées \begin{eqnarray} \\ passage à la ligne, &=& alignement \end{eqnarray}
+% index  : \index{cle@ecrit}
+
+
+%------------------------------------------------------------------------------------------------------------
+% marges -------------------------------------------------------------------------------------------------------------
+\setlength{\parindent}{0cm} \setlength{\parskip}{1ex} \linespread{1}
+
+%------------------------------------------------------------------------------------------------------------
+% index
+%------------------------------------------------------------------------------------------------------------
+%\varindexIndex
+\newcommand{\indexfr}  [1]{\index{#1@#1}}
+\newcommand{\indexfrr} [2]{\index{#1@#1!#2@#2}}
+\newcommand{\indexfrrr}[3]{\index{#1@#1!#2@#2!#3@#3}}
+\newcommand{\indexsee} [2]{\index{#1@#1|see{#2}}}
+
+%------------------------------------------------------------------------------------------------------------
+% environnements
+%------------------------------------------------------------------------------------------------------------
+
+\newcounter{xctheorem}          [section]
+\renewcommand{\thexctheorem}    {\thesection.\arabic{xctheorem}}
+
+%\addtocounter{counter}{value}
+\renewcommand{\xpagevalue}{17.6cm}
+\newcommand{\xpagevaluedef}{16cm}
+\newcommand{\xpagevalueloop}{13cm}
+
+
+\newenvironment{xremark}[1]
+    {   \refstepcounter{xctheorem}\setcounter{theorem}{\value{xctheorem}}
+        \indexfrr{remarque}{#1}\textbf{Remarque \thexctheorem : #1}\\*}
+    {   }
+
+
+
+\newenvironment{sectionunderline}[3]
+     {	\begin{tabular}{l} \\ 
+     		\begin{tabular}{c|l} \hspace{0.1cm} & \textbf{#1 #2 : #3}\\ & 
+     		\begin{minipage}{\xpagevaluedef}}
+     {	\end{minipage}\\
+      	\end{tabular} \\ \\ \end{tabular}}
+
+\newcommand{\possiblecut}{ 	\end{minipage} \\ \end{tabular} \\ \\
+			 	\end{tabular}	\\ 
+				\begin{tabular}{l} \\ \begin{tabular}{c|l} \hspace{0.1cm} & \\ 
+				& \begin{minipage}{\xpagevaluedef}
+			  }
+
+
+\newenvironment{xthdef}[4]
+     {				\refstepcounter{#1}
+     					\setcounter{#2}{\value{#1}}
+     					\begin{sectionunderline}{#3}{\thexctheorem}{#4}
+             	\index{§@§!#3@#3!\thexctheorem}
+             	\indexfrr{#3}{#4}
+        }
+     {\end{sectionunderline}}
+
+\newenvironment{xthdefmine}[4]
+     {				\refstepcounter{#1}
+     					\setcounter{#2}{\value{#1}}
+     					\begin{sectionunderline}{#3}{\thexctheorem}{#4}
+             	\index{§@§!#3@#3!\thexctheorem}
+             	\indexfrr{#3}{#4}
+        }
+     {\end{sectionunderline}}
+
+
+
+%------------------------------------------------------------------------------------------------------------
+% instances d'environnements
+%------------------------------------------------------------------------------------------------------------
+
+\newenvironment{xtheorem}[1]
+		{\begin{xthdef}{xctheorem}{theorem}{Théorème}{#1}}{\end{xthdef}}
+
+\newenvironment{xcorollary}[1]
+		{\begin{xthdef}{xctheorem}{theorem}{Corollaire}{#1}}{\end{xthdef}}
+		
+\newenvironment{xlemma}[1]
+		{\begin{xthdef}{xctheorem}{theorem}{Lemme}{#1}}{\end{xthdef}}
+
+\newenvironment{xproposition}[1]
+		{\begin{xthdef}{xctheorem}{theorem}{Proposition}{#1}}{\end{xthdef}}
+
+\newenvironment{xproperty}[1]
+		{\begin{xthdef}{xctheorem}{theorem}{Propriété}{#1}}{\end{xthdef}}
+
+\newenvironment{xdefinition}[1]
+		{\begin{xthdef}{xctheorem}{theorem}{Définition}{#1}}{\end{xthdef}}
+
+\newenvironment{xalgorithm}[1]      
+		{\setcounter{cxalgostep}{0}
+     \begin{xthdef}{xctheorem}{theorem}{Algorithme}{#1}}{\end{xthdef}}
+                                    
+\newenvironment{xproblem}[1]
+		{\begin{xthdef}{xctheorem}{theorem}{Problème}{#1}}{\end{xthdef}}
+
+\newenvironment{xtest}[1]
+    {\setcounter{cxalgostep}{0}
+     \begin{xthdef}{xctheorem}{theorem}{Test}{#1}}{\end{xthdef}}
+
+
+%------------------------------------------------------------------------------------------------------------
+% autres instances d'environnements
+%------------------------------------------------------------------------------------------------------------
+
+\newenvironment{xtheoremmine}[1]
+		{\begin{xthdefmine}{xctheorem}{theorem}{Théorème}{#1}}{\end{xthdefmine}}
+
+\newenvironment{xcorollarymine}[1]
+		{\begin{xthdefmine}{xctheorem}{theorem}{Corollaire}{#1}}{\end{xthdefmine}}
+		
+\newenvironment{xlemmamine}[1]
+		{\begin{xthdefmine}{xctheorem}{theorem}{Lemme}{#1}}{\end{xthdefmine}}
+
+\newenvironment{xpropositionmine}[1]
+		{\begin{xthdefmine}{xctheorem}{theorem}{Proposition}{#1}}{\end{xthdefmine}}
+
+\newenvironment{xpropertymine}[1]
+		{\begin{xthdefmine}{xctheorem}{theorem}{Propriété}{#1}}{\end{xthdefmine}}
+
+\newenvironment{xdefinitionmine}[1]
+		{\begin{xthdefmine}{xctheorem}{theorem}{Définition}{#1}}{\end{xthdefmine}}
+
+\newenvironment{xalgorithmmine}[1]      
+		{\setcounter{cxalgostep}{0}
+     \begin{xthdefmine}{xctheorem}{theorem}{Algorithme}{#1}}{\end{xthdefmine}}
+                                    
+\newenvironment{xproblemmine}[1]
+		{\begin{xthdefmine}{xctheorem}{theorem}{Problème}{#1}}{\end{xthdefmine}}
+
+\newenvironment{xtestmine}[1]
+    {\setcounter{cxalgostep}{0}
+     \begin{xthdef}{xctheorem}{theorem}{Test}{#1}}{\end{xthdefmine}}
+     
+%------------------------------------------------------------------------------------------------------------
+% définitions (rectangles noirs, blancs)
+%------------------------------------------------------------------------------------------------------------
+
+%%%% debut macro %%%%
+\def\sqw{\hbox{\rlap{\leavevmode\raise.3ex\hbox{$\sqcap$}}$\sqcup$}}
+\def\sqb{\hbox{\hskip5pt\vrule width4pt height6pt depth1.5pt\hskip1pt}}
+
+% Rectangle noir:
+\def\qed{\ifmmode\hbox{\hfill\sqb}\else{\ifhmode\unskip\fi%
+\nobreak\hfil \penalty50\hskip1em\null\nobreak\hfil\sqb
+\parfillskip=0pt\finalhyphendemerits=0\endgraf}\fi}
+% Rectangle blanc:
+\def\cqfd{\ifmmode\sqw\else{\ifhmode\unskip\fi\nobreak\hfil
+\penalty50\hskip1em\null\nobreak\hfil\sqw
+\parfillskip=0pt\finalhyphendemerits=0\endgraf}\fi}
+%%%% fin macro %%%%
+
+%------------------------------------------------------------------------------------------------------------
+% démonstrations
+%------------------------------------------------------------------------------------------------------------
+
+\newcommand{\legenddemotype}{none}
+\newcommand{\legenddemotypeindex}{none}
+\newcommand{\legenddemonumber}{none}
+\newcounter{cxdemonstration}
+\newcounter{cxdemonstrationnumnum}
+\renewcommand{\thecxdemonstration}    			{\Alph{cxdemonstration}}
+\renewcommand{\thecxdemonstrationnumnum}    {\thesection+\arabic{cxdemonstrationnumnum}}
+
+\newenvironment{xdemo}[2]
+    {   \setcounter{cxdemonstration}{0}
+    		\refstepcounter{cxdemonstrationnumnum}
+        \renewcommand{\legenddemotype}{#1}
+        \renewcommand{\legenddemotypeindex}{#1}\renewcommand{\legenddemonumber}{#2}
+        \index{§@§!demonstration@démonstration!#1\thecxdemonstrationnumnum						% #1~#2
+        																					@#1~#2}
+        \textbf{Démonstration (#1~#2) :}\newline}
+    {   
+        \hfill{}\textbf{ (\legenddemonumber)}\cqfd}
+
+\newenvironment{xdemomine}[2]
+    {   \setcounter{cxdemonstration}{0}
+    		\refstepcounter{cxdemonstrationnumnum}
+        \renewcommand{\legenddemotype}{#1}
+        \renewcommand{\legenddemotypeindex}{#1}\renewcommand{\legenddemonumber}{#2}
+        \index{§@§!demonstration@démonstration!#1\thecxdemonstrationnumnum							% #1~#2$^*$
+        																						@#1~#2}
+        \textbf{Démonstration (#1~#2) :}\newline}
+    {   
+        \hfill{}\textbf{ (\legenddemonumber)}\cqfd}
+
+
+\newcommand{\itemdemo}{\refstepcounter{cxdemonstration}\textbf{Partie \thecxdemonstration~(démonstration de \legenddemonumber)}\medskip}
+
+
+%------------------------------------------------------------------------------------------------------------
+% environnements initiaux
+%------------------------------------------------------------------------------------------------------------
+
+\newtheorem{theorem}                    {\textbf{Théorème}}       [section]
+\newtheorem{corollary}      [theorem]   {\textbf{Corollaire}}
+\newtheorem{lemma}          [theorem]   {\textbf{Lemme}}
+\newtheorem{proposition}    [theorem]   {\textbf{Proposition}}
+\newtheorem{property}       [theorem]   {\textbf{Propriété}}
+\newtheorem{definition}     [theorem]   {\textbf{Définition}}
+\newtheorem{algorithm}      [theorem]   {\textbf{Algorithme}}
+
+%------------------------------------------------------------------------------------------------------------
+% compteurs d'étapes dans les algorithmes
+%------------------------------------------------------------------------------------------------------------
+
+\newcounter{cxalgostep}
+\newcounter{cxloopdegre}[cxalgostep]
+\renewcommand{\thecxalgostep}    {\Alph{cxalgostep}}
+\renewcommand{\thecxloopdegre}   {\backslash captiondegre\Alph{cxalgostep}}
+
+\newcommand{\captiondegreA}{no}
+\newcommand{\captiondegreB}{no}
+\newcommand{\captiondegreC}{no}
+\newcommand{\captiondegreD}{no}
+\newcommand{\captiondegreE}{no}
+\newcommand{\captiondegreF}{no}
+
+%------------------------------------------------------------------------------------------------------------
+% boucles for, while, test if...
+%------------------------------------------------------------------------------------------------------------
+
+\newcommand{\itemalgo}[1]{\refstepcounter{cxalgostep}\textbf{Etape \thecxalgostep~: #1}\newline}
+
+\newenvironment{xloop}
+    {   \addtocounter{cxloopdegre}{1}
+            \begin{tabular}{cl} \quad & \begin{minipage}{\xpagevalueloop} }
+    {   \end{minipage} \end{tabular}
+            \addtocounter{cxloopdegre}{-1}}
+
+\newenvironment{xfor}[3]
+    {   \textbf{pour $#1 = #2$ à $#3$ faire} \newline%
+        \begin{xloop} }
+    {   \end{xloop}
+        \textbf{fin pour} }
+
+\newenvironment{xfor2}[3]
+    {   \textbf{pour $#1 = #2$ à $#3$ faire} \newline%
+        \begin{xloop} }
+    {   \end{xloop} \newline
+        \textbf{fin pour} }
+
+\newenvironment{xforeach}[2]
+    {   \textbf{pour chaque $#1 \in #2$ faire} \newline%
+        \begin{xloop} }
+    {   \end{xloop}
+        \textbf{fin pour} }
+ 
+
+\newcommand{\xdowhilecondition}{no}
+\newenvironment{xdowhile}[1]
+    {   \renewcommand{\xdowhilecondition}{#1}
+        \textbf{faire} \newline%
+        \begin{xloop} }
+    {   \end{xloop}
+        \textbf{tant que (\xdowhilecondition)} }
+
+\newenvironment{xwhile}[1]
+    {   \textbf{tant que (#1) faire} \newline%
+        \begin{xloop} }
+    {   \end{xloop}
+        \textbf{fin tant que} }
+
+\newenvironment{xif}[1]
+    {   \textbf{si #1 alors} \newline%
+        \begin{xloop} }
+    {   \end{xloop}
+        \textbf{fin si} }
+\newcommand{\xelse}{\end{xloop}\textbf{sinon}\newline\begin{xloop}}
+\newcommand{\xelseif}[1]{\end{xloop}\textbf{sinon si #1}\newline\begin{xloop}}
+
+\newenvironment{xalgostep}[1]
+    {   \refstepcounter{cxalgostep}\textbf{Etape \thecxalgostep~: #1}\newline%
+        \begin{xloop} }
+    {   \end{xloop}\medskip}
+    
+%------------------------------------------------------------------------------------------------------------
+% fonctions
+%------------------------------------------------------------------------------------------------------------
+
+\newcommand{\parenthese}[1]{\left(#1\right)}
+\newcommand{\pa}[1]{\left(#1\right)}
+\newcommand{\bigpa}[1]{\big( #1 \big)}
+\newcommand{\biggpa}[1]{\Big( #1 \Big)}
+\newcommand{\bigggpa}[1]{\bigg( #1 \bigg)}
+\newcommand{\biggggpa}[1]{\Bigg( #1 \Bigg)}
+
+\newcommand{\scal}[1]{\left<#1\right>}
+
+\newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\bigabs}[1]{\big|#1\big|}
+\newcommand{\biggabs}[1]{\bigg|#1\bigg|}
+
+\newcommand{\accolade}[1]{\left\{#1\right\}}
+\newcommand{\acc}[1]{\left\{#1\right\}}
+\newcommand{\bigacc}[1]{\big\{#1\big\}}
+\newcommand{\biggacc}[1]{\Big\{#1\Big\}}
+\newcommand{\bigggacc}[1]{\bigg\{#1\bigg\}}
+\newcommand{\biggggacc}[1]{\Bigg\{#1\Bigg\}}
+
+\newcommand{\crochet}[1]{\left[#1\right]}
+\newcommand{\cro}[1]{\left[#1\right]}
+\newcommand{\bigcro}[1]{\big[ #1 \big]}
+\newcommand{\biggcro}[1]{\Big[ #1 \Big]}
+\newcommand{\bigggcro}[1]{\bigg[ #1 \bigg]}
+\newcommand{\biggggcro}[1]{\Bigg[ #1 \Bigg]}
+\newcommand{\crochetopen}[1]{\left]#1\right[}
+
+\newcommand{\indicatrice}[1]{\mathbf{1\!\!1}_{\accolade{#1}}}
+
+\newcommand{\ensemblereel}[0]{\mathbb{R}}
+\newcommand{\R}[0]{\mathbb{R}}
+
+\newcommand{\ensembleentier}[0]{\mathbb{N}}
+\newcommand{\N}[0]{\mathbb{N}}
+
+\newcommand{\infegal}[0]{\leqslant}
+\newcommand{\supegal}[0]{\geqslant}
+
+\newcommand{\intervalle}[2]{\left\{#1,\cdots,#2\right\}}
+\newcommand{\intervalleinf}[3]{#1 \infegal #2 \infegal #3}
+
+\newcommand{\loinormale}[2]{{\cal N} \parenthese {#1,#2}}
+\newcommand{\loibinomiale}[2]{{\cal B} \parenthese {#1,#2}}
+\newcommand{\loimultinomiale}[1]{{\cal M} \parenthese {#1}}
+\newcommand{\loi}[0]{{\cal L}}
+
+\newcommand{\dans}[0]{\longrightarrow}
+
+\newcommand{\demonstration}[0]{\bigskip\textbf{Démonstration :}\bigskip}
+
+\newcommand{\partialfrac}[2]{\frac{\partial #1}{\partial #2}}
+
+\newcommand{\summy}[2]{\overset{#2}{\underset{#1}{\sum}}}
+\newcommand{\bigsummy}[2]{\overset{#2}{\underset{#1}{\displaystyle\sum}}}
+\newcommand{\prody}[2]{\overset{#2}{\underset{#1}{\prod}}}
+\newcommand{\bigprody}[2]{\overset{#2}{\underset{#1}{\displaystyle\prod}}}
+\newcommand{\summyone}[1]{\underset{#1}{\sum}}
+\newcommand{\bigsummyone}[1]{\underset{#1}{\displaystyle\sum}}
+\newcommand{\prodyone}[1]{\underset{#1}{\prod}}
+
+\newcommand{\card}[1]{card \parenthese{#1}}
+
+\newcommand{\esperance}[1]{\mathbb{E}\parenthese{#1}}
+\newcommand{\esperanceseul}[0]{\mathbb{E}\,}
+\newcommand{\esp}[1]{\mathbb{E}\pa{#1}}
+\newcommand{\esps}[0]{\mathbb{E}\,}
+
+\newcommand{\variance}[1]{\mathbb{V}\parenthese{#1}}
+\newcommand{\varianceseul}[0]{\mathbb{V}\,}
+\newcommand{\var}[1]{\mathbb{V}\pa{#1}}
+\newcommand{\vars}[0]{\mathbb{V}\,}
+
+\newcommand{\pr}[1]{\mathbb{P}\pa{#1}}
+
+\newcommand{\norme}[1]{\left\Vert#1\right\Vert}
+
+\newcommand{\independant}[0]{\;\makebox[3ex]{
+					\makebox[0ex]{\rule[-0.2ex]{3ex}{.1ex}}
+					\!\!\!\!\makebox[.5ex][l]{\rule[-.2ex]{.1ex}{2ex}}
+									\makebox[.5ex][l]{\rule[-.2ex]{.1ex}{2ex}}} \,\,}
+
+\newcommand{\vecteur}[2]{\pa{#1,\dots,#2}}
+\newcommand{\vecteurno}[2]{#1,\dots,#2}
+
+\newcommand{\union}[2]{\overset{#2}{\underset{#1}{\bigcup}}}
+\newcommand{\unionone}[1]{\underset{#1}{\bigcup}}
+
+\newcommand{\para}[1]{\bigskip\textbf{#1}}
+\newcommand{\QARRAY}[2]{\left \{ \begin{array}{l} #1 \\ #2 \end{array} \right .}
+\newcommand{\QARRAYno}[2]{\left . \begin{array}{l} #1 \\ #2 \end{array} \right .}
+\newcommand{\sachant}{\; | \;}
+\newcommand{\itemm}[0]{\item[\quad -]}
+\newcommand{\ensemble}[2]{\acc{#1,\dots,#2}}
+
+\newcommand{\twoindices}[2]{\begin{subarray}{c} #1 \\ #2 \end{subarray}}
+\newcommand{\vecteurim}[2]{\pa{\begin{subarray}{c} #1 \\ #2 \end{subarray}}}
+\newcommand{\vecteurimm}[2]{\pa{\begin{array}{c} #1 \\ #2 \end{array}}}
+
+\newcommand{\sac}{\sachant}
+\newenvironment{eqnarrays} {\begin{eqnarray}}{\end{eqnarray}}
+
+\newcommand{\matfour}[4] {\begin{array}{cc} #1 & #2 \\ #3 & #4 \end{array}}
+\newcommand{\vectt}[2]{\pa{\begin{subarray}{c} #1 \\ #2 \end{subarray}}}
+
+%\newcommand{\fleche}[1]{\overset{\longrightarrow}{ #1 }}
+\newcommand{\fleche}[1]{\overrightarrow{ #1 }}
+\newcommand{\inte}{\displaystyle\int}
+
+%------------------------------------------------------------------------------------------------------------
+% fonctions spéciales
+%------------------------------------------------------------------------------------------------------------
+
+% écrire soi-même le numéro d'une équation
+\newcommand{\numequation}[0]{\stepcounter{equation}(\theequation)}		
+
+% nouvel environnements eqnarray
+\newenvironment{eqnarray_xd}
+    {$$\left\{\begin{array}{rclr}}
+    {\end{array}\right.$$}
+
+% redéfinition de l'environnement eqnarray
+\makeatletter
+\newlength{\earraycolsep}
+\setlength{\earraycolsep}{2pt}
+\def\eqnarray{\stepcounter{equation}\let\@currentlabel%
+\theequation \global\@eqnswtrue\m@th \global\@eqcnt\z@\tabskip\@centering\let\\\@eqncr
+$$\halign to\displaywidth\bgroup\@eqnsel\hskip\@centering
+$\displaystyle\tabskip\z@{##}$&\global\@eqcnt\@ne \hskip 2\earraycolsep \hfil$\displaystyle{##}$\hfil &\global\@eqcnt\tw@ \hskip 2\earraycolsep
+$\displaystyle\tabskip\z@{##}$\hfil \tabskip\@centering&\llap{##}\tabskip\z@\cr} \makeatother
+    
+% ajoute une page afin que la page suivante soit une page au numéro impair   
+\newcommand{\skippairpage}[0]{
+	\ifx\xpagepairdoc\undefined
+	\newcount\xpagepairdoc
+	\fi
+	\xpagepairdoc=\value{page}
+	\divide\xpagepairdoc by 2
+	\multiply\xpagepairdoc by 2
+	\ifnum\xpagepairdoc=\value{page}
+	\hbox{}\newpage
+	\fi
+}
+
+%------------------------------------------------------------------------------------------------------------
+% dessin
+%------------------------------------------------------------------------------------------------------------
+
+\newcounter{putx}
+\newcounter{puty}
+
+% dessin d'un arc supérieur : x,y,size
+\newcommand{\arcup}[3]{
+                                \put(#1,#2){\arc{#3}{2.3}{6.8}}
+                                \setcounter{putx}{#1}\addtocounter{putx}{6}
+                                \setcounter{puty}{#2}\addtocounter{puty}{-4}
+                                \put(\value{putx},\value{puty}){\vector(0,-1){1}}
+                      }
+                      
+% dessin d'un arc inférieur : x,y,size
+\newcommand{\arcdown}[3]{
+                                \put(#1,#2){\arc{#3}{5.8}{10.5}}
+                                \setcounter{putx}{#1}\addtocounter{putx}{6}
+                                \setcounter{puty}{#2}\addtocounter{puty}{3}
+                                \put(\value{putx},\value{puty}){\vector(0,1){1}}
+                        }
+% dessin un rectangle
+\newcommand{\drawbox}[4]{\drawline(#1,#2)(#3,#2)(#3,#4)(#1,#4)(#1,#2)}
+
+
+%------------------------------------------------------------------------------------------------------------
+% référence
+%------------------------------------------------------------------------------------------------------------
+
+% défini un opérateur dont le nom est passé en argumant
+\newcommand{\setoperator}[1]{\expandafter\xdef\csname meop@#1\endcsname{1}}
+	
+% si un opérateur dont le nom est passé en 1 est défini, alors
+% fait 2 sinon fait 3
+\newcommand{\testoperator}[3]{\expandafter\ifx\csname meop@#1\endcsname\relax#3\else#2\fi}
+
+
+% ne pas utiliser dans les figures
+\newcommand{\citeindex}[1]		{\cite{#1}\indexfrr{références}{#1}\testoperator{cite@#1}{}{\setoperator{cite@#1}}}
+
+% utiliser dans les figures
+\newcommand{\citeindexfig}[1]	{\cite{#1}\indexfrr{références}{#1}}
+															
+\newcommand{\bibitemindex}[1]	{\indexfrr{références}{#1} \bibitem[#1]{#1}	}
+
+\newcount\bibitemstylefirstpage
+
+% définit un compteur pour une année
+\newcommand{\counterbiblioyear}[1]{\newcounter{meopyear@#1}\setcounter{meopyear@#1}{0}}
+% ajoute une référence pour une année
+\newcommand{\counterbiblioyearadd}[1]{\addtocounter{meopyear@#1}{1}}
+% obtient le nombre de documents cités pour une année
+\newcommand{\counterbiblioyeardisp}[1]{\arabic{meopyear@#1}}
+
+% définit un compteur pour une revue
+\newcommand{\counterbibliosource}[1]{\newcounter{meopsource@#1}\setcounter{meopsource@#1}{0}}
+% ajoute une référence pour une revue
+\newcommand{\counterbibliosourceadd}[1]{\addtocounter{meopsource@#1}{1}}
+% obtient le nombre de documents cités pour une revue
+\newcommand{\counterbibliosourcedisp}[1]{\arabic{meopsource@#1}}
+
+\newcounter{nbcitations}				% compteur pour le nombre de citations
+\setcounter{nbcitations}{0}			% aucune citations pour commencer
+
+% insère une entrée dans la bibliographie
+%		1 - identifiant
+%		2 - année
+%		3 - auteurs
+%		4 - titre
+%		5 - revue
+%		6 - volume
+%		7 - page début
+%		8 - page fin
+% rappel : 					 			\newcommand{\setoperator}[1]{\expandafter\xdef\csname meop@#1\endcsname{1}}
+%													\newcommand{\testoperator}[3]{\expandafter\ifx\csname meop@#1\endcsname\relax#3\else#2\fi}
+
+\newcommand{\bibitemstyle}[8]{  
+				\testoperator{yc#2}	{	
+				}	
+				{		\setoperator{yc#2}
+						\counterbiblioyear{#2}
+  			}
+				%\testoperator{rc#5}	{	
+				%}	
+				%{		\setoperator{rc#5}
+			  %\counterbibliosource{#5}
+  			%}
+				\testoperator{#1}	{	
+					\bibitem[#1]{#1} - voir page~\pageref{bibpage@#1}
+				}	
+				{	  \bibitemstylefirstpage=#7
+						\counterbiblioyearadd{#2}
+						%\counterbibliosourceadd{#5}
+						\addtocounter{nbcitations}{1}
+						\setoperator{#1}
+						\label{bibpage@#1}
+						\bibitemindex{#1}
+						\testoperator{cite@#1}{}{ \textbf{- jamais cité -} }
+						#3, \textit{#4}, #5 #6 %
+						\ifnum\bibitemstylefirstpage=0%
+						(#2)%
+						\else%
+						(#2), pp #7-#8%
+						\fi%
+  			}
+}
+
+
+\newcommand{\bibinserttitle}[1]{ \bibitem{} \medskip \medskip \begin{huge} \textbf{#1} \end{huge} \medskip \medskip }
+
+%------------------------------------------------------------------------------------------------------------
+% annexe
+%------------------------------------------------------------------------------------------------------------
+
+% voir les annexes : label, marques dans l'index
+\newcommand{\seeannex}[2]{\indexfrr{références aux annexes}{#2}\footnote{Annexes~: voir paragraphe~\ref{#1}, page~\pageref{#1}}}
+
+
+%------------------------------------------------------------------------------------------------------------
+% image
+%------------------------------------------------------------------------------------------------------------
+
+\newcount \filextensionnum
+\filextensionnum = 0
+
+\input{../../common/compile.tex}
+
+\ifnum \filextensionnum = 1
+\newcommand{\filext}[1]{#1.eps}
+\newcommand{\filefig}[1]{\input{#1.tex}}
+\else
+\newcommand{\filext}[1]{#1.pdf}
+\newcommand{\filefig}[1]{\includegraphics{#1.pdf}}
+%\usepackage[latin1]{inputenc}
+%\usepackage{hyperref}  %lien en PDF
+\fi
+
+%------------------------------------------------------------------------------------------------------------
+% labels
+%------------------------------------------------------------------------------------------------------------
+
+\newlabel{ske_algo_ske_ero_1}{{B.4.1}{165}}
+\newlabel{image_lissage_contour__}{{3.4.2}{51}}
+\newlabel{ske_algo_cart_dist}{{B.3.4}{164}}
+\newlabel{image_redressement_sobel}{{3.4.1}{49}}
+\newlabel{algo_vecto_appro}{{B.7.2}{180}}
+
+
+%------------------------------------------------------------------------------------------------------------
+% test pour savoir si c'est le premier passage
+%------------------------------------------------------------------------------------------------------------
+\newcommand{\firstpassagedo}[1]{ \ifnum\nbpassages=1 #1 \fi }
+
+%------------------------------------------------------------------------------------------------------------
+% commentaire
+%------------------------------------------------------------------------------------------------------------
+\newcommand{\comment}[1]{  }
+
+
+
+%------------------------------------------------------------------------------------------------------------
+% segmentations douloureuses
+%------------------------------------------------------------------------------------------------------------
+\hyphenation{ap-pren-tis-sa-ge}
+
+%-----------------------------------------------------------------------------------------------------------
+% profondeur de la table des matières
+%-----------------------------------------------------------------------------------------------------------
+\setcounter{tocdepth}{3}     % Dans la table des matieres
+\setcounter{secnumdepth}{3}  % Avec un numero.
+
+%-----------------------------------------------------------------------------------------------------------
+% prévoit de faire un index 
+%-----------------------------------------------------------------------------------------------------------
+
+\makeindex
+
+%-----------------------------------------------------------------------------------------------------------
+% document 
+%-----------------------------------------------------------------------------------------------------------
+\begin{document}
+
+
+\else
+
+\ifnum\nbpassages=4
+\nbpassages=5
+\fi 
+
+\ifnum\nbpassages=3
+\nbpassages=4
+\fi 
+
+\ifnum\nbpassages=2
+\nbpassages=3
+\fi 
+
+\ifnum\nbpassages=1
+\nbpassages=2
+\fi 
+
+
+
+\fi

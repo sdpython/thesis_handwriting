@@ -1,0 +1,215 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%                                                                      %%
+%%   Style File for LaTeX printing of Arc Graphs  Version 1.0        %%
+%%   4 February 1997                                                    %%
+%%   Author:  S. Weisberg (based on work by Bret Musser)                %%
+%%                                                                      %%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{epic,eepic,rotating,color,calc}
+\newcommand{\symlen}{3}
+\newcounter{circlesize}\setcounter{circlesize}{\symlen+2}
+\newcommand{\sliderwidth}{100}
+\newcommand{\sliderheight}{10}
+\newcommand{\putsymbol}[1]{#1}
+\newsavebox{\normbox}
+\newsavebox{\selbox}
+\newcounter{tempa}
+\newcounter{tempb}
+\newlength{\markby}
+\newlength{\tempc}
+\newlength{\textht}\settoheight{\textht}{My}
+
+%%
+%% Functions to draw a symbol on a plot.  The symbol will be centered at
+%% the current point
+%%
+
+% disk
+\newcommand{\DISKnorm}[1][\symlen]{\makebox[0cm][r]{
+             {\circle{\thecirclesize}}}}
+\newcommand{\DISKsel}[1][\symlen]{\makebox[0cm][r]{
+             {\circle*{\thecirclesize}}}}
+
+% Cross +
+\newcommand{\CROSSnorm}[1][\symlen]{\makebox(0,0){
+             {\put(0,0){\line(1,0){#1}}\put(0,0){\line(-1,0){#1}}
+              \put(0,0){\line(0,1){#1}}\put(0,0){\line(0,-1){#1}}}}}
+
+\newcommand{\CROSSsel}[1][\symlen]{\makebox(0,0){
+             {\thicklines
+              \put(0,0){\line(1,0){#1}}\put(0,0){\line(-1,0){#1}}
+              \put(0,0){\line(0,1){#1}}\put(0,0){\line(0,-1){#1}}
+              \thinlines}}}
+
+% X
+\newcommand{\Xnorm}[1][\symlen]{\makebox(0,0){
+             {\put(0,0){\line(1,1){#1}}\put(0,0){\line(-1,-1){#1}}
+              \put(0,0){\line(1,-1){#1}}\put(0,0){\line(-1,1){#1}}}}}
+\newcommand{\Xsel}[1][\symlen]{\makebox(0,0){
+             {\thicklines
+              \put(0,0){\line(1,1){#1}}\put(0,0){\line(-1,-1){#1}}
+              \put(0,0){\line(1,-1){#1}}\put(0,0){\line(-1,1){#1}}
+              \thinlines}}}
+
+% Square
+\newcommand{\SQUAREnorm}[1][\symlen]{\makebox[0cm][r]{
+             {\path(#1,#1)(#1,-#1)(-#1,-#1)(-#1,#1)(#1,#1)}}}
+\newcommand{\SQUAREsel}[1][\symlen]{\makebox[0cm][r]{
+             {\thicklines\path(#1,#1)(#1,-#1)(-#1,-#1)(-#1,#1)(#1,#1)\thinlines}}}
+
+% Diamond
+\newcommand{\DIAMONDnorm}[1][\symlen]{\makebox[0cm][r]{
+             {\path(-#1,0)(0,#1)(#1,0)(0,-#1)(-#1,0)}}}
+\newcommand{\DIAMONDsel}[1][\symlen]{\makebox[0cm][r]{
+             {\thicklines \path(-#1,0)(0,#1)(#1,0)(0,-#1)(-#1,0)\thinlines}}}
+
+
+% wedger
+\newcommand{\WEDGERnorm}[1][\symlen]{\makebox[0cm][r]{
+            {\path(#1,0)(-#1,#1)(-#1,-#1)(#1,0)}}}
+\newcommand{\WEDGERsel}[1][\symlen]{\makebox[0cm][r]{
+            {\thicklines{\path(#1,0)(-#1,#1)(-#1,-#1)(#1,0)}\thinlines}}}
+
+% wedgel
+\newcommand{\WEDGELnorm}[1][\symlen]{\makebox[0cm][r]{
+            {\path(-#1,0)(#1,#1)(#1,-#1)(-#1,0)}}}
+\newcommand{\WEDGELsel}[1][\symlen]{\makebox[0cm][r]{
+            {\thicklines \path(-#1,0)(#1,#1)(#1,-#1)(-#1,0)\thinlines}}}
+
+% dot
+\newcommand{\DOTnorm}[1][\symlen]{\makebox(0,0){
+             {\circle{1}}}}
+\newcommand{\DOTsel}[1][\symlen]{\makebox(0,0){
+             {\circle*{1}}}}
+
+%
+% slider plot controls
+%
+\newcommand{\putslider}[3]{\makebox(0,0)[tl]{
+      \put(0,0){\framebox(\sliderwidth,\sliderheight){}}
+      \setcounter{tempa}{\sliderheight+3}
+      \put(0,\thetempa){\makebox(0,0)[bl]{#1}}
+      \put(0,\thetempa){\makebox(\sliderwidth,0)[br]{#2}}
+      \setcounter{tempa}{\sliderwidth*\real{#3}}
+      \ifthenelse{\equal{#3}{1}}
+           {\put(\sliderwidth,0){\makebox(0,0)[br]{{\rule{5\unitlength}{\sliderheight\unitlength}}}}}
+           {\put(\thetempa,0){\rule{5\unitlength}{\sliderheight\unitlength}}}}}
+
+\newcommand{\putsliderpopup}[3]{\makebox(0,0)[tl]{
+    \setcounter{tempb}{\sliderwidth-14}
+    \put(14,0){\framebox(\thetempb,\sliderheight){}}
+    \setcounter{tempa}{\sliderheight+3}
+    \put(0,\thetempa){\makebox(0,0)[bl]{#1}}
+    \put(14,\thetempa){\makebox(\thetempb,0)[br]{#2}}
+    \setcounter{tempa}{14+\thetempb*\real{#3}}
+    \ifthenelse{\equal{#3}{1}}
+        {\put(\sliderwidth,0){\makebox(0,0)[br]{{\rule{5\unitlength}{\sliderheight\unitlength}}}}}
+        {\put(\thetempa,0){\rule{5\unitlength}{\sliderheight\unitlength}}}
+    \put(0,\sliderheight){\makebox(0,0)[lb]{\path(0,0)(10,0)(5,-\sliderheight)(0,0)}}
+}}
+
+%
+% Popup Menu Plot controls
+%
+\newcommand{\putpopupmenu}[1]{\makebox(0,0)[bl]{
+ \put(0,10){\makebox(0,0)[lb]{\path(0,0)(10,0)(5,-10)(0,0)}}
+ \put(14,0){\makebox(0,0)[bl]{#1}}}}
+
+%
+% Popup Dialog Plot controls
+%
+\newcommand{\putpopupdialog}[1]{\makebox(0,0)[bl]{
+ \put(0,0){\makebox(0,0)[lb]{\path(0,0)(0,10)(10,5)(0,0)}}
+ \put(14,0){\makebox(0,0)[bl]{#1}}}}
+
+%
+% Checkbox Plot controls
+%
+\newcommand{\putcheckbox}[1]{\makebox(0,0)[bl]{
+ \put(0,0){\framebox(10,10)[lb]{}}
+ \put(14,0){\makebox(0,0)[bl]{#1}}}}
+
+\newcommand{\putcheckboxsel}[1]{\makebox(0,0)[bl]{
+ \put(0,0){\framebox(10,10)[lb]{}}
+ \put(0,0){\path(0,0)(10,10)}
+ \put(0,0){\path(0,10)(10,0)}
+ \put(14,0){\makebox(0,0)[bl]{#1}}}}
+
+%
+% Zoom Control
+%
+\newcommand{\putzoomcontrol}{
+ \put(0,1){\path(0,1)(11,1)(6,10)(0,1)(0,-1)(11,-1)(6,-10)(0,-1)}}
+
+%
+% fillrect draws a solid rectange of #1 by #2 units
+%
+\newcommand{\fillrect}[2]{\rule{#1\unitlength}{#2\unitlength}}
+
+%%%
+%%%  Includes
+%%%
+
+\newcommand{\Lfigs}{}  % LaTeX figures Directory
+%\renewcommand{\Lfigs}{Lfigs/}  % LaTeX figures Directory
+
+\newcommand{\LCfig}[2]{
+   \begin{center}\input{\Lfigs#1.tex}\end{center}}
+
+\newcommand{\Lfig}[3]{
+    \begin{figure}[#3]
+        \begin{center}
+            \input{\Lfigs#1.tex}
+            \caption{#2 (#1)}\label{#1}
+        \end{center}
+    \end{figure}}
+
+\newcommand{\Ltwofig}[6]{
+    \begin{figure}[#6]
+        \begin{center}
+            \begin{tabular}{p{1.98in}p{1.98in}}
+                \input{\Lfigs#1.tex} &amp; \input{\Lfigs#3.tex} \\
+                a.  #2     &amp; b.  #4
+            \end{tabular}
+            \caption{#5 (#1)}\label{#1}\label{#3}
+        \end{center}
+    \end{figure}}
+
+\newcommand{\Lfourfig}[9]{
+    \begin{figure}[htb]
+        \begin{center}
+            \begin{tabular}{p{1.98in}p{1.98in}}
+                \input{\Lfigs#1.tex} &amp; \input{\Lfigs#3.tex} \\
+                a.  #2     &amp; b.  #4\\
+                \input{\Lfigs#5.tex} &amp; \input{\Lfigs#7.tex} \\
+                c.  #6     &amp; d.  #8
+            \end{tabular}
+            \caption{#9 (#1)}\label{#1}\label{#3}\label{#5}\label{#7}
+        \end{center}
+    \end{figure}}
+
+\newcommand{\Lthreefig}[8]{
+    \begin{figure}[#8]
+        \begin{center}
+            \begin{tabular}{p{1.98in}p{1.98in}}
+                \input{\Lfigs#1.tex} &amp; \input{\Lfigs#3.tex} \\
+                a.  #2     &amp; b.  #4\\
+            \end{tabular}
+            \begin{tabular}{p{1.98in}}
+                \input{\Lfigs#5} \\
+                c.  #6
+            \end{tabular}
+            \caption{#7 (#1)}\label{#1}\label{#3}\label{#5}
+        \end{center}
+    \end{figure}}
+
+\definecolor{shade0}{rgb}{.75,.75,.75}  % shading for white
+\definecolor{shade1}{rgb}{.75,.75,.75}  % shading for black
+\definecolor{shade2}{rgb}{.75,.50,.50}  % shading for red
+\definecolor{shade3}{rgb}{.50,.75,.50}  % shading for green
+\definecolor{shade4}{rgb}{.50,.50,.75}  % shading for blue
+\definecolor{shade5}{rgb}{.50,.75,.75}  % shading for cyan
+\definecolor{shade6}{rgb}{.75,.50,.75}  % shading for magenta
+\definecolor{shade7}{rgb}{.75,.75,.50}  % shading for yellow
+

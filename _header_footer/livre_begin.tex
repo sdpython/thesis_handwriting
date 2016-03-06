@@ -1,0 +1,46 @@
+%-----------------------------------------------------------------------------------------------------------
+% packages
+%------------------------------------------------------------------------------------------------------------
+
+
+\ifx\firstpassage\undefined
+\def\firstpassage{1}
+\newcount\nbpassages
+\nbpassages=1
+
+
+\newcount \filextensionnum
+\filextensionnum = 0
+
+\newcount \correctionenonce
+\correctionenonce = 1
+
+
+
+
+\input{../_header_footer/livre_begin_no_html.tex} 
+
+
+
+
+\else
+
+\ifnum\nbpassages=4
+\nbpassages=5
+\fi 
+
+\ifnum\nbpassages=3
+\nbpassages=4
+\fi 
+
+\ifnum\nbpassages=2
+\nbpassages=3
+\fi 
+
+\ifnum\nbpassages=1
+\nbpassages=2
+\fi 
+
+
+
+\fi

@@ -1,0 +1,1159 @@
+\input{../../common/livre_begin.tex}
+\firstpassagedo{\input{hmm_reco_titre.tex}}
+\input{../../common/livre_table_begin.tex}
+\firstpassagedo{\input{hmm_reco_chapter.tex}}
+
+
+
+
+
+
+\indexsee{modèle de Markov caché}{MMC}
+\indexfr{MMC}
+\indexsee{chaîne de Markov cachée}{MMC}
+\indexsee{Hidden Markov Model}{MMC}
+\indexfr{HMM}
+\indexsee{HMM}{MMC}
+
+                       
+                        
+                        
+                        
+\label{annexe_hmm_reco}
+
+
+
+
+
+
+
+%-------------------------------------------------------------------------------------------------------------------
+\section{Reconnaissance avec dictionnaire}
+%-------------------------------------------------------------------------------------------------------------------
+\indexfr{dictionnaire}
+
+
+On considère une séquence d'observations obtenue à partir d'une image ségmentée en graphèmes (figure~\ref{hmm_figure_exemple_grapheme}), la reconnaissance avec dictionnaire consiste à trouver le mot dans cette liste qui correspond à l'image.
+
+\indexfr{grapheme@graphème}
+
+
+        \begin{figure}[ht]
+        $$\frame{$\begin{array}[c]{c}\includegraphics[height=1cm, width=3cm]
+         {\filext{../dessin2/imagemg}}\end{array}$}$$
+        \caption{Un mot segmenté en graphèmes}
+        \label{hmm_figure_exemple_grapheme}
+        \end{figure}
+        
+La définition qui suit introduit les notations qui seront couramment utilisées par la suite.
+        
+
+		\begin{xdefinition}{reconnaissance avec dictionnaire}
+		Soit $O=\vecteur{O_1}{O_T} \in \mathcal{O}$ une séquence d'observations avec $\mathcal{O}$ l'ensemble des 
+		séquences d'observations, cette séquence décrit une image du mot $m^*$. Soit un dictionnaire 
+		$D=\vecteur{m_1}{m_N}$ ou liste finie de mots, la reconnaissance avec le dictionnaire $D$ telle qu'elle 
+		est présentée dans ce document consiste à trouver une fonction $f_D : \pa{\mathcal{O},D} \rightarrow \R$ telle que~:
+		        $$
+		        \underset{m \in D}{\arg \max} \; f_D\pa{O,m} = m^*
+		        $$
+		\end{xdefinition}
+
+
+\begin{xremark}{rejet}
+Cette définition sous-entend que la solution $m^*$ appartient au dictionnaire et qu'il n'est pas possible de rejeter un mot n'en faisant pas partie. Il est cependant possible d'accepter ou de refuser la solution selon la valeur de $f_D\pa{O,m^*}$. Ceci sera vu dans une prochaine annexe.\indexfr{rejet}
+\end{xremark}
+
+On impose également au dictionnaire d'être dynamique (définition~\ref{hmm_reco_def_dico_dyn}). Même si la définition du problème ne s'en trouve pas changée, les choix de modélisation doivent tenir compte de cette contrainte supplémentaire.
+
+
+		\begin{xdefinition}{dictionnaire dynamique} \label{hmm_reco_def_dico_dyn}
+		\indexfrr{dictionnaire}{dynamique}
+		Un dictionnaire $D$ est dit dynamique si l'ajout ou la suppression de mot n'implique pas une nouvelle recherche 
+		de la fonction $f_{D'}$ où $D'$ est un dictionnaire différent de $D$. La fonction $f$ est indépendante du
+		dictionnaire $D$.
+		\end{xdefinition}
+
+Dans ce cas, la fonction $f$ peut difficilement être un réseau de neurones classifieur\seeannex{classification}{réseau classifieur} dont chaque classe est associée à un mot du dictionnaire. L'ajout ou le retrait d'un mot se traduirait par une modification de la structure du réseau et un réapprentissage. Pour de grands dictionnaires, ces modèles sont une hérésie.
+
+La solution préconisée est la construction pour un mot $m$ d'un modèle probabiliste de mot $M_m$ associé à ce mot. On note $\pr{M \sac O}$ la probabilité du modèle sachant la séquence d'observation.
+
+        \begin{eqnarray}
+        f\pa{O,m} &=& \pr{M_m \sac O} = \pr{O \sac M_m} \dfrac{\pr{M_m}}{\pr{O}}
+        \end{eqnarray}
+        
+On suppose que $\pr{M}$ est constante quel que soit le mot $m$ et dans ce cas~:
+
+        \begin{eqnarray}
+        \underset{m \in D}{\arg \max} \; f_D\pa{O,m} = \underset{m \in D}{\arg \max} \; \pr{O \sac M_m}
+        \end{eqnarray}
+        
+        
+
+La segmentation en graphèmes n'a pas encore été justifiée tout comme l'utilisation d'une séquence d'observations. Il est tout-à-fait possible de construire un modèle de mot prenant en compte l'image dans son ensemble et non des morceaux. Mais un simple réseau de neurones chargé de reconnaître le mot "CHARLES" par exemple devra être estimé sur une base d'apprentissage incluant des images de ce mot et des images d'autres mots. Quelles images choisir pour le cas où ce n'est pas "CHARLES" qui doit être reconnu~? Lorsque le dictionnaire n'est pas dynamique, ce choix est l'ensemble des autres mots du dictionnaire. Lorsqu'il ne l'est pas, ce choix est impossible. De plus, il est impossible de construire un tel modèle pour chaque mot du dictionnaire comme le montre la table~\ref{hmm_table_occurence_prenom} qui décrit
+le contenu des bases d'apprentissage et de test pour un problème de reconnaissance de prénoms manuscrits.
+
+
+        \begin{table}[ht]
+        \[
+        \scriptsize 
+        \begin{tabular}{|c|c|c|}\hline
+                     & occurrences dans             & occurrences dans              \\ 
+        prénoms      & la base d'apprentissage      & la base de test               \\ \hline
+        JEAN        & 1796                          & 615                           \\ \hline
+        JEANE       & 0                             & 1                             \\ \hline
+        JEANETTE    & 0                             & 1                             \\ \hline
+        JEANINE     & 34                            & 9                             \\ \hline
+        JEANNE      & 636                           & 186                           \\ \hline
+        JEANNETTE   & 15                            & 8                             \\ \hline
+        JEANNIE     & 2                             & 0                             \\ \hline
+        JEANNINE    & 99                            & 37                            \\ \hline
+        JEHAN       & 2                             & 0                             \\ \hline
+        JEMMY       & 1                             & 0                             \\ \hline
+        JENNY       & 20                            & 2                             \\ \hline
+        JERD        & 1                             & 0                             \\ \hline
+        JEREMIE     & 1                             & 1                             \\ \hline
+        JEROME      & 15                            & 5                             \\ \hline
+        \end{tabular}
+        \]
+        \caption{       Occurrences de prénoms dans les bases d'apprentissage et de test. Certains mots
+                        sont présents dans la base de test et non dans la base d'apprentissage. Cela
+                        exclut leur apprentissage par un modèle de mot n'utilisant aucune segmentation
+                        d'image.}
+        \indexfr{prenom@prénom}                        
+        \label{hmm_table_occurence_prenom}
+        \end{table}
+
+        
+L'option retenue, la plus simple dans sa conception mais pas forcément dans sa mise en \oe uvre, est la segmentation d'un mot en graphèmes\indexfr{graphème} ou imagettes respectant les contraintes suivantes~:
+
+        \begin{enumerate}
+        \item Chaque graphème est inclut dans le dessin d'une lettre, 
+        				chacun est donc une lettre ou une partie de lettre.
+        \item Les graphèmes doivent être ordonnés selon un ordre respectant l'ordre des lettres dans le mot.
+        \end{enumerate}
+        
+Par conséquent, pour l'image du mot $m = \vecteur{l_1}{l_N}$, si on associe à la séquence de graphèmes $G=\vecteur{G_1}{G_T}$ la séquence $L=\vecteur{L_1}{L_T}$, le graphème $G_t$ représentant une partie de la lettre $l_{L_t}$, ces trois séquences 
+vérifient~:
+
+        \begin{enumerate}
+        \item $N \infegal T$
+        \item $L_1 = l_1$ et $L_T = l_N$
+        \item si $t < T$, alors $L_t \infegal L_{t+1} \infegal \min \acc{ L_t + 1, N}$
+        \end{enumerate}
+        
+        
+\indexfrr{segmentation}{graphème}
+
+Pour le processus de reconnaissance, il aurait été plus facile de segmenter l'image d'un mot en lettres mais ce traitement d'image est difficile à réaliser, c'est pourquoi cette modélisation plus souple a été choisie (\citeindex{Augustin2001}) et même celle-ci n'est pas toujours facile à respecter (voir paragraphe~\ref{hmm_bi_lettre}). Les graphèmes obtenus par segmentation doivent à la fois être suffisamment gros pour être reconnus et ordonnés, suffisamment petits pour ne pas représenter plus d'une lettre.
+
+Les contraintes énoncées ci-dessus sont également valables pour la séquence $O=\vecteur{O_1}{O_T}$ qui est la transcription de la séquence $G = \vecteur{G_1}{G_T}$ dans un format utilisable par les modèles de Markov cachés et les réseaux de neurones.
+
+\indexfrr{modèle}{lettre}
+
+La séquence $O=\vecteur{O_1}{O_T}$ est donc une succession de lettres ou morceaux de lettres respectant l'ordre de lecture. Ce découpage autorise la construction de modèles de reconnaissance de lettres à partir desquels seront formés les modèles de mots. Par conséquent, la fonction $f\pa{O,m}$ sera uniquement dépendante de 26 modèles de lettres. Le paragraphe suivant montre comment est construit un modèle $M_m$ associé au mot $m$.
+
+
+        
+        
+        
+        
+        
+
+
+%--------------------------------------------------------------------------------------------------------------------
+\section{Construction de modèles de mot}
+%--------------------------------------------------------------------------------------------------------------------
+\label{hmm_reco_modele_lettre}
+\indexfr{modèle}{mot}
+\indexfr{modèle}{lettre}
+
+Les modèles utilisées sont des modèles de Markov cachés hybrides associés à un réseau de neurones\seeannex{hmm_reseau_neurone}{réseau de neurones}. La figure~\ref{hmm_figure_exemple_modele_lettre} illustre un modèle de lettres.
+
+
+        \begin{figure}[ht]
+        $$\frame{$\begin{array}[c]{c}\includegraphics[height=8cm, width=4.5cm]
+        {\filext{../hmm_reco/image/letter}}\end{array}$}$$
+        \caption{       Modèle de lettre : la séquence d'observations $O=\vecteur{O_1}{O_T}$ est 
+                        donnée au réseau de neurones, celui-ci établit pour chaque observation ses probabilités
+                        d'appartenir à chacune des classes, enfin, le modèle de Markov caché (correspondant ici
+                        à la lettre "G") utilise ces probabilités comme des probabilités d'émissions et retourne
+                        la probabilité d'émettre la séquence $O$.}
+        \label{hmm_figure_exemple_modele_lettre}
+        \end{figure}
+        
+
+Si le mot $m = \vecteur{l_1}{l_N}$, les modèles de lettre $L\vecteur{L_1}{L_N}$ seront assemblés de manière à former le modèle $M_m$ comme montré par la figure~\ref{figure_modele_mot_simple_attention}. Cet assemblage est simplement une juxtaposition comme le montre la figure~\ref{hmm_figure_exemple_modele_mot}.
+
+
+            \begin{figure}[ht]
+                \[
+                \unitlength 1mm
+                \fbox{
+                \begin{picture}(54,5)(0,2)
+
+                \put(4, 4)  {\circle{5}}
+                \put(10,4)  {\circle{4}}
+                \put(16,4)  {\circle{4}}
+                \put(22,4)  {\circle{4}}
+                \put(28,4)  {\circle{4}}
+                \put(34,4)  {\circle{4}}
+                \put(40,4)  {\circle{4}}
+                \put(46,4)  {\circle{4}}
+                \put(52,4)  {\circle{5}}
+
+                \put(0, 0)   {\makebox(8,8){$E$}}
+                \put(6, 0)   {\makebox(8,8){$g$}}
+                \put(12,0)   {\makebox(8,8){$e$}}
+                \put(18,0)   {\makebox(8,8){$o$}}
+                \put(24,0)   {\makebox(8,8){$r$}}
+                \put(30,0)   {\makebox(8,8){$g$}}
+                \put(36,0)   {\makebox(8,8){$e$}}
+                \put(42,0)   {\makebox(8,8){$s$}}
+                \put(48,0)   {\makebox(8,8){$S$}}
+
+                \put(6.5, 4)    {\line(1,0){1.5}}
+                \put(12,4)    {\line(1,0){2}}
+                \put(18,4)    {\line(1,0){2}}
+                \put(24,4)    {\line(1,0){2}}
+                \put(30,4)    {\line(1,0){2}}
+                \put(36,4)    {\line(1,0){2}}
+                \put(42,4)    {\line(1,0){2}}
+                \put(48,4)    {\line(1,0){1.5}}
+                \end{picture}
+                }
+                \]
+                \caption{       Modèle de mot pour "georges" construit à partir des modèles de lettres assoicés 
+                                aux lettres "g", "e", "o", "r", "s". Les symboles "E", "S" signifient 
+                                l'entrée et la sortie du modèle.}
+                \label{figure_modele_mot_simple_attention}
+            \end{figure}
+
+
+        \begin{figure}[ht]
+        $$\frame{$\begin{array}[c]{c}\includegraphics[height=8cm, width=9cm] 
+        	{\filext{../hmm_reco/image/word}}\end{array}$}$$
+        \caption{       Modèle de mot : la séquence d'observations $O=\vecteur{O_1}{O_T}$ est 
+                        donnée au réseau de neurones, celui-ci établit pour chaque observation ses probabilités
+                        d'appartenir à chacune des classes, enfin, le modèle de Markov caché (correspondant ici
+                        au mot "GEORGES") utilise ces probabilités comme des probabilités d'émissions et retourne
+                        la probabilité d'émettre la séquence $O$.
+                }
+        \label{hmm_figure_exemple_modele_mot}
+        \end{figure}
+        
+
+        
+Maintenant que les modèles de mot sont définis, pour un mot $m = \vecteur{l_1}{l_N}$, il s'agit de calculer la probabiltés $\pr{O \sac M_m}$ d'une séquence $O=\vecteur{O_1}{O_T}$. Le modèle $M_m$ est la juxtaposition des modèles $M_m=\vecteur{L_{l_1}}{L_{l_N}}$. Pour simplifier, cette séquence sera notée $M_m=\vecteur{L_1}{L_N}$.
+
+\begin{xtheorem}{probabilité d'une séquence avec un modèle de mot}
+\indexfr{theoreme@théorème!probabilite d'une sequence avec un modele de mot@probabilité d'une séquence avec un modèle de mot}%
+\indexfr{modele@modèle!mot@mot}
+\label{hmm_theo_proba_modele_mot}
+Soit un modèle de mot $M_m$ composé de modèle de lettre $M_m = \vecteur{L_1}{L_N}$ et la séquence d'observation $O=\vecteur{O_1}{O_T}$. On définit la suite $\pa{\alpha_{t,t'}^{L_i}}_{t,t',i}$ par~:
+
+        \begin{eqnarray}
+        \forall \pa{t,t'} \in \intervalle{1}{T}^2, \, \forall i \in \intervalle{1}{N} \; 
+                \alpha_{t,t'}^{L_i} &=&         \left\{
+                                                \begin{array}{l}
+                                                \pr{ \vecteurno{O_t}{O_{t'}} \sac L_i } \text{ si } t \infegal t' \\
+                                                1 \text{ sinon}
+                                                \end{array}
+                                                \right.
+        \label{hmm_reco_alpha}                                                
+        \end{eqnarray}
+        
+Le calcul de cette suite fait appel à l'équation (\ref{hmm_eq_alpha_4}). On définit également la suite $\pa{\gamma_t^{L_i}}_{t,i}$ par~:
+
+        \begin{eqnarray}
+        \begin{array}{rrcl}
+        \forall i \in \intervalle{1}{N}, \; & \gamma_0^{L_i} &=& 1 \\
+        \forall i \in \intervalle{1}{N}, \, \forall t \in \intervalle{1}{T}, \; & \gamma_t^{L_i} &=& 
+                                \summy{k=1}{t-1} \, \gamma_k^{L_{i-1}} \, \alpha_{k+1,t}^{L_i}
+        \end{array}
+        \label{hmm_reco_gamma_include}
+        \end{eqnarray}
+        
+Alors~:
+
+        \begin{eqnarray}
+        \pr{ O \sac M_m } &=&  \gamma_T^{L_N}
+        \label{hmm_reco_eqn_proba_2}
+        \end{eqnarray}        
+        
+\end{xtheorem}
+
+
+\begin{xdemo}{théorème}{\ref{hmm_theo_proba_modele_mot}}{theoreme}
+La démonstration de ce théorème est similaire à celle de l'équation (\ref{hmm_eq_alpha_4}).
+\end{xdemo}
+
+
+Ce théorème permet de définir l'algorithme suivant~:
+
+
+\begin{xalgorithm}{probabilité d'une séquence avec un modèle de mot}
+\indexfr{algorithme@algorithme!probabilite d'une sequence avec un modele de mot@probabilité d'une séquence avec un modèle de mot}
+
+\begin{xalgostep}{initialisation 1}
+        Calcul de la suite $\pa{\alpha_{t,t'}^{L_i}}_{t,t',i}$ grâce à l'algorithme~\ref{hmm_algo_forward}.
+\end{xalgostep}
+        
+\begin{xalgostep}{initialisation 2}
+        \begin{xfor}{i}{1}{N}
+        $\gamma_0^{L_i} \longleftarrow 1$
+        \end{xfor}
+\end{xalgostep}
+        
+\begin{xalgostep}{itérations}
+        \begin{xfor}{t}{1}{T}
+                \begin{xfor}{i}{1}{N}
+                        $\gamma_t^{L_i} \longleftarrow 0 $ \\
+                        \begin{xfor}{k}{1}{t-1}
+                        $\gamma_t^{L_i} \longleftarrow \gamma_t^{L_i} + \gamma_k^{L_{i-1}} \, \alpha_{k+1,t}^{L_i}$ 
+                        \end{xfor}
+                \end{xfor}
+        \end{xfor}
+\end{xalgostep}
+
+La probabilité cherchée est $\gamma_T^{L_N}$.
+        
+\end{xalgorithm}
+
+
+
+
+
+
+
+
+
+
+
+
+%--------------------------------------------------------------------------------------------------------------------------------------------------------------
+\section{Apprentissage des modèles de lettres}
+%--------------------------------------------------------------------------------------------------------------------------------------------------------------
+\indexfr{apprentissage@apprentissage!lettre@lettre}
+\indexfr{modele@modèle!lettre@lettre}
+\indexfr{modele@modèle!mot@mot}
+\indexfr{apprentissage@apprentissage}
+
+L'apprentissage des modèles de lettre s'appuie sur celui des modèles de Markov cachés. Toutefois, comme ceux-ci sont utilisés dans des modèles de mot, les formules données tableau~\ref{figure_formule_baumwelch-fig} ne s'appliquent pas telles quelles.
+
+\indexfr{optimisation@optimisation}
+Pour simplifier, supposons que le dictionnaire se réduit à deux mots "CHARLES" et "CAROLE". Les modèles respectifs à ces deux mots sont notés $M_{CH}$ et $M_{CA}$ de paramètres $\Theta_{CH}$ et $\Theta_{CA}$ qui regroupent l'ensemble des paramètres de chacun des modèles de lettres qui les composent. L'estimation de $\Theta_{CH}$ et $\Theta_{CA}$ est toujours un problème d'optimisation sur une base d'apprentissage contenant plusieurs exemples de mots "CHARLES" et "CAROLE", les séquences correspondantes sont notées~:
+
+        $$
+                        O^{CH}=\vecteur{O_1^{CH}}{O_{N_{CH}}^{CH}} 
+        \text{ et }    O^{CA}=\vecteur{O_1^{CA}}{O_{N_{CA}}^{CA}}
+        $$
+
+\indexfr{vraisemblance@vraisemblance}
+La vraisemblance des paramètres $\pa{\Theta_{CH},\Theta_{CA}}$ est~:
+
+        \begin{eqnarray*}
+        L\pa{\Theta_{CH},\Theta_{CA},O^{CH},O^{CA}} &=&
+               \prody{n=1}{N_{CH}} \pr{O_n^{CH} \sac M_{CH}}           \; \prody{n=1}{K_{CA}} \pr{O_n^{CA} \sac M_{CA}}             \\
+        &=&     \prody{n=1}{N_{CH}} \pr{O_n^{CH} \sac \Theta_{CH}}      \; \prody{n=1}{K_{CA}} \pr{O_n^{CA} \sac \Theta_{CA}}         
+        \end{eqnarray*}
+
+Finalement, la log-vraisemblance est~:
+
+        \begin{eqnarray}
+        \ln L\pa{\Theta_{CH},\Theta_{CA},O^{CH},O^{CA}} &=& 
+                  \summy{n=1}{N_{CH}} \ln \pr{O_n^{CH} \sac \Theta_{CH}}      
+              +   \summy{n=1}{N_{CA}} \ln \pr{O_n^{CA} \sac \Theta_{CA}}             \label{hmm_reco_eq_likelihood}
+        \end{eqnarray}
+
+Si les modèles $M_{CH}$ et $M_{CA}$ n'ont aucun paramètre commun, l'optimisation de (\ref{hmm_reco_eq_likelihood}) est équivalente à deux optimisations séparées de $\Theta_{CH}$ et $\Theta_{CA}$. Les mots "CHARLES" et "CAROLE" ont cependant les lettres "C", "A", "L", "E", "R" en commun.L'apprentissage de tels modèles est résolu dans les paragraphes qui suivent, les formules de réestimation des paramètres des modèles de lettres ne seront pas démontrées mais les raisonnements développés dans les paragraphes~\ref{baumwelch_sens} à~\ref{hmm_demo_em_em} sont encore valables.
+
+
+Toujours pour une séquence d'observations $O=\vecteur{O_1}{O_T}$, un modèle $M_m=\vecteur{L_1}{L_N}$, on note $q$ un état d'un modèle de lettre, la notation $q \in L_i$ désigne un état appartenant au modèle $L_i$, $q_t$ désigne l'état à l'instant $t$. On définit la suite~:
+
+        \begin{eqnarray}
+        \forall t \in \intervalle{1}{T}, \, \forall i \in \intervalle{1}{N}, \, \forall q \in L_i, \;\;
+                \alpha_t^{L_i}\pa{q} = \pr {\vecteurno{O_1}{O_t}, \, q_t = q \sac M_m} 
+        \label{hmm_reco_alpha_include}
+        \end{eqnarray}
+
+Cette suite est semblable à celle définie (\ref{hmm_eq_alpha_1}) mais avec un indice de plus pour le modèle de lettre concerné. De même, la suite définie en (\ref{hmm_eq_beta_1}) est déclinée pour un modèle de mot~:
+
+        \begin{eqnarray}
+        \forall t \in \intervalle{1}{T}, \, \forall i \in \intervalle{1}{N}, \, \forall q \in L_i, \;\;
+                \beta_t^{L_i}\pa{q} = \pr {\vecteurno{O_{t+1}}{O_T} \sac q_t = q, \,  M_m} 
+        \label{hmm_reco_beta_include}                
+        \end{eqnarray}
+
+La suite (\ref{hmm_reco_alpha}) est enrichie d'un indice supplémentaire~:
+
+        \begin{eqnarray}
+        \forall \pa{t,t'} \in \intervalle{1}{T}^2, \, \forall i \in \intervalle{1}{N} \; 
+                \alpha_{t,t'}^{L_i}\pa{q} &=&         \left\{
+                                                \begin{array}{l}
+                                                \pr{ \vecteurno{O_t}{O_{t'}}, q_{t'} = q \sac L_i } \text{ si } t \infegal t' \\
+                                                1 \text{ sinon}
+                                                \end{array}
+                                                \right.
+        \label{hmm_reco_alpha_q}
+        \end{eqnarray}
+        
+
+Le calcul de (\ref{hmm_reco_alpha_q}) s'effectue grâce à un algorithme forward (\ref{hmm_algo_backward}). Il est possible d'exprimer la suite (\ref{hmm_reco_alpha_include}) à partir des suites (\ref{hmm_reco_gamma_include}) et (\ref{hmm_reco_alpha_q}) comme suit~:
+
+        \begin{eqnarray}
+        \forall t \in \intervalle{1}{T}, \, \forall i \in \intervalle{1}{N}, \, \forall q \in L_i, \;\;
+        \alpha_t^{L_i}\pa{q} &=& \summy{k=1}{t-1} \gamma_k^{L_{i-1}} \, \alpha_{k+1,t}^{L_i}\pa{q}
+        \end{eqnarray}
+        
+Le calcul de la suite (\ref{hmm_reco_beta_include}) nécessite l'introduction de nouvelle suites, tout d'abord~:
+
+        \begin{eqnarray}
+        \forall \pa{t,t'} \in \intervalle{1}{T}^2, \, \forall i \in \intervalle{1}{N} \; 
+                \beta_{t,t'}^{L_i}\pa{q} &=&    \left\{
+                                                \begin{array}{l}
+                                                \pr{ \vecteurno{O_t}{O_{t'}} \sac q_{t-1} = q, \, L_i } \text{ si } t \infegal t' \\
+                                                0 \text{ sinon}
+                                                \end{array}
+                                                \right.
+        \label{hmm_reco_beta_q}
+        \end{eqnarray}
+
+Et~:
+
+        \begin{eqnarray}
+        \begin{array}{rrcl}
+        \forall i \in \intervalle{1}{N}, \; & \delta_{T+1}^{L_i} &=& 1 \\
+        \forall i \in \intervalle{1}{N}, \, \forall t \in \intervalle{1}{T}, \; & \delta_t^{L_i} &=& 
+                                \summy{k=t+1}{T+1} \, \delta_k^{L_{i+1}} \, \alpha_{t,k-1}^{L_i}
+        \end{array}
+        \label{hmm_reco_delta_include}
+        \end{eqnarray}
+
+Par conséquent~:
+
+        \begin{eqnarray}
+        \forall t \in \intervalle{1}{T}, \, \forall i \in \intervalle{1}{N}, \, \forall q \in L_i, \;\;
+        \beta_t^{L_i}\pa{q} &=& \summy{k=t+1}{T} \delta_k^{L_{i+1}} \, \beta_{t,k-1}^{L_i}\pa{q}
+        \label{hmm_reco_beta_include_end}
+        \end{eqnarray}
+        
+        
+En tenant compte qu'un mot peut contenir plusieurs fois la même lettre et donc qu'un coefficient peut faire partie de plusieurs modèles $L_i$, il est possible, armé de toutes ces suites, d'adapter les formules établies dans la table~\ref{figure_formule_baumwelch-fig} (voir table~\ref{hmm_reco_estimation_lettre}).
+
+La base d'apprentissage est une liste des séquences d'observations $\vecteur{O^1}{O^K}$ où chaque séquence est égale à $O^k = \vecteur{O_1^k}{O_{T_k}^k}$, cette séquence $O^k$ correspond au mot $m_k = \vecteur{m^k_1}{m^k_{N_k}}$ dont le modèle associé est le modèle $M_k = \vecteur{L^k_1}{L^k_{N_k}}$. La réestimation des paramètres des modèles de lettre utilise la définition des suites (\ref{hmm_reco_gamma_include}), (\ref{hmm_reco_alpha_q}), (\ref{hmm_reco_delta_include}), (\ref{hmm_reco_beta_q}) surmontées d'un indice supplémtenaire ($k$) correspondant à la séquence d'observation $O^k$ à partir de laquelle elles ont été calculées.
+
+
+            \begin{table}[H]
+                \[
+                \fbox{$
+                \begin{array}{rcl}
+                \overline{\pi_q^{L_l}}  &=& \dfrac
+                            {
+                                    \summy{k=1}{K} \, \summy{i=1}{N_k} \, \indicatrice{L_l = L_i^k}  \, \summy{t=1}{T_k} \,
+                                    \gamma_{t}^{k,L_{i-1}} \, \pi_q^{L_i} \, b_{q}^{k,L_i}\pa{O_{t}^k} \, \beta_{t}^{k,L_i}\pa{q}
+                            }
+                            {
+                                    \summy{k=1}{K} \, \summy{i=1}{N_k} \, \indicatrice{L_l = L_i^k}  \, \summy{t=1}{T_k} \,
+                                    \gamma_{t}^{k,L_{i-1}} \, \delta_{t}^{k,L_{i}}
+                            } \\ \\
+                \overline{a_{q,q'}^{L_l}} &=&     \dfrac
+                            {
+                                    \summy{k=1}{K} \, \summy{i=1}{N_k} \, \indicatrice{L_l = L_i^k}  \, \summy{t=1}{T_k} \,
+                                    \alpha_t^{k,L_i}\pa{q} \, a_{q,q'}^{L_l} \, b_{q'}^{k,L_i}\pa{O_{t+1}^k} \,
+                                    \beta_{t+1}^{k,L_i}\pa{q'}
+                            }
+                            {
+                                    \summy{k=1}{K} \, \summy{i=1}{N_k} \, \indicatrice{L_l = L_i^k}  \, \summy{t=1}{T_k} \,
+                                    \alpha_t^{k,L_i}\pa{q} \, \beta_{t}^{k,L_i}\pa{q}
+                            } \\ \\
+                \overline{\theta_q^{L_l}}  &=& \dfrac
+                            {
+                                    \summy{k=1}{K} \, \summy{i=1}{N_k} \, \indicatrice{L_l = L_i^k}  \, \summy{t=1}{T_k} \,
+                                    \alpha_t^{k,L_i}\pa{q} \, \theta_q^{L_l} \, \delta_t^{k,L_i}
+                            }
+                            {
+                                    \summy{k=1}{K} \, \summy{i=1}{N_k} \, \indicatrice{L_l = L_i^k}  \, \summy{t=1}{T_k} \,
+                                    \alpha_t^{k,L_i}\pa{q} \, \beta_{t}^{k,L_i}\pa{q}
+                            } \\ \\
+                &&\text{ émissions discrètes (voir table~\ref{figure_formule_baumwelch-fig})}  \\ \\                     
+                \overline{b_q^{L_l} \pa{o} } &=&     \dfrac
+                            {
+                                    \summy{k=1}{K} \, \summy{i=1}{N_k} \, \indicatrice{L_l = L_i^k}  \, \summy{t=1}{T_k} \,
+                                    \indicatrice{O_t = o} \, \alpha_t^{k,L_i}\pa{q} \, \beta_{t}^{k,L_i}\pa{q}
+                            }
+                            {
+                                    \summy{k=1}{K} \, \summy{i=1}{N_k} \, \indicatrice{L_l = L_i^k}  \, \summy{t=1}{T_k} \,
+                                    \alpha_t^{k,L_i}\pa{q} \, \beta_{t}^{k,L_i}\pa{q}
+                            }  \\ \\                    
+                &&\text{ émissions continues (voir table~\ref{figure_formule_baumwelch-fig_2})} \\ \\           
+                \overline{c_{q,c} } &=&     \dfrac
+                            {
+                                    \summy{k=1}{K} \, \summy{i=1}{N_k} \, \indicatrice{L_l = L_i^k}  \, \summy{t=1}{T_k} \,
+                                    \dfrac  {\alpha_t^{k,L_l}\pa{q} \, c_{q,c} \, \beta_t^{k,L_l}\pa{q} \, \pr{O_t^k \sac c} }
+                                            { \summy{d=1}{N} \pr{O_t^k \sac d} \, c_{q,d} }
+                            }
+                            {
+                                    \summy{k=1}{K} \, \summy{i=1}{N_k} \, \indicatrice{L_l = L_i^k}  \, \summy{t=1}{T_k} \,
+                                    \alpha_t^{k,L_i}\pa{q} \, \beta_{t}^{k,L_i}\pa{q}
+                            } \\ \\                    
+                \end{array}
+                $}
+                \]
+                \caption{   Formules de réestimation de Baum-Welch pour des modèles de lettres, les suites utilisées
+                            sont celles définies en (\ref{hmm_reco_gamma_include}), (\ref{hmm_reco_alpha_q}), 
+                            (\ref{hmm_reco_delta_include}), (\ref{hmm_reco_beta_q}). Elles sont valables pour 
+                            un modèle de lettre noté $L_l$. L'écriture $\indicatrice{L_l = L_i}$ est la fonction
+                            qui retourne $1$ lorsque le modèle $L_i$ est associé à la lettre $l$.
+                            La notation $s\pa{q}$ désigne les états qui suivent l'état $q$, 
+                            le coefficient $a_{q,q'}^{L_i}$ désigne la probabilité de transition de l'état
+                            $q$ à l'état $q'$ du modèle $L_i$ où $q' \in s\pa{q}$, $b_{q'}^{k,L_i}\pa{O_{t+1}}$
+                            est la probabilité d'émission de l'observation $O_{t+1}^k$ par l'état $q'$
+                            du modèle $L_i$.
+                            }
+                \label{hmm_reco_estimation_lettre}
+                \indexfr{Baum-Welch@Baum-Welch}
+                \indexfr{reestimation@réestimation}
+            \end{table}
+
+
+En pratique, les dénominateurs des formules de la table~\ref{hmm_reco_estimation_lettre} ne sont pas calculés sauf pour vérifier que le calcul des numérateurs est correct. Il est préférable de renormaliser en utilisant les contraintes sur les coefficients. Dans le cas contraire, à cause de la précision de calcul des ordinateurs et le grand nombre d'opérations, les contraintes sont de moins en moins vérifiées lorsque le nombre d'itérations de l'algortihme EM s'accroît.
+                
+                
+                
+                
+
+
+%--------------------------------------------------------------------------------------------------------------------------------------------------------------
+\section{Modélisation de groupes de lettres}
+%--------------------------------------------------------------------------------------------------------------------------------------------------------------
+\indexfr{modele@modèle!groupe de lettres@groupe de lettres}
+\label{hmm_bi_lettre}
+
+\subsection{Présentation}
+
+Les modèles de mot présentés dans le paragraphe~\ref{hmm_reco_modele_lettre} suppose que la segmentation en graphèmes\indexfr{grapheme@graphème} est correcte, qu'aucun graphème ne regroupe ensemble les morceaux de plus d'une lettre. Cette hypothèse est loin d'être toujours vérifiée. Il apparaît que certains couples de lettres voire certains groupes de lettres sont couramment mal segmentés (figure~\ref{hmm_figure_exemple_bad_seg}). Certains types d'erreurs sont récurrents~:
+
+        \indexfr{grapheme@graphème!erreur@erreur}
+        \indexfr{segmentation@segmentation!erreur@erreur}
+        \indexfr{deformation@déformation}
+        \begin{enumerate}
+        \item les accents et les poids associés à une lettre voisine de la bonne lettre
+        \item les liaisons hautes introduites par les lettres b,o,v,w qui impliquent une déformation
+                de la lettre suivante
+        \item les lettres hautes qui altère localement la segmentation (barre de t, double l, ...)
+        \end{enumerate}
+
+
+La proportion d'erreur est difficile à évaluer autrement que manuellement. Toutefois, la méthode proposée dans ce paragraphe permet de tenir compte des erreurs les plus fréquentes et d'en donner une estimation.
+
+
+        \begin{figure}[ht]
+        $$\frame{$\begin{array}[c]{c}\includegraphics[height=4cm, width=8cm] 
+        {\filext{../hmm_reco/image/bad_seg}}\end{array}$}$$
+        \caption{       Exemples de mauvaises segmentations graphèmes : certaines erreurs sont récurrentes comme
+                        les accents et les points, les lettres à liaison haute, les lettres hautes.
+                }
+        \label{hmm_figure_exemple_bad_seg}
+        \end{figure}
+
+
+Prenons l'exemple du mot "attention", les groupes de lettres "tt", "ti", "on", "tion" sont parfois mal segmentés. Même si le groupe "tion" contient plus de deux lettres, il peut parfois apparaître au travers d'un seul graphème. Ce groupe a été ajouté de manière à montrer que cette méthode ne se limite pas seulement aux couples de lettres mal segmentés. La liste des modèles de lettres disponibles est formée des vingt-six lettres usuelles et des quatre groupes de lettres précédemment cités. L'extension de l'alphabet de modèles aboutit à dix manières différentes d'écrire le mot "attention" (table~\ref{hmm_reco_table_dix_attention}).
+        
+            \begin{table}[ht]
+                \[
+                \begin{tabular}{|l|l|}
+                \hline
+                a,t,t,e,n,t,i,o,n   & a,tt,e,n,t,i,o,n \\
+                a,t,t,e,n,t,i,on    & a,tt,e,n,t,i,on\\
+                a,t,t,e,n,ti,o,n    & a,tt,e,n,ti,o,n\\
+                a,t,t,e,n,ti,on     & a,tt,e,n,ti,on\\
+                a,t,t,e,n,tion      & a,tt,e,n,tion\\
+                \hline
+                \end{tabular}
+                \]
+                \caption{       Dix manières différentes d'écrire le mot "attention" en utilisant
+                                les vingt-six modèles de l'alphabet et les quatre groupes de lettres
+                                "tt", "ti", "on", "tion".}
+                \label{hmm_reco_table_dix_attention}
+            \end{table}
+           
+Ces dix manières peuvent être résumées en un seul graphe (figure~\ref{hmm_reco_figure_modele_mot_complique_attention}) qui décrit le squelette sur lequel le modèle du mot "attention" s'appuie. Ce modèle sera noté $G\pa{m}$ (où modèle graphe).
+\indexfr{modele@modèle!graphe@graphe}            
+            
+
+            \begin{figure}[ht]
+                \[
+                \unitlength 1mm
+                \fbox{
+                \begin{picture}(68,22)(0,0)
+
+                \put(4, 4)  {\circle{5}}
+                \put(10,4)  {\circle{4}}
+                \put(16,4)  {\circle{4}}
+                \put(22,4)  {\circle{4}}
+                \put(28,4)  {\circle{4}}
+                \put(34,4)  {\circle{4}}
+                \put(40,4)  {\circle{4}}
+                \put(46,4)  {\circle{4}}
+                \put(52,4)  {\circle{4}}
+                \put(58,4)  {\circle{4}}
+                \put(64,4)  {\circle{5}}
+
+                \put(0, 0)   {\makebox(8,8){$E$}}
+                \put(6, 0)   {\makebox(8,8){$a$}}
+                \put(12,0)   {\makebox(8,8){$t$}}
+                \put(18,0)   {\makebox(8,8){$t$}}
+                \put(24,0)   {\makebox(8,8){$e$}}
+                \put(30,0)   {\makebox(8,8){$n$}}
+                \put(36,0)   {\makebox(8,8){$t$}}
+                \put(42,0)   {\makebox(8,8){$i$}}
+                \put(48,0)   {\makebox(8,8){$o$}}
+                \put(54,0)   {\makebox(8,8){$n$}}
+                \put(60,0)   {\makebox(8,8){$S$}}
+
+                \put(6.5, 4)    {\line(1,0){1.5}}
+                \put(12,4)    {\line(1,0){2}}
+                \put(18,4)    {\line(1,0){2}}
+                \put(24,4)    {\line(1,0){2}}
+                \put(30,4)    {\line(1,0){2}}
+                \put(36,4)    {\line(1,0){2}}
+                \put(42,4)    {\line(1,0){2}}
+                \put(48,4)    {\line(1,0){2}}
+                \put(54,4)    {\line(1,0){2}}
+                \put(60,4)    {\line(1,0){1.5}}
+
+                %tt
+                \put(19,10)   {\circle{5}}
+                \put(15,6)    {\makebox(8,8){$tt$}}
+
+                \put(13,4)    {\line(0,1){6}}
+                \put(25,4)    {\line(0,1){6}}
+                \put(13,10)   {\line(1,0){3}}
+                \put(22,10)   {\line(1,0){3}}
+
+                %ti
+                \put(43,10)   {\circle{5}}
+                \put(39,6)    {\makebox(8,8){$ti$}}
+
+                \put(37,4)    {\line(0,1){6}}
+                \put(49,4)    {\line(0,1){6}}
+                \put(37,10)   {\line(1,0){3}}
+                \put(46,10)   {\line(1,0){3}}
+
+                %on
+                \put(55,10)   {\circle{5}}
+                \put(51,6)    {\makebox(8,8){$on$}}
+
+                \put(49,4)    {\line(0,1){6}}
+                \put(61,4)    {\line(0,1){6}}
+                \put(49,10)   {\line(1,0){3}}
+                \put(58,10)   {\line(1,0){3}}
+
+                %tion
+                \put(49,17)   {\circle{8}}
+                \put(45,13)    {\makebox(8,8){$tion$}}
+
+                \put(37,4)    {\line(0,1){13}}
+                \put(61,4)    {\line(0,1){13}}
+                \put(37,17)   {\line(1,0){8}}
+                \put(53,17)   {\line(1,0){8}}
+
+                \end{picture}
+                }
+                \]
+                \caption{       Modèle pour le mot "attention", ce graphe résume les dix manières
+                                différentes d'écrire ce mot d'après la table~\ref{hmm_reco_table_dix_attention}.
+                                Il n'existe pas de graphe plus concis que celui noté $G\pa{m}$ et
+                                représenté par ce schéma.}
+                \label{hmm_reco_figure_modele_mot_complique_attention}
+            \end{figure}
+
+            
+            
+            
+            
+\subsection{Probabilité}
+            
+Il reste maintenant à calculer la probabilité $\pr{O \sac G\pa{m}}$ qu'un tel modèle émette une séquence d'observations. Soit $m$ un mot et $\intervalle{l_1}{l_N}$ le plus grand ensemble de lettres permettant d'écrire le mot $m$ de toutes les manières possibles. L'ensemble $\intervalle{L_1}{L_N}$ correspond aux modèles de Markov cachés~: la lettre $l_i$ est modélisée par le modèle $L_i$.
+            
+Le calcul de $\pr{O \sac G\pa{m}}$ nécessite l'introduction de la matrice $A$ et des vecteurs $\Pi$ et $\Theta$~:
+
+        \begin{itemize}
+        \item Le vecteur $\Pi = \pa{\pi_i}_{1 \infegal i \infegal N}$, $\pi_i$ étant le probabilité
+                de commencer par la lettre $i$.
+        \item La matrice $A=\pa{a_{ij}}_{\begin{subarray} \, 1 \infegal i \infegal N \\ 1 \infegal j \infegal N \end{subarray}}$,
+                $a_{ij}$ étant la probabilité d'atteindre la lettre $j$ en partant de la lettre $i$.
+        \item Le vecteur $\Theta = \pa{\theta_i}_{1 \infegal i \infegal N}$, $\theta_i$ étant la probabilité
+                de terminer le mot $m$ par la lettre $i$.
+        \end{itemize}
+            
+\indexfr{chaine de Markov@chaîne de Markov}
+La table~\ref{hmm_reco_figure_abt_attention} donne ces trois éléments pour le mot "attention". Ces coefficients sont estimés de manière similaire à ceux d'une chaîne de Markov dont les états sont les lettres. Par exemple~:
+
+        $$
+        a_{ij} = \dfrac {\text{nombre de chemins contenant les lettres $l_i$ et $l_j$}}
+                        {\text{nombre de chemins contenant la lettre $l_i$}}
+        $$
+        
+Ces coefficients vérifient les contraintes suivantes~:
+
+        \begin{eqnarray*}
+        \sum_{i=1}^{N} \pi_i &=& 1 \text{ et }  \forall i, \sum_{j=1}^{N} a_{ij} + \theta_i = 1 
+        \end{eqnarray*}
+        
+        
+        \begin{table}[ht]
+        \[
+        \scriptsize
+        \begin{tabular}{|l|ccccccccccccc|} \hline
+        $i$                             & 1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 1. & 11 & 12 & 13         \\ \hline
+        $l_i$ et $L_i$                  & a & t & t & e & n & t & i & o & n & tt & ti & on & tion       \\ \hline
+        $\pi_i$                         & 1 & . & . & . & . & . & . & . & . & .  & .  & .  & .          \\ \hline
+        $\theta_i$                      & . & . & . & . & . & . & . & . & 1 & .  & .  & 1  & 1          \\ \hline
+        $a_{1i}$ (a $\rightarrow$)      & . & 0,5 & . & . & . & . & . & . & . & 0,5  & .  & .  & .          \\ \hline
+        $a_{2i}$ (t $\rightarrow$)      & . & . & 1 & . & . & . & . & . & . & .  & .  & .  & .          \\ \hline
+        $a_{3i}$ (t $\rightarrow$)      & . & . & . & 1 & . & . & . & . & . & .  & .  & .  & .          \\ \hline
+        $a_{4i}$ (e $\rightarrow$)      & . & . & . & . & 1 & . & . & . & . & .  & .  & .  & .          \\ \hline
+        $a_{5i}$ (n $\rightarrow$)      & . & . & . & . & . & 0,4 & . & . & . & .  & 0,4  & .  & 0,2          \\ \hline
+        $a_{6i}$ (t $\rightarrow$)      & . & . & . & . & . & . & 1 & . & . & .  & .  & .  & .          \\ \hline
+        $a_{7i}$ (i $\rightarrow$)      & . & . & . & . & . & . & . & 0,5 & . & .  & .  & 0,5  & .          \\ \hline
+        $a_{8i}$ (o $\rightarrow$)      & . & . & . & . & . & . & . & . & 1 & .  & .  & .  & .          \\ \hline
+        $a_{9i}$ (n $\rightarrow$)      & . & . & . & . & . & . & . & . & . & .  & .  & .  & .          \\ \hline
+        $a_{10i}$ (tt $\rightarrow$)    & . & . & . & 1 & . & . & . & . & . & .  & .  & .  & .          \\ \hline
+        $a_{11i}$ (ti $\rightarrow$)    & . & . & . & . & . & . & . & 0,5 & . & .  & .  & 0,5  & .          \\ \hline
+        $a_{12i}$ (on $\rightarrow$)    & . & . & . & . & . & . & . & . & . & .  & .  & .  & .          \\ \hline
+        $a_{13i}$ (tion $\rightarrow$)  & . & . & . & . & . & . & . & . & . & .  & .  & .  & .          \\ \hline
+        \end{tabular}
+        \]
+        \caption{       Matrice $A$ et vecteurs $\Pi$, $\Theta$ pour le mot "attention".}
+        \label{hmm_reco_figure_abt_attention}
+        \end{table}
+
+
+Les suites $\pa{\alpha_{t,t'}^{L_i}}_{i,t,t'}$ et $\gamma_t\pa{L_i}$ sont presque identiques à celles définies en (\ref{hmm_reco_alpha}) et (\ref{hmm_reco_gamma_include}). 
+
+        \begin{eqnarray}
+        \begin{array}{rcl}
+        \forall i  \; \gamma_1 \pa{L_i} &=& \pi_{L_i} \, \alpha_{1,1}^{L_i}\\
+        \forall i  \; \forall t \geqslant 2, \; \gamma_t \pa{L_i} &=& \pi_{L_i} \; \alpha_{1,t}^{L_i} + 
+                                                \summy{j=1}{N} \;  \summy{k=1}{t-1} \gamma_{t-k}\pa{L_j} a_{L_j L_i} \,
+                                                        \alpha_{t-k+1,t}^{L_j}
+        \end{array}                                                        
+        \end{eqnarray}
+
+L'expression de $\pr{O \sac G\pa{m}}$ devient~:
+        
+        \begin{eqnarray}
+        \pr {O \sac G\pa{m}}  &=&       \summy{i=1}{N} \theta_{L_i} \; \gamma_T \pa {L_i}
+        \label{hmm_reco_eqn_couple_proba_2}
+        \end{eqnarray}
+
+Le calcul de (\ref{hmm_reco_eqn_couple_proba_2}) est plus coûteux que (\ref{hmm_reco_eqn_proba_2}). Cependant, il est possible de tenir compte des nombreux coefficients nuls des matrices $A$, $\Pi$, $\Theta$ afin de réduire le coût de l'algorithme suivant~\ref{hmm_reco_proba_modele_graph_mot}. 
+
+        
+        
+\begin{xalgorithm}{probabilité d'une séquence avec un modèle de mot}
+\label{hmm_reco_proba_modele_graph_mot}
+\indexfr{algorithme@algorithme!probabilite d'une sequence avec un modele de mot@probabilité d'une séquence avec un modèle de mot}
+
+\begin{xalgostep}{initialisation 1}
+        Calcul de la suite $\pa{\alpha_{t,t'}^{L_i}}_{t,t',i}$ grâce à l'algorithme~\ref{hmm_algo_forward}.
+\end{xalgostep}
+        
+\begin{xalgostep}{initialisation 2}
+        \begin{xfor}{t}{1}{T}
+	        \begin{xfor}{i}{1}{N}
+	        $\gamma_t^{L_i} \longleftarrow \pi_{L_i} \, \alpha_{1,1}^{L_i} $
+	        \end{xfor}
+	      \end{xfor}
+\end{xalgostep}
+        
+\begin{xalgostep}{itérations}
+        \begin{xfor}{t}{1}{T}
+                \begin{xfor}{i}{1}{N}
+                        \begin{xfor}{k}{1}{t-1}
+                                \begin{xfor}{j}{1}{N}
+                                $\gamma_t^{L_i} \longleftarrow \gamma_t^{L_i} + \gamma_k^{L_{j}} \, a_{L_j,L_i} \, \alpha_{k+1,t}^{L_i}$ 
+                                \end{xfor}
+                        \end{xfor}
+                \end{xfor}
+        \end{xfor}
+\end{xalgostep}
+
+\begin{xalgostep}{terminaison}
+        $p \longleftarrow 0$ \\
+        \begin{xfor}{i}{1}{N}
+        $p \longleftarrow \theta_{L_i} \; \gamma_T \pa {L_i}$
+        \end{xfor}
+\end{xalgostep}
+
+La probabilité cherchée est $p$.
+        
+\end{xalgorithm}
+
+        
+        
+        
+Cette modélisation se rapproche d'un modèle de Markov caché dont les états acceptent des émissions de durées variables. Les probabilités $\alpha_{t,t'}\pa{.}$ peuvent être considérés comme les émissions d'une chaîne de Markov caché définies par les coefficients $A$, $\Pi$, $\Theta$. Ces modèles sont plus souvent utilisés pour la reconnaissance de la parole (\citeindex{Mitchell1995}). \indexfr{reconnaissance@reconnaissance!parole@parole}\indexfr{parole@parole}
+
+        
+
+
+
+\subsection{Segmentation la plus probable}
+\indexfr{Viterbi}\indexfrr{segmentation}{probable}
+\indexfrr{alignement}{Viterbi}
+\indexfrr{séquence}{état}
+\indexfrr{séquence}{modèle}
+
+L'alignement Viterbi\seeannex{paragraphe_viterbi_principe}{Viterbi} (\citeindex{Levinson1983}, \citeindex{Rabiner1986}) est un algorithme permettant d'obtenir la séquence d'états la plus probable connaissant la séquence d'observations. Il peut être adapté à la recherche de la séquence de modèles de lettre la plus  probable. Appliqué au mot "attention", l'objectif est de déterminer à quelle écriture parmi les dix possible (table~\ref{hmm_reco_table_dix_attention}) correspond la séquence de graphèmes ou d'observations.
+
+Par conséquent, pour une séquence d'observations donnée $O=\vecteur{O_1}{O_T}$, on cherche une séquence de lettres (et groupes de lettres) notée $\vecteur{L^*_1}{L^*_U}$ avec $U \infegal N$. Pour chaque modèle $L^*_i$, $\delta^*_{L_i}$ désigne le nombre d'observations qui lui sont associées.
+
+
+        $$
+        \forall i \in \intervalle{1}{U},  \; d^*_{L^*_i} = \left\{
+                        \begin{array}{l}
+                        0 \text{ si } i = 1 \\
+                        1 + \summy{k=1}{i-1} \delta^*_{L^*_i} \text{ sinon}
+                        \end{array}
+                        \right.
+        $$
+        
+D'où~:        
+        
+
+        \begin{eqnarray}
+        \pr{\vecteurno{O_1}{O_T},\vecteurno{L^*_1}{L^*_U},\vecteurno{\delta^*_{L^*_1}}{\delta^*_{L^*_U}} \sac G\pa{m}}  
+        &=&      \;      \pi_{L^*_1} \, \alpha_{1,\delta^*_{L^*_1}}^{L^*_1} \; \cro{
+                        \prody{i=2}{U} a_{L^*_{i-1},L^*_i} \, \alpha_{d^*_{L^*_i},d^*_{L^*_i}+\delta^*_{L^*_i} -1}^{L^*_i}
+                        } \theta_{L^*_U}
+                        \label{hmm_reco_eq_proba_path}
+        \end{eqnarray}
+
+La probabilité de toute autre séquence de modèles sera inférieure à (\ref{hmm_reco_eq_proba_path}). Il reste à trouver cette meilleure séquence $\vecteur{L^*_1}{L^*_U}$. On utilise pour cela les suites $\pa{p_{t,L_i}}_{t,i}$, $\pa{m_{t,L_i}}_{t,i}$, $\pa{s_{t,L_i}}_{t,i}$~:
+        
+        \begin{itemize}
+        \item $p_{t,L_i}$ mémorise la probabilité de la meilleure séquence de lettres
+                se terminant par la lettre $L_i$ à l'instant $t$.
+        \item $s_{t,L_i}$ mémorise le nombre d'observations associé au modèle $L_i$
+                qui a permis d'obtenir la meilleure probabilité $p_{t,L_i}$
+        \item $m_{t,L_i}$ mémorise le modèle précédent $L_i$ à l'instant $t-s_{t,L_i}$ 
+                qui a permis d'obtenir la meilleure probabilité $p_{t,L_i}$
+        \end{itemize}
+        
+L'initialisation de ces suites est donnée par les formules qui suivent~:
+        
+        \begin{eqnarray}
+        \begin{array}{rrcl}
+        \forall i \in \intervalle{1}{N}, \, \forall t \in \intervalle{1}{T}, & p_{t,L_i} 	&=& \pi_{L_i} \, \alpha_{1,t}^{L_i} \\
+        \forall i \in \intervalle{1}{N}, \, \forall t \in \intervalle{1}{T}, & s_{t,L_i}	&=& t  \\
+        \forall i \in \intervalle{1}{N}, \, \forall t \in \intervalle{1}{T}, & m_{l,L_i} 	&=& -1
+        \end{array}
+        \label{hmm_reco_viterbi_lettre_1}
+        \end{eqnarray}
+
+Le calcul se poursuit en faisant croître $t$~:			
+
+        
+        \begin{eqnarray}
+        \begin{array}{rrcl}
+        \forall i \in \intervalle{1}{N}, \forall t \in \intervalle{2}{T}, & 
+        			\pa { s_{t,L_i}, m_{t,L_i}} &=&  \pa{j^*, t^*} \in
+        							\underset{ \begin{subarray}{c} 1 \infegal j \infegal N \\ 1 \infegal k \infegal t-1   \end{subarray} } 
+			  							{ \arg \max } \;
+											p_{t-k,L_j} \, a_{L_j,L_i} \, \alpha_{t-k+1,t}^{L_i} \\ \\
+        \forall i \in \intervalle{1}{N}, \forall t \in \intervalle{2}{T}, & 
+        			p_{t,L_i} &=&  	p_{t-m_{t,L_i},L_{s_{t,L_i}}} \, 
+        											a_{L_{s_{t,L_i}},L_i} \, 
+        											\alpha_{t-m_{t,L_i}+1,t}^{L_i}
+        \end{array}
+        \label{hmm_reco_viterbi_lettre_2}
+        \end{eqnarray}
+        
+        
+Et finalement~:
+
+        \begin{eqnarray}
+        \begin{array}{rcl}
+        			\pa { m_{T+1}} &=&  j^* \in
+        							\underset{ 1 \infegal j \infegal N } 
+			  							{ \arg \max } \;
+											p_{T,L_j} \, \theta_{L_j} \\ \\
+        			p_{T+1} &=&  p_{T,L_{s_{T+1}}} \, \theta_{L_{s_{T+1}}} 
+        \end{array}
+        \label{hmm_reco_viterbi_lettre_3}
+        \end{eqnarray}
+				        
+
+La probabilité de la meilleure séquence de lettres est donnée par $p_{T+1}$, les suites $\pa{s_{t,L_i}}_{t,i}$ et $\pa{m_{t,L_i}}_{t,i}$ permettent de retrouver cette séquence puisqu'elles conservent pour chaque maximum local les élements qui ont permis de l'obtenir. Les formules (\ref{hmm_reco_viterbi_lettre_1}), (\ref{hmm_reco_viterbi_lettre_2}), (\ref{hmm_reco_viterbi_lettre_3}) aboutissent à l'algorithme suivant~:
+
+
+
+
+
+
+
+\begin{xalgorithm}{meilleure séquence de lettres (1)} \label{hmm_reco_algo_sequence_lettre}
+\indexfr{algorithme@algorithme!meilleure sequence de lettres (1)@meilleure séquence de lettres (1)}
+\indexfr{meilleure sequence de lettres (1)@meilleure séquence de lettres (1)}
+\indexfr{Viterbi@Viterbi}
+
+Cet algorithme permet de calculer les suites $\pa{p_{t,L_i}}_{t,i}$, $\pa{m_{t,L_i}}_{t,i}$, $\pa{s_{t,L_i}}_{t,i}$.
+
+\begin{xalgostep}{initialisation 1}
+        Calcul de la suite $\pa{\alpha_{t,t'}^{L_i}}_{t,t',i}$ grâce à l'algorithme~\ref{hmm_algo_forward}.
+\end{xalgostep}
+        
+\begin{xalgostep}{initialisation 2}
+        \begin{xfor}{i}{1}{N}
+					\begin{xfor}{t}{1}{T}
+						$
+						\begin{array}{lll}
+	        	p_{t,L_i} &\longleftarrow& \pi_{L_i} \, \alpha_{1,t}^{L_i} \\
+	        	m_{t,L_i} &\longleftarrow& i   \\
+	        	s_{t,L_i} &\longleftarrow& -1  
+	        	\end{array}
+	        	$
+	        \end{xfor}
+        \end{xfor}
+\end{xalgostep}
+
+
+\begin{xalgostep}{récurrence}
+        \begin{xfor}{i}{1}{N}
+					\begin{xfor}{t}{2}{T}
+					$
+					\begin{array}{lll}
+        	p_{t,L_i} &\longleftarrow& 0   \\
+        	m_{t,L_i} &\longleftarrow& -1  \\
+        	s_{t,L_i} &\longleftarrow& -1  
+        	\end{array}
+        	$\\
+	        \begin{xfor}{j}{1}{N}
+						\begin{xfor}{k}{1}{t-1}
+							$x \longleftarrow p_{t-k,L_j} \, a_{L_j,L_i} \, \alpha_{t-k+1,t}^{L_i}$ \\
+							\begin{xif}{$x > p_{t,L_i}$}
+								$
+								\begin{array}{lll}
+			        	p_{t,L_i} &\longleftarrow& x  \\
+			        	m_{t,L_i} &\longleftarrow& j  \\
+			        	s_{t,L_i} &\longleftarrow& k  
+			        	\end{array}
+			        	$
+							\end{xif} 
+		        \end{xfor}
+	        \end{xfor}
+	        \end{xfor}
+        \end{xfor}
+\end{xalgostep}
+
+\begin{xalgostep}{terminaison}
+						$
+						\begin{array}{lll}
+	        	p_{T+1} &\longleftarrow& 0 	\\
+	        	m_{T+1} &\longleftarrow& -1	
+	        	\end{array}
+	        	$ \\
+		        \begin{xfor}{j}{1}{N}
+							\begin{xfor}{k}{1}{t-1}
+								$x \longleftarrow p_{T+1,L_j} \, \theta_{L_j} $ \\
+								\begin{xif}{$x > p_{t,L_i}$}
+									$
+									\begin{array}{lll}
+				        	p_{t,L_i} &\longleftarrow& x  \\
+				        	m_{t,L_i} &\longleftarrow& j  
+				        	\end{array}
+				        	$
+								\end{xif} 
+			        \end{xfor}
+		        \end{xfor}
+\end{xalgostep}
+
+\end{xalgorithm}
+
+
+La meilleure séquence est finalement obtenue par l'algorithme qui suit.
+
+
+
+
+\begin{xalgorithm}{meilleure séquence de lettres (2)} \label{hmm_reco_algo_sequence_lettre_2}
+\indexfr{algorithme@algorithme!meilleure sequence de lettres (2)@meilleure séquence de lettres (2)}
+\indexfr{meilleure sequence de lettres (2)@meilleure séquence de lettres (2)}
+\indexfr{Viterbi@Viterbi}
+
+A partir des suites $\pa{p_{t,L_i}}_{t,i}$,, $\pa{m_{t,L_i}}_{t,i}$, $\pa{s_{t,L_i}}_{t,i}$ calculées à partir de l'algortihme~\ref{hmm_reco_algo_sequence_lettre}, cet algorithme permet d'obtenir la meilleure séquence de lettres ainsi que les observations parmi la séquence $\vecteur{O_1}{O_T}$ qui leur sont associées.
+
+La séquence de modèles est notée $\vecteur{L^*_1}{L^*_U}$ et la séquence des nombre d'observations associés à chaque modèle est notée $\vecteur{\delta^*_1}{\delta^*_U}$
+
+\begin{xalgostep}{initialisation}
+						$
+						\begin{array}{lll}
+						U 					&\longleftarrow& 1 							\\
+						L^*_U 			&\longleftarrow& m_{T+1} 				\\
+						\delta^*_U	&\longleftarrow& s_{T,L^*_U}		\\
+						t						&\longleftarrow& T  						\\
+						U						&\longleftarrow& U+1 
+						\end{array}
+						$
+\end{xalgostep}
+
+
+\begin{xalgostep}{récurrence}
+						\begin{xwhile}{$L^*_{U-1} \neq -1$}
+							$
+							\begin{array}{lll}
+							L^*_U 			&\longleftarrow& m_{t,L^*_{U-1}}		\\
+							\delta^*_U	&\longleftarrow& s_{t,L^*_{U-1}}		\\
+							t						&\longleftarrow& t - \delta^*_{U-1} \\
+							U						&\longleftarrow& U+1 
+							\end{array}
+							$
+						\end{xwhile} \\
+						$U						\longleftarrow U-2$ 
+\end{xalgostep}
+
+La séquence obtenue est retournée.
+
+\begin{xalgostep}{terminaison}
+						$i \longleftarrow 1$ et $j \longleftarrow U$ \\
+						\begin{xwhile}{$i < j$}
+							$
+							\begin{array}{lll}
+							L^*_i  			&\longleftrightarrow& L^*_j					\\
+							\delta^*_i	&\longleftrightarrow&	\delta^*_j		\\
+							i						&\longleftrightarrow& i + 1 \\
+							j						&\longleftrightarrow& j - 1 
+							\end{array}
+							$
+						\end{xwhile}
+\end{xalgostep}
+
+
+\end{xalgorithm}
+
+
+
+
+
+
+
+
+
+
+
+\begin{xtheorem}{meilleure séquence de lettres}\label{hmm_reco_th_sequence_lettre}
+\indexfrr{meilleur(e)}{séquence de lettres}
+\indexfr{Viterbi}
+Pour une séquence d'observations $O=\vecteur{O_1}{O_T}$, les séquences de modèles et durées $\vecteur{L^*_1}{L^*_U}$ et $\vecteur{\delta^*_1}{\delta^*_U}$ obtenues par les algorithmes~\ref{hmm_reco_algo_sequence_lettre} et~\ref{hmm_reco_algo_sequence_lettre_2} sont celles qui maximisent (\ref{hmm_reco_eq_proba_path})~:
+		$$
+		\pr{\vecteurno{O_1}{O_T},\vecteurno{L^*_1}{L^*_U},\vecteurno{\delta^*_{L^*_1}}{\delta^*_{L^*_U}} \sac G\pa{m}}
+		$$
+	
+\end{xtheorem}
+
+
+
+
+
+
+
+
+
+
+
+
+\begin{xdemo}{théorème}{\ref{hmm_reco_th_sequence_lettre}}{theoreme}
+
+La démonstration est analogue à celle de l'algorithme~\ref{hmm_algo_viterbi_etat}. Pour résumer, celle-ci s'effectue par récurrence sur $t$, afin de montrer que pour tout $\pa{t,i}$, $p_{t,L_i}$ est la probabilité correspond à la séquence de modèles la plus probable parmi toutes celles se terminant à l'instant $t$ par le modèle $L_i$. C'est de manière evidente vrai pour $t =1$ et ce quel que soit $i$, il suffit de le montrer pour $t+1$.
+
+\end{xdemo}
+
+
+
+
+
+
+
+
+
+\subsection{Apprentissage}
+\indexfr{apprentissage@apprentissage}
+
+
+L'apprentissage des modèles de lettres et groupes de lettres utilisent les mêmes formules que celles de la table~\ref{hmm_reco_estimation_lettre} mais avec des suites $\pa{\alpha_t^{k,L_i}\pa{q}}$, $\pa{\beta_t^{k,L_i}\pa{q}}$, $\pa{\gamma_t^{k,L_i}}$, $\pa{\delta_t^{k,L_i}}$ différentes mais facilement déductibles de celles définies par les équations (\ref{hmm_reco_alpha_include}) à (\ref{hmm_reco_beta_include_end}).
+
+
+
+
+
+
+
+%--------------------------------------------------------------------------------------------------------------------------------------------------------------
+\section{Reconnaissance sans dictionnaire}
+%--------------------------------------------------------------------------------------------------------------------------------------------------------------
+\indexfr{reconnaissance@reconnaissance!sans dictionnaire@sans dictionnaire}
+\indexfr{dictionnaire@dictionnaire}
+\indexfr{Viterbi@Viterbi}
+
+La reconnaissance sans dictionnaire utilise le même formalisme que celui développé au paragraphe~\ref{hmm_bi_lettre}. La reconnaissance sans dictionnaire d'une séquence $O=\vecteur{O_1}{O_T}$ est la recherche de la meilleure séquence de lettres dans un modèle particulier, soit l'application des algorithmes~\ref{hmm_reco_algo_sequence_lettre} et~\ref{hmm_reco_algo_sequence_lettre_2} au modèle $G\pa{m}$ suivant~:
+
+		\begin{itemize}
+		\item La liste $\vecteur{L_1}{L_N}$ des modèles de lettres et groupes de lettres utilisées est l'alphabet entier.
+		\item Les vecteurs $\Pi$, $\Theta$ et la matrice $A$ sont uniformes et tous leurs coefficients sont égaux à 1.
+		\end{itemize}
+		
+Ce principe est illustré pour un alphabet de trois lettres par la figure~\ref{hmm_figure_exemple_modele_lettre}.
+		
+
+        \begin{figure}[ht]
+        $$\frame{$\begin{array}[c]{c}\includegraphics[height=7cm, width=9cm] 
+        {\filext{../hmm_reco/image/viterbi}}\end{array}$}$$
+        \caption{       Recherche de la séquence de lettres la plus probable : chaque observation est 
+                        associée à un état d'un modèle de lettre. La séquence d'états obtenue mène à une séquence
+                        de modèle de lettres format un mot très probable.
+                }
+        \label{hmm_figure_exemple_modele_lettre}
+        \end{figure}
+
+
+\indexfr{bi-grammes@bi-grammes}\indexfr{n-grammes@n-grammes}
+Les performances d'un tel système peuvent être améliorées en estimant les coefficients $\Pi$, $\Theta$, $A$ à l'aide de bi-grammes (voir annexe~\ref{annexe_ngrams}). Inclure des n-grammes avec $n>2$ est plus délicat et nécessite une version différente des algorithmes~\ref{hmm_reco_algo_sequence_lettre} et~\ref{hmm_reco_algo_sequence_lettre_2} et plus coûteuse aussi.
+
+
+
+
+
+
+
+
+
+
+
+%--------------------------------------------------------------------------------------------------------------------------------------------------------------
+\section{Conclusion}
+%--------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+Ce chapitre présente la reconnaissance de mots à l'aide d'assemblage de modèles de Markov cachés associés à des lettres ou groupes de lettres. A partir d'une séquence d'observations, cette modélisation est la plus riche possible. L'étape suivante consiste à étendre la séquence à un graphe acyclique. \indexfr{graphe@graphe!acyclique@acyclique}\indexfr{sequence@séquence!observations@observations}
+
+
+
+
+
+
+
+
+
+
+\firstpassagedo{
+	\begin{thebibliography}{99}
+	\input{hmm_reco_bibliographie.tex}
+	\end{thebibliography}
+}
+
+
+\input{../../common/livre_table_end.tex}
+\input{../../common/livre_end.tex}

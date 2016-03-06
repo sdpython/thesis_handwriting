@@ -1,0 +1,273 @@
+\input{../common/livre_makedocument.tex}%
+\makedocument{../common/livre_begin.tex}%
+\makedocument{segline_titre.tex}%
+\makedocument{../common/livre_table_begin.tex}%
+
+% ------------------------------------------------------------------------------------------------------------------------------------
+% ------------------------------------------------------------------------------------------------------------------------------------
+% ------------------------------------------------------------------------------------------------------------------------------------
+% ------------------------------------------------------------------------------------------------------------------------------------
+% ------------------------------------------------------------------------------------------------------------------------------------
+% ------------------------------------------------------------------------------------------------------------------------------------
+% ------------------------------------------------------------------------------------------------------------------------------------
+
+\chapter{Segmention en lignes}
+
+
+
+
+
+
+
+
+
+\section{Direction optimale}
+
+
+\label{image_seg_line}
+\index{segmentation@segmentation!ligne@ligne}
+\index{histogramme@histogramme}
+
+Lors de la scannerisation d'un document, il peut arriver que celui-ci soit incliné (figure~\ref{image_segline_direction}). La première étape consiste donc à redresser une image de telle sorte que les lignes qui la composent soient horizontales. Un histogramme $H_{\alpha}$ est calculé pour plusieurs directions d'angle $\alpha$.
+
+
+
+\begin{xdefinition}{histogramme}
+\index{definition@définition!histogramme@histogramme}
+\index{histogramme@histogramme}
+
+L'histogramme d'une image selon une direction $\alpha$ est une projection de cette image sur une droite parallèlement à une droite de vecteur directeur $d=\pa{\begin{subarray}{c} 1 \\ tan \alpha \end{subarray}}$. Concrètement, si $I$ est une image de dimension $\pa{X,Y}$, un histogramme est un vecteur dont chaque élément contient le nombre de pixels noirs sur une ligne de direction $d$ tracé avec un algorithme comme celui de \citeindex{Bresenham1965}.
+
+\end{xdefinition}
+
+
+
+La qualité de l'histogramme ou sa pertinence est estimée par son entropie.
+
+
+
+\begin{xdefinition}{entropie d'un histogramme}
+\index{definition@définition!entropie d'un histogramme@entropie d'un histogramme}
+\index{entropie d'un histogramme@entropie d'un histogramme}
+
+Soit $H = \vecteur{h_1}{h_n}$, on définit le vecteur $H' = \vecteur{p_1}{p_n}$ défini par~:
+
+			$$
+			\forall i \in \intervalle{1}{n}, \; p_i =  \summy{k=1}{n} \, h_k
+			$$
+
+L'entropie de l'histogramme $H$ est le nombre suivant calculé sur l'histogramme $H'$~:
+
+			\begin{eqnarray}
+			E\pa{H} &=& E\pa{H'} = \summy{i=1}{n} \; p_i \, \ln p_i
+			\end{eqnarray}
+
+\end{xdefinition}
+
+
+La direction la plus probable est celle qui maximise l'entropie (\citeindex{Côté1997}). Graphiquement, l'histogramme d'entropie maximale est celui dans les extremas sont les plus marqués (figure~\ref{image_segline_direction}).
+
+
+
+
+			\begin{figure}[ht]
+	    $$\frame{$\begin{array}[c]{c}\includegraphics[height=4cm, width=14cm]
+	    {../segline/image/segline1.bmp}\end{array}$}$$
+	    \caption{Segmentation en lignes : recherche de la meilleure orientation}
+	    \label{image_segline_direction}
+			\end{figure}
+
+
+
+\index{redressement@redressement}\index{glissement de pixels@glissement de pixels}
+L'image est finalement redressée de façon à ce que l'image ne contienne plus que des lignes horizontales. Ce redressement peut tout simplement être effectué par un glissement des colonnes de pixels de l'image. 
+
+
+
+
+
+\section{Segmention en lignes}
+
+
+L'histogramme obtenu figure~\ref{image_segline_direction} est bruité. Afin de diminuer l'importance de ce bruit, l'histogramme est lissé par la méthode des moyennes mobiles. Selon les problèmes, la taille de cette moyenne est plus ou moins grande. Soit $H_l = \vecteur{l_1}{l_n}$ l'histogramme lissé, il est donc obtenu à partir de $H$ comme suit~:
+
+
+			\begin{eqnarray}
+			\begin{array}{rrcl}
+			\forall i \in \intervalle{w+1}{n-w-1}, 	\; & 	l_i &=& \dfrac{1}{2w+1} \, \summy{k=-w}{+w} \, h_{i+k} \\
+			\forall i \in \intervalle{1}{w}, 				\; & 	l_i &=& \dfrac{1}{i+w} \, \summy{k=1}{i+w} \, h_k \\
+			\forall i \in \intervalle{n-w}{n}, 			\; & 	l_i &=& \dfrac{1}{n-i+w} \, \summy{k=i-w}{n} \, h_k 
+			\end{array}
+			\label{image_lissage_equation}
+			\end{eqnarray}
+
+
+Les maximas locaux indiquent la position des lignes, les minimas locaux la position des frontières entre lignes. On définit pour chaque ligne $\pa{m_i^x}_i$ et les maximas $\pa{M_i^x}_i$ définis comme suit~:
+
+
+			$$
+			\begin{array}{rcl}
+			\forall i, \; m_i^x = \left\{ \begin{array}{l}
+																		1 \text{ si } l_i = \min \acc { l_k \sac l-x \infegal k \infegal l+x } \\
+																		0 \text{ sinon}
+																	\end{array} \right. \\
+			\forall i, \; M_i^x = \left\{ \begin{array}{l}
+																		1 \text{ si } l_i = \max \acc { l_k \sac l-x \infegal k \infegal l+x } \\
+																		0 \text{ sinon}
+																	\end{array} \right.
+			\end{array}
+			$$
+
+
+La figure~\ref{image_segline_extrema} montre que bien souvent le nombre d'extrema détectés est supérieur au nombre réel d'extremas. Les cas de mauvaises détection les plus courants sont les suivants~:
+
+\begin{enumerate}
+\index{petit palier@petit palier}
+\item \textbf{Le petit palier} : ce cas se présente le plus souvent lorsqu'une ou plusieurs majuscules font partie de la ligne de texte. Le dessin de ces lettres contient des traits horizontaux tracés au-dessus de la ligne des minuscules. Une barre de "F" bien marquée peut entraîner de mauvaises segmentations.
+\index{petit extremum@petit extremum}
+\item \textbf{Le petit extremum} : lorsque les mots ne sont pas tout-à-fait bien alignés sur une même horizontale, les extrema sont plus diffus, il faut alors regrouper plusieurs maxima ensemble.
+\end{enumerate}
+
+
+Deux règles permettent l'élimination de ces mauvaises détections~:
+
+			\begin{enumerate}
+			\item Soit $\acc{e_i \sac 1 \infegal i \infegal 4}$ quatre extrema consécutifs, alors~:
+								\begin{eqnarray}
+								\abs{e_2 - e_3} \infegal \beta \abs{e_1 - e_4} \Longrightarrow 
+								\acc{e_2, \, e_3} \text{ doivent être éliminés} 
+								\end{eqnarray}
+			\item Soit $e_2$ un minimum et $e_1$ et $e_3$ les extrema qui l'entourent, alors~:
+								\begin{eqnarray}
+								e_2 \infegal \gamma \min{e_1,e_3} \Longrightarrow 
+								\acc{e_2, \, e_1 \text{ ou } e_3} \text{ doivent être éliminés} 
+								\end{eqnarray}
+			\end{enumerate}
+	
+Ce processus est illustré par la figure~\ref{image_segline_extrema}. Les valeurs intéressantes pour les quatre paramètres $w$, $x$, $\beta$, $\gamma$ sont~:
+
+			$$
+			\begin{array}{ccccccc}
+			w &=& 4  \text{ pixels} 	&&    \beta 	&=& 0,2 \\
+			x &=& 4  \text{ pixels}  	&&    \gamma 	&=& 0,5 
+			\end{array}
+			$$
+
+
+
+			\begin{figure}[ht]
+	    $$\frame{$\begin{array}[c]{c}\includegraphics[height=6cm, width=12cm]
+	    {../segline/image/segline2.bmp}\end{array}$}$$
+	    \caption{Segmentation en lignes : recherche des bons extremas}
+	    \label{image_segline_extrema}
+			\end{figure}
+
+
+
+Le processus de suppression des "faux" extrema nécessite plusieurs itérations, à chacune d'elle, le plus petit palier est isolé et supprimé, ensuite, l'opération est répétée pour les petits extrema. Le processus s'arrête lorsqu'il ne peut plus rien supprimer, autrement dit, lorsqu'aucun petit palier et aucun petit extremum n'a pu être trouvé.
+
+
+
+
+
+\section{Traitements des lignes enchevêtrées}
+
+
+
+
+C'est la dernière étape avant la reconnaissance du contenu des lignes. L'étude de l'histogramme a permis d'encadrer chaque ligne par un rectangle dont dépasse certaines grandes lettres ascendants et/ou descendants comme les "j" ou les "p". 
+
+
+			\begin{figure}[ht]
+	    $$\frame{$\begin{array}[c]{c}\includegraphics[height=2cm, width=4cm]
+	    {../segline/image/segline3.bmp}\end{array}$}$$
+	    \caption{Segmentation en lignes : connexité}
+	    \label{image_segline_connex}
+			\end{figure}
+
+
+
+En partant de la même idée, on va supposer que le "j" de "Lajoie" (figure~\ref{image_segline_connex}) est formé d'une seule composante connexe. La segmentation en lignes s'achève donc par le recollement des morceaux d'une même lettre égarés des deux côtés d'une frontière séparant deux lignes. Le principe est le suivant~:
+
+			\begin{enumerate}
+			\item On parcourt la frontière entre deux lignes jusqu'à ce qu'on intercepte une lettre.
+			\item On parcourt le contour extérieur du morceau situé au-dessus, si lors de ce parcours, on revient à la même frontière sans en rencontrer aucune autre, alors ce morceau de lettre est considéré comme étant du mauvais côté.
+			\item On parcourt le contour extérieur du morceau situé au-dessous, si lors de ce parcours, on revient à la même frontière sans en rencontrer aucune autre, alors ce morceau de lettre est considéré comme étant du mauvais côté.
+			\item Si un seul des deux morceaux est du mauvais côté alors ce morceau est remis dans la bonne ligne, sinon on ne fait rien.
+			\item On continue le parcours de la frontière au cas où d'autres lettres intercepteraient celle-ci.
+			\end{enumerate}
+
+Dorénavant, l'extraction des lignes est terminée. Cette méthode fonctionne efficacement sur des adresses mais possède quelques écueils récurrents (figure~\ref{image_segline_bad}).
+
+
+			\begin{figure}[ht]
+	    $$\frame{$\begin{array}[c]{c}\includegraphics[height=15cm, width=10cm]
+	    {../segline/image/segline_bad.bmp}\end{array}$}$$
+	    \caption{Segmentation en lignes : exemples qui ne marchent pas.}
+	    \label{image_segline_bad}
+			\end{figure}
+
+
+
+
+
+\section{Ligne d'appui}
+\label{image_ligne_appui}
+\index{ligne d'appui@ligne d'appui}
+\index{ligne de base@ligne de base}
+
+
+Les lignes d'appui schématisent les lignes de bases encadrant la zone de l'image où sont écrites les lettres minuscules. Ces deux lignes sont estimées à partir d'histogrammes (figure~\ref{image_ligne_appui_fig}) puis peuvent être réajustées pour chaque caractères.
+
+
+			\begin{figure}[ht]
+	    $$\frame{$\begin{array}[c]{c}\includegraphics[height=1cm, width=3cm]
+	    {../segline/image/segline_appui.bmp}\end{array}$}$$
+	    \caption{	Lignes d'appui encadrant la bande des minuscules}
+			\index{ligne d'appui@ligne d'appui}
+	    \label{image_ligne_appui_fig}
+			\end{figure}
+			
+		
+
+Plusieurs histogrammes peuvent être utilisés, épaisseurs des traits, nombre de transitions blanc-noir, projection des points du contour, celui-ci est souvent lissé par une moyenne mobile analogue à (\ref{image_lissage_equation}). En règle générale, la ligne basse d'appui est la plus fiable. Soit un histogramme $h=\vecteur{h_1}{h_N}$, où $h_1$ correspond au bas de l'image. On définit $l_b$ comme la ligne d'appui basse, $l_h$ la ligne d'appui haute, $l$ la ligne correspond au maximum de l'histogramme~:
+
+			\begin{eqnarray}
+			l \in \underset{i \in \ensemble{1}{N}} { \arg \max } \; h_i
+			\end{eqnarray}
+
+On définit ensuite~:
+
+			\begin{eqnarray}
+			l'_b &\in& \arg \max \acc{ 	\left. \dfrac{h_l - h_{l_b}}{l - l_b}   \; \right | 
+																	1 \infegal i \infegal l \text{ et } h_i \infegal \frac{h_l}{2}} \nonumber \\
+			l_b &=& \dfrac{l - l'_b}{2}
+			\end{eqnarray}
+
+Enfin~: 
+
+
+			\begin{eqnarray}
+			l'_h &\in& \arg \max \acc{ 	\left. \summy{k=l_b}{i} h_k -  \summy{k=i+1}{N} h_k  \; \right | 
+																	l < i \infegal N \text{ et } h_i \infegal \frac{h_l}{2}} \nonumber \\
+			l_h &=& \left\{ \begin{array}{l}
+										l'_h 	\text{ si } l'_h - l \infegal 2 \pa{ l - l_b} \\
+										N 		\text{ sinon}
+										\end{array} \right.
+			\end{eqnarray}
+
+
+Ces formules peuvent être ajustées manuellement sur quelques images. Puisqu'elles sont basées sur des histogrammes, elles sont en générale robuste.
+
+
+
+
+
+
+
+
+\newpage
+
+\makedocument{segline_article.tex}%
+\makedocument{../common/livre_table_end.tex}%
+\makedocument{../common/livre_end.tex}%

@@ -1,0 +1,257 @@
+%-----------------------------------------------------------------------------------------------------------
+% packages
+%------------------------------------------------------------------------------------------------------------
+
+
+\ifx\firstpassage\undefined
+\def\firstpassage{1}
+\newcount\nbpassages
+\nbpassages=1
+
+
+
+%-----------------------------------------------------------------------------------------------------------
+% packages
+%------------------------------------------------------------------------------------------------------------
+%\documentclass[french,11pt]{report}
+\documentclass{report}
+\usepackage[dvips]{graphicx}
+\usepackage {epsfig}
+\usepackage[french]{babel}
+\usepackage{a4}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{subfigure}
+\usepackage{float}
+\usepackage{latexsym}
+\usepackage{amsfonts}
+\usepackage{epic}
+\usepackage{eepic}
+\usepackage{makeidx}
+\usepackage{multido}
+\usepackage{varindex}
+
+\usepackage{graphicx}   %[pdftex]
+\usepackage[margin=0.5cm]{geometry}
+%\usepackage{hyperref}  %lien en PDF
+
+\makeatletter
+\renewcommand{\thepage}{}
+
+
+%------------------------------------------------------------------------------------------------------------
+% index
+%------------------------------------------------------------------------------------------------------------
+%\varindexIndex
+\newcommand{\indexfr}  [1]{\index{#1@#1}}
+\newcommand{\indexfrr} [2]{\index{#1@#1!#2@#2}}
+\newcommand{\indexfrrr}[3]{\index{#1@#1!#2@#2!#3@#3}}
+\newcommand{\indexsee} [2]{\index{#1@#1|see{#2}}}
+
+    
+%------------------------------------------------------------------------------------------------------------
+% fonctions
+%------------------------------------------------------------------------------------------------------------
+
+\newcommand{\parenthese}[1]{\left(#1\right)}
+\newcommand{\pa}[1]{\left(#1\right)}
+\newcommand{\bigpa}[1]{\big( #1 \big)}
+\newcommand{\biggpa}[1]{\Big( #1 \Big)}
+\newcommand{\bigggpa}[1]{\bigg( #1 \bigg)}
+\newcommand{\biggggpa}[1]{\Bigg( #1 \Bigg)}
+
+\newcommand{\scal}[1]{\left<#1\right>}
+
+\newcommand{\abs}[1]{\left|#1\right|}
+\newcommand{\bigabs}[1]{\big|#1\big|}
+\newcommand{\biggabs}[1]{\bigg|#1\bigg|}
+
+\newcommand{\accolade}[1]{\left\{#1\right\}}
+\newcommand{\acc}[1]{\left\{#1\right\}}
+\newcommand{\bigacc}[1]{\big\{#1\big\}}
+\newcommand{\biggacc}[1]{\Big\{#1\Big\}}
+\newcommand{\bigggacc}[1]{\bigg\{#1\bigg\}}
+\newcommand{\biggggacc}[1]{\Bigg\{#1\Bigg\}}
+
+\newcommand{\crochet}[1]{\left[#1\right]}
+\newcommand{\cro}[1]{\left[#1\right]}
+\newcommand{\bigcro}[1]{\big[ #1 \big]}
+\newcommand{\biggcro}[1]{\Big[ #1 \Big]}
+\newcommand{\bigggcro}[1]{\bigg[ #1 \bigg]}
+\newcommand{\biggggcro}[1]{\Bigg[ #1 \Bigg]}
+\newcommand{\crochetopen}[1]{\left]#1\right[}
+
+\newcommand{\indicatrice}[1]{\mathbf{1}_{\accolade{#1}}}
+
+\newcommand{\ensemblereel}[0]{\mathbb{R}}
+\newcommand{\R}[0]{\mathbb{R}}
+
+\newcommand{\ensembleentier}[0]{\mathbb{N}}
+\newcommand{\N}[0]{\mathbb{N}}
+
+\newcommand{\infegal}[0]{\leqslant}
+\newcommand{\supegal}[0]{\geqslant}
+
+\newcommand{\intervalle}[2]{\left\{#1,\cdots,#2\right\}}
+\newcommand{\intervalleinf}[3]{#1 \infegal #2 \infegal #3}
+
+\newcommand{\loinormale}[2]{{\cal N} \parenthese {#1,#2}}
+\newcommand{\loibinomiale}[2]{{\cal B} \parenthese {#1,#2}}
+\newcommand{\loimultinomiale}[1]{{\cal M} \parenthese {#1}}
+\newcommand{\loi}[0]{{\cal L}}
+
+\newcommand{\dans}[0]{\longrightarrow}
+
+\newcommand{\demonstration}[0]{\bigskip\textbf{Démonstration :}\bigskip}
+
+\newcommand{\partialfrac}[2]{\frac{\partial #1}{\partial #2}}
+
+\newcommand{\summy}[2]{\overset{#2}{\underset{#1}{\sum}}}
+\newcommand{\bigsummy}[2]{\overset{#2}{\underset{#1}{\displaystyle\sum}}}
+\newcommand{\prody}[2]{\overset{#2}{\underset{#1}{\prod}}}
+\newcommand{\bigprody}[2]{\overset{#2}{\underset{#1}{\displaystyle\prod}}}
+\newcommand{\summyone}[1]{\underset{#1}{\sum}}
+\newcommand{\bigsummyone}[1]{\underset{#1}{\displaystyle\sum}}
+\newcommand{\prodyone}[1]{\underset{#1}{\prod}}
+
+\newcommand{\card}[1]{card \parenthese{#1}}
+\newcommand{\esperance}[1]{\mathbb{E}\parenthese{#1}}
+\newcommand{\esperanceseul}[0]{\mathbb{E}}
+\newcommand{\esp}[1]{\mathbb{E}\pa{#1}}
+
+\newcommand{\pr}[1]{\mathbb{P}\pa{#1}}
+
+\newcommand{\norme}[1]{\left\Vert#1\right\Vert}
+
+%\newcommand{\independant}[0]{\;\makebox[3ex]{
+%					\makebox[0ex]{\rule[-0.2ex]{3ex}{.1ex}}
+%					\makebox[.5ex][l]{\rule[-.2ex]{.1ex}{2ex}}
+%					\makebox[.5ex][l]{\rule[-.2ex]{.1ex}{2ex}}}}
+
+\newcommand{\independant}[0]{\;\makebox[3ex]{
+     					\makebox[0ex]{\rule[-0.2ex]{3ex}{.1ex}}
+     \!\!\!\!	\makebox[.5ex][l]{\rule[-.2ex]{.1ex}{2ex}}
+         			\makebox[.5ex][l]{\rule[-.2ex]{.1ex}{2ex}}} \,\,}
+         
+\newcommand{\vecteur}[2]{\pa{#1,\dots,#2}}
+\newcommand{\vecteurno}[2]{#1,\dots,#2}
+
+\newcommand{\union}[2]{\overset{#2}{\underset{#1}{\bigcup}}}
+\newcommand{\unionone}[1]{\underset{#1}{\bigcup}}
+
+\newcommand{\para}[1]{\bigskip\textbf{#1}}
+\newcommand{\QARRAY}[2]{\left \{ \begin{array}{l} #1 \\ #2 \end{array} \right .}
+\newcommand{\QARRAYno}[2]{\left . \begin{array}{l} #1 \\ #2 \end{array} \right .}
+\newcommand{\sachant}{\; | \;}
+\newcommand{\itemm}[0]{\item[\quad -]}
+\newcommand{\ensemble}[2]{\acc{#1,\dots,#2}}
+
+\newcommand{\twoindices}[2]{\begin{subarray}{c} #1 \\ #2 \end{subarray}}
+\newcommand{\vecteurim}[2]{\pa{\begin{subarray}{c} #1 \\ #2 \end{subarray}}}
+\newcommand{\vecteurimm}[2]{\pa{\begin{array}{c} #1 \\ #2 \end{array}}}
+
+\newcommand{\sac}{\sachant}
+\newenvironment{eqnarrays} {\begin{eqnarray}}{\end{eqnarray}}
+
+\newcommand{\dia}{-}
+
+
+%------------------------------------------------------------------------------------------------------------
+% fonctions spéciales
+%------------------------------------------------------------------------------------------------------------
+
+% écrire soi-même le numéro d'une équation
+\newcommand{\numequation}[0]{\stepcounter{equation}(\theequation)}		
+
+
+%------------------------------------------------------------------------------------------------------------
+% dessin
+%------------------------------------------------------------------------------------------------------------
+
+\newcounter{putx}
+\newcounter{puty}
+
+% dessin d'un arc supérieur : x,y,size
+\newcommand{\arcup}[3]{
+                                \put(#1,#2){\arc{#3}{2.3}{6.8}}
+                                \setcounter{putx}{#1}\addtocounter{putx}{6}
+                                \setcounter{puty}{#2}\addtocounter{puty}{-4}
+                                \put(\value{putx},\value{puty}){\vector(0,-1){1}}
+                      }
+                      
+% dessin d'un arc inférieur : x,y,size
+\newcommand{\arcdown}[3]{
+                                \put(#1,#2){\arc{#3}{5.8}{10.5}}
+                                \setcounter{putx}{#1}\addtocounter{putx}{6}
+                                \setcounter{puty}{#2}\addtocounter{puty}{3}
+                                \put(\value{putx},\value{puty}){\vector(0,1){1}}
+                        }
+% dessin un rectangle
+\newcommand{\drawbox}[4]{\drawline(#1,#2)(#3,#2)(#3,#4)(#1,#4)(#1,#2)}
+
+
+%------------------------------------------------------------------------------------------------------------
+% annexe
+%------------------------------------------------------------------------------------------------------------
+
+% voir les annexes : label, marques dans l'index
+\newcommand{\seeannex}[2]{\indexfrr{annexes}{#2}
+													\footnote{Annexes~: voir paragraphe~\ref{#1}, page~\pageref{#1}}
+										  	 }
+
+
+%------------------------------------------------------------------------------------------------------------
+% image
+%------------------------------------------------------------------------------------------------------------
+
+\newcount \filextensionnum
+\filextensionnum = 0
+\newcount \correctionenonce
+\correctionenonce = 1
+
+\input{../../common/compile.tex}
+
+%\ifnum \filextensionnum = 1
+%\newcommand{\filext}[1]{#1.eps}
+%\newcommand{\filefig}[1]{\input{#1.tex}}
+%\else
+%\newcommand{\filext}[1]{#1.pdf}
+%\newcommand{\filefig}[1]{\includegraphics{#1.pdf}}
+%\fi
+
+%------------------------------------------------------------------------------------------------------------
+% test pour savoir si c'est le premier passage
+%------------------------------------------------------------------------------------------------------------
+\newcommand{\firstpassagedo}[1]{ \ifnum\nbpassages=1 #1 \fi }
+
+
+%-----------------------------------------------------------------------------------------------------------
+% document 
+%-----------------------------------------------------------------------------------------------------------
+\begin{document}
+
+\begin{tabular}{l} \tiny  .  \\ \tiny . \normalsize
+
+
+\else
+
+\ifnum\nbpassages=4
+\nbpassages=5
+\fi 
+
+\ifnum\nbpassages=3
+\nbpassages=4
+\fi 
+
+\ifnum\nbpassages=2
+\nbpassages=3
+\fi 
+
+\ifnum\nbpassages=1
+\nbpassages=2
+\fi 
+
+
+
+\fi

@@ -1,0 +1,130 @@
+\input{../../common/livre_begin.tex}
+\firstpassagedo{\input{summery_titre.tex}}
+\input{../../common/livre_table_begin.tex}
+\firstpassagedo{\input{summery_chapter.tex}}
+
+
+%---------------------------------------------------------------------------------------------------
+% si seulement setenglishsummery est égal à 1, on imprime la version anglaise
+\ifx\englishsummery\undefined
+	\def\englishsummery{1}
+	\newcount\setenglishsummery
+	\setenglishsummery=1
+	\label{resume_summery}
+\else
+	% on détruit l'en-tête et page suivante
+	%\def\@makeschapterhead#1{\vspace*{50}}
+	\newpage 
+	\pagestyle{empty}
+	
+	\newcount\xpagepair
+	\xpagepair=\value{page}
+	\divide\xpagepair by 2
+	\multiply\xpagepair by 2
+	\ifnum\xpagepair<\value{page}
+	\hbox{}\newpage
+	\else
+	\hbox{}\newpage
+	\hbox{}\newpage
+	\fi
+	% pour afficher setenglishsummery, il faut écrire \number\setenglishsummery
+\fi
+%---------------------------------------------------------------------------------------------------
+
+
+\section*{Résumé}
+\indexfr{résumé}
+
+Ces travaux s'inscrivent dans le cadre de la reconnaissance de l'écriture manuscrite dite hors-ligne. Celle-ci consiste à déchiffrer des mots cursifs présents dans une image. Il n'existe pas encore de solution satisfaisante à ce problème si sa résolution est envisagée de telle manière qu'elle soit valable pour toute sorte de documents. Néanmoins, lorsque ceux-ci sont d'un type précis comme un chèque ou un formulaire, le contexte permet de façonner des contraintes ou des restrictions qui limitent la recherche et autorisent des solutions performantes. Il est plus facile de reconnaître un mot si celui-ci est censé être un nombre dans le cas d'un chèque ou un prénom dans le cas d'un formulaire. Plus généralement, le problème abordé par ces travaux est la reconnaissance de mots cursifs appartenant à un vocabulaire donné. 
+
+Le schéma principal des systèmes de reconnaissance de mots cursifs s'articule autour de deux étapes. Il est tout d'abord nécessaire de prétraiter l'image originale du document de manière à en extraire le mot à reconnaître puis à le segmenter en lettres ou morceaux de lettres appelés graphèmes. Ce résultat est ensuite traité à l'aide de modèles mathématiques qui analysent la forme de chaque graphème et leur séquençage. Cette étape probabiliste intègre le plus souvent des modèles de Markov cachés et constitue la reconnaissance proprement dite. Ces modèles sont en effet estimés à partir de grandes bases d'images dont la "connaissance" est résumée dans les coefficients du modèle.
+
+L'étude bibliographique a montré que la recherche dans le domaine de la reconnaissance de l'écriture ne propose pas d'approche très éloignée du formalisme des modèles de Markov cachés. Cette étude s'est prolongée pour aboutir à une description détaillée du processus qui part de l'image pour arriver au résultat afin d'offrir un panorama de la recherche actuelle. Ces travaux ont débouché sur une suite de contributions parvenant à accroître les performances sans pour autant remettre en cause le processus général de la reconnaissance de l'écriture.
+
+Ces améliorations, qu'on peut qualifier de locales, explorent trois thèmes. Elles ont concerné tout d'abord une meilleure prise en compte des erreurs inhérentes au traitement d'images dont la principale tâche se résume à la segmentation d'une image en graphèmes à partir d'heuristiques simples. La prise de décision a ensuite été accélérée afin de pouvoir accroître la complexité du problème de la reconnaissance tout en conservant des temps de traitement raisonnables -~de l'ordre de quelques dixièmes de seconde~-. Le traitement d'image en lui-même a été retouché afin d'étudier un possible remplacement des heuristiques par des apprentissages sur de grandes bases de données, par l'estimation d'une segmentation en graphèmes traitant les accents de manière séparée, puis lors de la restauration de caractères imparfaits. 
+
+L'ensemble de ces travaux est exposé dans un manuscrit qui essaye de proposer un inventaire exhaustif des méthodes utilisées lors de la reconnaissance de l'écriture manuscrite.
+
+
+
+
+
+\subsection*{Mots-clé}
+
+	reconnaissance, écriture manuscrite, modèles de Markov cachés, classification, traitement d'images, graphème
+
+
+%---------------------------------------------------------------------------------------------------
+% si seulement setenglishsummery est égal à 1, on imprime la version anglaise
+\ifnum\setenglishsummery=1
+%---------------------------------------------------------------------------------------------------
+
+
+\section*{Abstract}
+
+
+This work deals with offline handwriting recognition. This task consists in automatically reading cursive words from an image. The existing solutions are not yet good enough if they try to solve any kind of such problems. Nevertheless, when the document obeys a given format such as checks or formularies, the context allows us to build an application which gets satisfactory results. Obviously, it is easier to recognize a word if it is known to be a number written on a check, or a first name written on a formulary. The studied problem in this document is the recognition of words which are known to belong to a given vocabulary.
+
+Most of recognition system include two main steps. First of all, the image source needs to be treated in order to extract the word -~which has to be recognized~- and to segment it into letters or pieces of letter which are called graphems. Then, this result is processed by mathematic models which analyse the graphem shapes and their sequence. This probabilistic step often includes hidden Markov models and represents the recognition in a strict way. These models are indeed estimated on large databases in order to find their coefficients which can be considered as holding the knowledge.
+
+The bibliographic study showed that the research in the handwriting recognition domain does not offer approaches which are far away from the hidden Markov models' formalism. This study was continued to build a precise description of the whole process from the image to the results. It finally offers a panorama of the actual state of research. The reached objectives are series of contributions which improve the performances without modifying the main scheme of the recognition system.
+
+These local improvements explore three themes. The first one concerns a better way to take into account the unavoidable errors of the graphem segmentation. The second theme is about decision which was accelerated in order to increase models complexity but also in order to keep low processing times (around a few second tenth). The last theme concerns image processing. The aim was to include some training steps instead of many heuristics which are usually used, by training a graphem segmentation, by processing accents in a separate way or by restoring imperfect characters.
+
+\if 0
+
+ \newpage
+ 
+\begin{eqnarray}
+\alpha_{t,t'} \pa{ L } &=& \pr{ \vecteurno{O_t}{O_{t'}} \sac L }  \\
+&=& \summyone{ \vecteurno{q_t}{q_{t'} } } \;   \pi_{q_t} b_{q_t} \pa{O_t} \; 
+							\cro{\prody{u=t+1}{t'} a_{q_{u-1},q_{u} } \, b_{q_u} \pa{O_u} } \theta_{q_{t'}}
+%
+%													
+\end{eqnarray}
+
+
+\begin{eqnarray}
+\pi_i 					&=&  \pr{ q_1 = i \sac L } \\
+\theta_i 				&=&  \pr{ q_{t+1} = \emptyset \sac q_t = i, \, L } \\
+a_{ij}	  			&=&  \pr{ q_{t+1} = j \sac q_t = i, \,  L } \\
+b_{i} \pa{x}		&=&  \pr{ O_t = x 		\sac q_t = i, \,  L } 
+\end{eqnarray}
+
+
+\begin{eqnarray}
+&&\pr{ \vecteurno{O_1}{O_T} \sac M }  \\
+&=&							\summyone{ \begin{subarray}{c} 
+													\vecteurno{L_1}{L_{n} } \\
+													\vecteurno{t_1}{t_n } \end{subarray}
+													 } \;   \pi'_{L_1}  
+							\cro{ \prody{u=1}{n-1} \alpha_{t_u,t_{u+1}-1} (L_u) \, a'_{L_u,L_{u+1}} }
+							\alpha_{t_n,T} (L_n) \, \theta'_{L_n}
+\end{eqnarray}
+
+
+\begin{eqnarray}
+\pi'_{k} 					&=&  \pr{ L_1 = k \sac M } \\
+\theta'_k 				&=&  \pr{ L_{u+1} = \emptyset \sac L_u = k, \, M } \\
+a'_{kl}	  			&=&  \pr{ L_{u+1} = l \sac L_u = k, \,  M } \\
+\alpha_{t,t'} (l) &=& \pr{ \vecteurno{O_t}{O_{t'}} \sac l }  \\
+\end{eqnarray}
+
+
+\fi
+
+
+
+\subsection*{Mots-clé}
+
+	recognition, cursive, hidden Markov models, classification, image processing, graphem
+
+
+%---------------------------------------------------------------------------------------------------
+% si seulement setenglishsummery est égal à 1, on imprime la version anglaise
+\fi
+%---------------------------------------------------------------------------------------------------
+
+\input{../../common/livre_end.tex}
+
+

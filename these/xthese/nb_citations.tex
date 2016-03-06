@@ -1,0 +1,127 @@
+
+
+
+
+\newcounter{colcitation}
+\setcounter{colcitation}{0}
+\newcount\counta
+\newcount\countb
+
+\newcommand{\newtabcol}[0]{&}
+\newcommand{\newtabline}[0]{\\ \hline}
+
+\newcommand{\displayyearcitation}[2]{
+		\testoperator{yc#1} {
+			\addtocounter{colcitation}{1}
+			#1 \newtabcol \counterbiblioyeardisp{#1} 
+			\counta=\value{colcitation}
+			\countb=#2
+			\ifnum\counta<\countb
+				%a\arabic{colcitation}a
+				\newtabcol
+			\else
+				%b\arabic{colcitation}b
+				\newtabline
+				\setcounter{colcitation}{0}
+			\fi
+			
+		}
+		{
+		}
+	}
+
+\newcommand{\displayyearcitationterm}[1]{
+		\counta=\value{colcitation}
+		\countb=#1
+		\ifnum\counta>0
+			\addtocounter{colcitation}{1}
+			\newtabcol
+			\counta=\value{colcitation}
+			\ifnum\counta<\countb
+				\addtocounter{colcitation}{1}
+				%a\arabic{colcitation}a
+				\newtabcol
+				\newtabcol
+			\fi
+			\newtabline
+		\fi
+	}
+
+
+\xhorizontalline
+	
+		$$
+		\begin{tabular}{|r|r|r|r|}  \hline
+		\textbf{année} & \textbf{citations} & \textbf{année} & \textbf{citations} \\ \hline \hline
+		\textbf{toutes} & \textbf{\arabic{nbcitations}} & & \\ \hline \hline
+		%
+		\displayyearcitation{1950}{2}
+		\displayyearcitation{1951}{2}
+		\displayyearcitation{1952}{2}
+		\displayyearcitation{1953}{2}
+		\displayyearcitation{1954}{2}
+		\displayyearcitation{1955}{2}
+		\displayyearcitation{1956}{2}
+		\displayyearcitation{1957}{2}
+		\displayyearcitation{1958}{2}
+		\displayyearcitation{1959}{2}
+		%
+		\displayyearcitation{1960}{2}
+		\displayyearcitation{1961}{2}
+		\displayyearcitation{1962}{2}
+		\displayyearcitation{1963}{2}
+		\displayyearcitation{1964}{2}
+		\displayyearcitation{1965}{2}
+		\displayyearcitation{1966}{2}
+		\displayyearcitation{1967}{2}
+		\displayyearcitation{1968}{2}
+		\displayyearcitation{1969}{2}
+		%
+		\displayyearcitation{1970}{2}
+		\displayyearcitation{1971}{2}
+		\displayyearcitation{1972}{2}
+		\displayyearcitation{1973}{2}
+		\displayyearcitation{1974}{2}
+		\displayyearcitation{1975}{2}
+		\displayyearcitation{1976}{2}
+		\displayyearcitation{1977}{2}
+		\displayyearcitation{1978}{2}
+		\displayyearcitation{1979}{2}
+		%
+		\displayyearcitation{1980}{2}
+		\displayyearcitation{1981}{2}
+		\displayyearcitation{1982}{2}
+		\displayyearcitation{1983}{2}
+		\displayyearcitation{1984}{2}
+		\displayyearcitation{1985}{2}
+		\displayyearcitation{1986}{2}
+		\displayyearcitation{1987}{2}
+		\displayyearcitation{1988}{2}
+		\displayyearcitation{1989}{2}
+		%
+		\displayyearcitation{1990}{2}
+		\displayyearcitation{1991}{2}
+		\displayyearcitation{1992}{2}
+		\displayyearcitation{1993}{2}
+		\displayyearcitation{1994}{2}
+		\displayyearcitation{1995}{2}
+		\displayyearcitation{1996}{2}
+		\displayyearcitation{1997}{2}
+		\displayyearcitation{1998}{2}
+		\displayyearcitation{1999}{2}
+		%
+		\displayyearcitation{2000}{2}
+		\displayyearcitation{2001}{2}
+		\displayyearcitation{2002}{2}
+		\displayyearcitation{2003}{2}
+		\displayyearcitation{2004}{2}
+		\displayyearcitation{2005}{2}
+		\displayyearcitation{2006}{2}
+		\displayyearcitation{2007}{2}
+		\displayyearcitation{2008}{2}
+		\displayyearcitation{2009}{2}
+		%
+		\displayyearcitationterm{2}
+		\end{tabular}
+		$$
+

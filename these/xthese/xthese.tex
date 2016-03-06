@@ -1,0 +1,182 @@
+\input{../../common/livre_begin.tex}
+\firstpassagedo{\input{xthese_titre.tex}}
+
+
+%\def\xoldthese
+
+
+
+\hbox{}
+\pagestyle{empty} 
+\vfill
+\begin{center}le {\thedate}\end{center}
+\vfill
+
+\newpage 
+\pagestyle{empty}
+\input{../xsummery/summery.tex}
+
+\newpage 
+
+\input{remerciements.tex} 
+\newpage
+
+\skippairpage
+
+\input{../../common/livre_table_begin.tex}
+\newpage 
+
+
+\newpage
+\skippairpage
+\pagestyle{headings}
+
+\input{../introduction/intro.tex}
+\input{../bibliographie/bibliographie.tex}
+\input{../image/image.tex}
+\input{../reco/reco.tex}
+\input{../decision/decision.tex}
+
+%\input{../keyword/keyword.tex}
+
+\input{../conclusion/conclusion.tex}
+
+
+\skippairpage
+
+\pagestyle{empty}
+\appendix
+\pagestyle{headings}
+
+\chapter{Illustration de modèles de lettres}
+\input{../reco_illustration/modele_hmm.tex}
+
+
+\chapter{Squelettisation}
+\input{../squelette/squelette.tex}
+
+\chapter{Réseaux de neurones}
+\input{../rn/rn.tex}
+
+\ifx\xoldthese\undefined
+\chapter{Support Vector Machines}
+\input{../svm/svm.tex}
+\fi
+
+\chapter{Modèles de Markov cachés}
+\input{../hmm/hmm.tex}%
+
+%\chapter{Modèles de Markov cachés et reconnaissance}
+%\input{../hmm_reco/hmm_reco.tex}%
+
+\chapter{Modèles de Markov cachés et sélection d'architecture}
+\input{../hmm_selec/hmm_select.tex}%
+
+\chapter{Modèles de Markov cachés et graphes d'observations}
+\input{../hmm_seq/hmm_seq.tex}%
+
+\chapter{Classification non supervisée}
+\input{../classification/classification.tex}
+
+\ifx\xoldthese\undefined
+\chapter{Classification supervisée}
+\input{../clas_supervise/clas_supervise.tex}
+\fi
+
+\chapter{Distance d'édition}
+\input{../edit_distance/edit_distance.tex}%
+
+\chapter{Recherche des plus proches voisins}
+\input{../space_metric/space_metric.tex}
+
+\chapter{N-grammes}
+\input{../ngrams/ngrams.tex}%
+
+\chapter{Receiving Operator Characteristic (ROC)}
+\input{../roc/roc.tex}%
+
+
+
+
+\firstpassagedo{
+
+	\begin{thebibliography}{99}
+	
+	\bibinserttitle{Reconnaissance et modélisation}
+	\input{../bibliographie/bibliographie_article.tex}
+
+	\bibinserttitle{Traitement de l'image}
+	\input{../image/image_article.tex}
+	
+	\bibinserttitle{Reconnaissance statistique}
+	\input{../reco/reco_article.tex}
+	
+	\bibinserttitle{Décision}
+	\input{../decision/decision_article.tex}
+	
+	\bibinserttitle{Squelettisation}
+	\input{../squelette/squelette_article.tex}
+	
+	\bibinserttitle{Réseaux de neurones}
+	\input{../rn/rn_bibliographie.tex}
+	
+	\ifx\xoldthese\undefined
+	\bibinserttitle{Support Vector Machines}
+	\input{../svm/svm_biblio.tex}
+	\fi
+	
+	\bibinserttitle{Modèles de Markov cachés}
+	\input{../hmm/hmm_bibliographie.tex}
+	
+	\bibinserttitle{Sélection d'architecture}
+	\input{../hmm_selec/hmm_select_bibliographie.tex}
+	
+	\bibinserttitle{Graphes d'observations}
+	\input{../hmm_seq/hmm_seq_bibliographie.tex}
+	
+	\bibinserttitle{Classification non supervisée}
+	\input{../classification/classification_bibliographie.tex}
+	
+	\ifx\xoldthese\undefined
+	\bibinserttitle{Classification supervisée}
+	\input{../clas_supervise/clas_super_biblio.tex}
+	\fi
+	
+	\bibinserttitle{Distance d'édition}
+	\input{../edit_distance/edit_bibliographie.tex}
+	
+	\bibinserttitle{Espaces métriques}
+	\input{../space_metric/space_metric_biblio.tex}
+	
+	\bibinserttitle{N-grammes}
+	\input{../ngrams/ngrams_biblio.tex}
+	
+	\ifx\xoldthese\undefined
+		\bibinserttitle{Receiving Operator Characteristic (ROC)}
+		\input{../roc/roc_article.tex}
+	\fi
+	
+	\end{thebibliography}
+
+	\input{../xthese/nb_citations.tex}
+}
+
+
+
+
+\input{../../common/livre_table_end.tex}
+
+%\input{../../common/livre_end.tex}
+% remplacé par (pour avoir le résumé en dernière page
+\tableofcontents%
+\printindex
+\setenglishsummery=2
+\input{../xsummery/summery.tex}
+
+%\input{../xthese/new.tex}
+
+
+
+
+\end{document}
+

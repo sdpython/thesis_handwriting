@@ -1,0 +1,1289 @@
+\input{../../common/livre_begin.tex}%
+\firstpassagedo{\input{bibliographie_titre.tex}}
+\input{../../common/livre_table_begin.tex}%
+
+
+\sloppy
+
+%--------------------------------------------------------------------------------------------------------------
+\chapter{La reconnaissance de l'écriture : problèmes et solutions existantes}
+%--------------------------------------------------------------------------------------------------------------
+
+
+Après une brève description des mécanismes sous jacents de la reconnaissance de l'écriture, ce chapitre aborde principalement les modélisations mathématiques utilisées jusqu'à présent dans ce domaine. Celles-ci constituent la partie la plus théorique et sont l'objet de la plus grande part des articles dédiés à ce problème durant la dernière décennie (1990-2000).
+
+
+%--------------------------------------------------------------------------------------------------------------
+\section{Vue d'ensemble}
+%--------------------------------------------------------------------------------------------------------------
+
+
+
+\subsection{En ligne, hors ligne}
+
+On a coutume de distinguer deux parties dans le domaine de la reconnaissance de l'écriture manuscrite, les reconnaissances \emph{en-ligne} et \emph{hors-ligne}. La reconnaissance dite en ligne s'effectue en même temps que les mots sont écrits, elle concerne les nombreux objets électroniques de poche permettant de saisir du texte sans clavier. \indexfr{en ligne}\indexfr{online} La reconnaissance dite hors ligne concerne tout document déjà écrit	comme des formulaires, des livres, des chèques. \indexfr{offline} \indexfr{hors ligne}
+
+La reconnaissance en ligne commence à apparaître au travers des annuaires portatifs où la saisie s'effectue en majuscule et lettre par lettre. Elle utilise un stylo et un mécanisme de repérage qui mémorise le tracé. Privée de ces informations, la reconnaissance hors ligne est plus difficile, elle se retrouve souvent cantonnée à des problématiques très précises telles que la lecture d'adresses postales, de montants littéraux de chèques. La gamme de ces problèmes s'étend au fur et à mesure que la puissance des ordinateurs s'accroît.
+
+
+
+
+\subsection{Styles d'écriture}
+\indexfr{styles d'écriture}
+
+La difficulté de la reconnaissance est en partie liée au style d'écriture, plus l'écriture est lisible et régulière, plus la résolution est facile. Cette constatation paraît évidente mais si un lecteur humain s'en soucie rarement, les performances obtenues par des logiciels de reconnaissance varient beaucoup avec la clarté des images fournies (lisibilité, bonne résolution de l'image, lignes d'un paragraphe bien espacées, ...). On distingue trois styles d'écriture classés par ordre croissant de difficulté (figure~\ref{blibliographie_style_trois}) bien qu'ils soient parfois emmêlés~:
+
+\begin{enumerate}
+\item l'écriture imprimée, \indexfrr{style}{imprimé}
+\item l'écriture manuscrite mais en capitales d'imprimerie ou caractères bâtons, \indexfrr{style}{bâton}
+\item l'écriture manuscrite cursive \indexfrr{style}{cursif}
+\end{enumerate}
+
+		\begin{figure}[ht]
+    $$\frame{$\begin{array}[c]{l}
+    \includegraphics[height=1cm, width=5cm] {\filext{../bibliographie/image/biblio_imprime}}\\
+    \includegraphics[height=1cm, width=5cm] {\filext{../bibliographie/image/biblio_manuscrit_maj}}\\
+    \includegraphics[height=1cm, width=5cm] {\filext{../bibliographie/image/biblio_manuscrit_man}}
+    \end{array}$}$$
+    \caption{Trois styles d'écriture, imprimé, bâton, cursif.}
+    \label{blibliographie_style_trois}
+		\end{figure}
+ 
+L'écriture imprimée est un problème pour lequel les solutions existantes sont satisfaisantes. Elles commencent à être accessibles aux particuliers puisqu'elles accompagnent fréquemment les logiciels fournis avec les scanners. Il existe par exemple des logiciels de lecture automatique de carte de visite. L'écriture bâton concerne principalement les formulaires renseignés manuellement comme les feuilles de maladie, les questionnaires à choix multiples. Contrairement à l'écriture imprimée, l'objectif n'est pas de tout décrypter mais au moins d'en traiter automatiquement une bonne partie avec un faible taux d'erreur tandis que les documents mal écrits seront toujours au soin d'un opérateur de saisie. En revanche, les applications traitant la lecture de l'écriture manuscrite sont peu nombreuses. Il s'agit souvent de problèmes précis et réduits comme la reconnaissance du montant littéral d'un chèque, d'une date, quelques champs d'un formulaire. 
+
+\indexfr{première guerre mondiale}\indexfr{ministère de la défense}\indexfr{raison du décès}
+Par exemple, le ministère de la défense a récemment rendu publique une base de données contenant les fiches de décès de chaque soldat français durant la première guerre mondiale\footnote{Voir le site \textit{http://www.memoiredeshommes.sga.defense.gouv.fr/} et l'article paru le 13 noveambre 2003 dans \emph{01 Informatique} numéro 1745, page 12.}. Toutefois, la législation française ne permet pas de publier un document contenant des informations d'ordre personnel, en particulier médical. Pourtant, le champ contenant la raison du décès est susceptible de contenir ce genre d'information. Le problème consiste donc ici à déterminer si ce champ contient une expression à caractère médical mais sans avoir à la reconnaître. Un traitement informatique a permis de répondre à cette question pour les deux tiers du million de documents avec 0,2\% d'erreur. 
+
+
+
+
+
+
+
+\subsection{Problèmes classiques de reconnaissance}
+
+La reconnaissance de l'écriture hors ligne recouvre de nombreux problèmes, des plus contraints, reconnaissance d'une lettre parmi une liste prédéfinie, aux moins contraints, reconnaissance d'un paragraphe entier. Le problème de la figure~\ref{blibliographie_probleme} illustre la reconnaissance d'un prénom parmi une liste de choix possibles. Ce problème est pour le moment une référence car, pour l'écriture cursive, il est le moins contraint qu'on sache résoudre avec des performances acceptables. Il est désigné plus simplement par l'expression \emph{reconnaissance avec dictionnaire}. \indexfr{dictionnaire}\indexfrr{reconnaissance}{dictionnaire}
+
+		\begin{figure}[t]
+    $$\frame{$\begin{array}[c]{c}\includegraphics[height=6cm, width=10cm]
+     {\filext{../bibliographie/image/probleme}}\end{array}$}$$
+    \caption{Un problème classique de reconnaissance de l'écriture manuscrite~: 
+    					reconnaissance avec dictionnaire\indexfr{dictionnaire}.}
+    \label{blibliographie_probleme}
+		\end{figure}
+
+
+Le terme "acceptable" est volontairement flou, il dépend beaucoup du problème. En ce qui concerne la reconnaissance d'un prénom parmi une liste en contenant environ~2000, pour 100~images, des performances acceptables correspondent à 69~images bien reconnues, 1~image mal reconnue et 30~images rejetées car considérées comme illisibles par le logiciel de reconnaissance. Ces performances sont acceptables parce qu'elles permettent à l'entreprise qui décide de recourir à ces méthodes de réduire le nombre de personnes affectées à la saisie de ces informations, de réduire ses coûts de traitement.
+
+\indexfr{productivité}\indexfr{saisie}\indexfr{performances acceptables}
+
+Par la suite, les algorithmes proposés, bien qu'utilisés pour l'écriture manuscrite cursive, pourront l'être pour les deux autres styles  mais seront vraisemblablement moins performants que des algorithmes spécifiquement développés pour telle ou telle écriture. C'est encore plus vrai pour la reconnaissance en ligne qui utilise des informations supplémentaires relatives au déplacement du crayon.
+
+
+
+
+
+
+
+
+
+\subsection{De l'image au résultat}
+\label{biblio_image_resultat}
+
+
+Le processus de reconnaissance part d'une image et aboutit à une liste de propositions accompagnées d'une probabilité (figure~\ref{blibliographie_probleme}). Ce long processus peut être découpé en trois parties illustrées par la figure~\ref{blibliographie_systeme}~:
+
+		\begin{enumerate}
+		\item prétraitement de l'image, 		\indexfr{prétraitement de l'image}
+		\item reconnaissance statistique, 	\indexfrr{reconnaissance}{statistique}
+		\item décision. 										\indexfr{décision}
+		\end{enumerate}
+
+		\begin{figure}[ht]
+    $$\begin{tabular}{|c|}\hline
+   	\filefig{../bibliographie/fig_syswh}
+    \\ \hline
+    \end{tabular}
+    $$
+    \caption{		Schéma de l'ensemble du processus 
+    						de reconnaissance découpé en trois parties~: prétraitement de l'image,
+                reconnaissance statistique, décision. La séquence de graphèmes 
+                est décrite au paragraphe~\ref{image_segmentation_grapheme}.
+                Le terme contexte regroupe toutes les informations inhérentes au problème à résoudre comme
+                la langue, le type de document à traiter, le type d'information à reconnaître (nom, prénom,
+                montant, ...).}
+    \label{blibliographie_systeme}
+		\end{figure}
+
+\indexfr{contexte}
+La chaîne des prétraitements de l'image comprend essentiellement une segmentation en graphèmes (paragraphe~\ref{biblio_section_grapheme}), celle-ci consiste à scinder un problème complexe en plusieurs petits problèmes plus simples. La reconnaissance statistique est centrée autour d'un type de modèle probabiliste adapté à la séquence de graphèmes obtenue à l'étape précédente. Les mieux adaptés sont les modèles de Markov\seeannex{annexe_hmm_def}{modèles de Markov cachés} cachés car ils associent séquence et forme des graphèmes. Enfin, l'étape de décision permet d'affiner les résultats de la reconnaissance statistique en associant plusieurs reconnaisseurs en tenant compte d'un contexe propre à l'expérience comme le code postal pour la lecture d'une adresse, ce qui permet d'avoir un a priori sur la ville à décrypter. La reconnaisance statistique est fortement dépendante de la langue\footnote{La langue dans laquelle les documents ont été écrits est une information importante ne serait-ce que de par le fait que les mots différent d'une langue à l'autre, voire les lettres.} alors que les prétraitements sont plutôt liés au type de document exploité, enveloppe, chèques, formulaires\footnote{Les traitements d'images sont plus dépendants de la qualité des documents (papier, scanner, ...), de leur structuration (formulaire, paragraphe, ...) que du contenu.}. 
+
+Les trois couches du schéma~\ref{blibliographie_systeme} sont généralement indépendantes, ce sera le cas pour la majorité des modèles présentés au paragraphe~\ref{biblio_modelisation}. Le fait que ces trois étapes s'enchaînent les unes à la suite des autres rend difficile la comparaison de chacune des parties qui composent le système de reconnaissance. Il serait possible de comparer la partie statistique de deux systèmes à partir du moment où les deux autres parties (traitement d'image et décision) sont communes. Les articles publiés présentent rarement un système dans sa globalité et s'intéressent à seulement une de ces trois parties qui sont plus rarement décrites ensemble excepté dans des thèses ou des articles qui en sont issus (voir \citeindex{Senior1998}). \indexfrr{reconnaissance}{statistique} 
+Une exception à cette règle pour l'article \citeindex{Verma2004}, ce dernier décrit sommairement l'ensemble de son système de reconnaissance afin de comparer les performances en reconnaissance de différents types de caractéristiques.
+
+
+
+
+
+					\begin{figure}[t]
+			    $$\begin{tabular}{|c|}\hline
+			    \filefig{../bibliographie/fig_syswh2}
+			    \\ \hline
+			    \end{tabular} $$
+			    \caption{		Schéma de l'ensemble du processus de reconnaissance découpé en trois parties principales~: 
+			    						prétraitement de l'image, description et reconnaissance statistique, décision. Les systèmes de
+			    						reconnaissance font de plus intervenir des traitements parallèles, divers reconnaisseurs,
+			    						mis en compétition afin d'améliorer le résultat final.}
+			    \label{blibliographie_systeme_whole}
+					\end{figure}
+
+\indexfr{caractéristiques}
+\indexfr{reconnaissance}
+\indexfr{décision}
+\indexfr{description}
+
+La figure~\ref{blibliographie_systeme_whole} illustre de manière exhaustive un tel système. A partir de l'image, plusieurs prétraitements sont possibles, plusieurs segmentations en graphèmes. Chacune d'elles peut à son tour être décrite de manières différentes par des caractéristiques, qui sont à leur tour capables d'être reconnues par des modèles variés. Les résultats sont regroupés puis synthétisés pour aboutir à un seul résultat accompagné d'un taux de confiance. Même si cet ensemble est coûteux à élaborer et à apprendre, il semble que les systèmes de reconnaissance basés sur un prétraitement d'image, un jeu de caractéristiques, un reconnaisseur aient atteint leur limite (voir \citeindex{Steinherz1999}, \citeindex{Vinciarelli2002} ou paragraphe~\ref{biblio_constat}).
+
+
+
+
+
+
+
+\subsection{Annotation}\indexfr{annotation}
+
+Par la suite, les termes \emph{annotation}, images \emph{annotées} seront régulièrement employés. L'annotation désigne une information qui accompagne chaque image, celle-ci est relative au contenu et renferme ce que les modèles de reconnaissance devront apprendre. Par exemple, l'annotation la plus simple associée à une image du mot "GEORGES" est le mot "GEORGES" lui-même. Cette information peut être plus étendue et inclure la description d'une segmentation en lettres. En règle générale, l'annotation est construite manuellement et devient la bonne réponse, celle que doit retourner le reconnaisseur s'il a bien appris. Tous les modèles présentés dans ce document sont estimés à partir d'une base d'images annotées de manière à déchiffrer correctement des images non annotées. Selon les modèles, l'annotation requise n'est pas la même. Plus l'annotation est fournie, plus la reconnaissance a de chances d'obtenir de bonnes performances. 
+
+
+
+
+
+\subsection{Constat et limites}
+\label{biblio_constat}
+\indexfr{chèque}
+\indexfr{adresse postale}
+
+L'article~\citeindex{Vinciarelli2002} brosse le portrait de la reconnaissance de l'écriture cursive et met en lumière les nombreuses étapes résumées dans le paragraphe~\ref{biblio_image_resultat} qui constituent un tel processus. Les recherches effectuées dans les années précédentes ont abouti aux modèles de Markov cachés qui sont encore à l'heure actuelle la modélisation la mieux adataptée. Leurs performances se sont d'ailleurs concrétisées par la commercialisation de produits offrant de bonnes performances mais dans des domaines précis comme la reconnaissance du montant des chèques ou la lecture d'adresses postales. Ces deux aspects -~nombreuses étapes, domaine précis~- expliquent pourquoi il est difficile de comparer différents systèmes de reconnaissance. Il est donc impossible de choisir une modélisation plutôt qu'une autre lorsqu'elles n'utilisent pas les mêmes prétraitements. La reconnaissance est aussi améliorée par le contexte de l'expérience qui nuit en même temps à une comparaison fiable de deux systèmes puisqu'ils sont utilisés dans des conditions d'expérience différentes. Dans le cas des chèques, montants littéral et numérique sont mis en correspondances, dans le cas d'une adresse, c'est le cas pour la ville et le code postal.
+
+La reconnaissance de l'écriture manuscrite a donc beaucoup suscité l'intérêt des chercheurs dans les années 1990 à 2000. Les différentes solutions proposées ont difficilement pu être comparées puisque apprises sur des données rarement identiques dans des contextes rarement semblables. Elles proposent malgré tout des solutions exploitables industriellement qui permettent d'envisager la reconnaissance d'un mot manuscrit dans un vocabulaire réduit comme un problème quasiment résolu. Toutefois, ces mêmes modèles ont montré leur limite appliqués à des problèmes moins contraints, où le contexte est moins important. L'article~\citeindex{Steinherz1999} suggère d'ailleurs que la recherche soit plutôt dirigée vers l'amélioration de la décision plutôt que la reconnaissance elle-même.
+
+Ce chapitre décrira sommairement les deux premières parties d'un système de reconnaissance, abordées de manière plus détaillée dans les deux chapitres suivants.
+
+
+
+
+
+
+
+%------------------------------------------------------------------------------------------------------------
+\section{Les prétraitements d'image} \indexfr{prétraitement de l'image}
+%-------------------------------------------------------------------------------------------------------------
+
+
+Les articles relatifs à cette partie sont moins nombreux. Les algorithmes utilisés sont plus le résultat d'expériences, d'une succession d'heuristiques, plutôt que le corollaire d'une modélisation théorique de l'image. L'article \citeindex{Simon1992} s'intéresse à une segmentation d'un mot à partir du squelette de l'image (voir également \citeindex{Lecolinet1990}). Le résultat souhaité est une segmentation proche des caractères (\citeindex{Lecolinet1996}).
+
+Le résultat peut être simple et aboutit à des morceaux de petites tailles qui sont plus difficiles à traiter par la suite lors de la reconnaissance statistique. La méthode des fenêtres glissantes (voir~\citeindex{Knerr2001}, figure~\ref{blibliographie_window_slide}) fait partie de cette catégorie.\indexfrr{fenêtre}{glissante} L'image d'un mot est simplement découpée en bandelettes verticales sans relation avec les lettres. La reconnaissance est dévolue à des modèles mathématiques complexes.
+
+Le résultat peut être plus travaillé et inclure les résultats de nombreuses expériences sous forme d'heuristiques. La segmentation obtenue est plus proche de celle des lettres et plus instable aussi car ce traitement est un assemblage de règles essaimées lors de squelettisations, de nettoyages ou de segmentations.\indexfr{squelettisation}\indexfr{nettoyage}\indexfr{segmentation} En contre partie, les modèles de reconnaissance statistique peuvent se limiter à la reconnaissance de caractères même s'il n'est pas encore possible à ce stade de segmenter en lettres de manière parfaite à moins de savoir déjà reconnaître ce qu'est une lettre. Par exemple, d'autres travaux (\citeindex{Knerr2000}) explorent la possibilité de reconstituer l'information temporelle relative au tracé\indexfr{tracé} présente en reconnaissance en ligne\indexfr{en ligne} à partir de l'image écrite. Le système apprend cette tâche à partir d'une base d'images couplées avec une autre base contenant les déplacements du stylo. La segmentation est conclue par la construction d'une séquence ou d'un graphe de petites images appelées
+\emph{graphèmes}.\indexfr{graphème}
+
+
+    \begin{figure}[ht]
+    $$\frame{$\begin{array}[c]{c}\includegraphics[height=2cm, width=16cm]
+     {\filext{../bibliographie/image/biblio_window_slide}}\end{array}$}$$
+    \caption{Image extraite de~\citeindexfig{Knerr2001} illustrant le découpage 
+    					de l'image d'un mot par des fenêtres glissantes.}
+    \label{blibliographie_window_slide}
+    \end{figure}
+
+
+
+
+
+
+
+
+\subsection{Graphèmes}
+\label{biblio_section_grapheme}
+
+
+Le sens de lecture de gauche à droite apparente la reconnaissance de l'écriture à la reconnaissance de la parole. L'analogie n'est valable que si l'image en deux dimensions d'un paragraphe \indexfr{paragraphe} (figure~\ref{blibliographie_paragraphe}) est décomposée d'abord en lignes \indexfrr{segmentation}{ligne} (figure~\ref{blibliographie_paragraphe_ligne}) puis en caractères ou demi-caractères de manière à retrouver cet ordonnancement de gauche à droite comparable au découpage temporel inhérent à la reconnaissance vocale (voir figure~\ref{blibliographie_paragraphe_car}). \indexfr{caractère}
+
+Plutôt que d'utiliser des fenêtres glissantes, \indexfrr{fenêtre}{glissante} les premières segmentations
+élaborées ont tout de suite cherché à isoler les lettres. Ce résultat difficile à obtenir réduit par la suite la taille des modèles de reconnaissance des caractères alors que les fenêtres glissantes aboutissent à des images de caractères décorées de bouts de caractères voisins qui s'apparentent à du bruit. Cette plus grande variabilité mène à des modèles de reconnaissance plus consistants. Cette différence n'est plus importante aujourd'hui mais l'était il y a dix ans lorsque les ordinateurs étaient limités en mémoire.
+
+		\begin{figure}[ht]
+    $$\frame{$\begin{array}[c]{c}\includegraphics[height=3cm, width=5cm]
+     {\filext{../bibliographie/image/biblio_paragraphe}}\end{array}$}$$
+    \caption{Image d'un paragraphe manuscrit.}
+    \label{blibliographie_paragraphe}
+		\end{figure}
+
+		\begin{figure}[ht]
+    %$$\frame{$\begin{array}[c]{c}\includegraphics[height=4cm, width=6cm]
+    %{../bibliographie/image/biblio_paragraphe_ligne}}\end{array}$}$$
+    $$\frame{$\begin{array}[c]{c}\includegraphics[height=4cm, width=6cm]
+    {\filext{../bibliographie/image/biblio_histog}}\end{array}$}$$
+    \caption{	Image des lignes d'un paragraphe figure~\ref{blibliographie_paragraphe} segmentées 
+    					à partir d'histogramme (partie gauche de l'image). \indexfr{histogramme}}
+    \label{blibliographie_paragraphe_ligne}
+		\end{figure}
+
+		\begin{figure}[ht]
+    $$\frame{$\begin{array}[c]{c}\includegraphics[height=0.8cm, width=6cm]
+    {\filext{../bibliographie/image/biblio_paragraphe_car}}\end{array}$}$$
+    \caption{	Graphèmes de la troisième ligne de la figure~\ref{blibliographie_paragraphe_ligne}. 
+    					\indexfr{graphème}}
+    \label{blibliographie_paragraphe_car}
+		\end{figure}
+
+\indexfrr{segmentation}{ligne}\indexfrr{segmentation}{mot}
+
+Les segmentations en lignes et en mots peuvent être réalisées à partir d'histogrammes (figure~\ref{blibliographie_paragraphe_ligne}) \indexfr{histogramme} sommant les pixels noirs de l'image dans
+une direction parallèle à celle de segmentation. Les pics et les creux de l'histogramme permettent de déterminer sans trop d'erreurs le bon découpage. Comme les histogrammes obtenus sont lissés avant leur exploitation, les résultats sont assez stables à moins que l'image ne contienne des traits parallèles à la direction de segmentation comme un mot souligné. C'est pourquoi l'image est d'abord nettoyée, \indexfr{nettoyage} débarrassée de pixels isolés et des grands traits horizontaux ou verticaux susceptibles de n'appartenir à aucune lettre. Ce nettoyage est généralement fait à partir d'une squelettisation. \indexfr{squelettisation}
+
+Malheureusement, cette méthode simple n'est pas applicable à une segmentation en caractères. Comme le montre la
+figure~\ref{blibliographie_window_slide}, les lettres sont souvent penchées et se prêtent mal à un découpage vertical.
+
+
+\indexfrr{graphème}{stabilité}
+
+Les graphèmes représentent donc une meilleure segmentation puisqu'elle est plus proche des caractères, elle est aussi plus sensible au bruit car elle est parfois basée sur une squelettisation comme l'illustre la figure~\ref{blibliographie_grapheme_2} (voir~\citeindex{Lecolinet1990}, \citeindex{Simon1992}). Le squelette est une image plus facile à traiter car il peut être représenté sous forme de graphe. Le découpage est effectué en repérant les ascendants et les descendants sur le squelette, \indexfr{squelettisation} toute forme en "u" est supposée être la frontière entre deux lettres. Par la suite, les règles sont affinées par de nombreuses expériences. Ce prétraitement aboutit à une séquence de petites images appelées \emph{graphèmes}\indexfr{graphème} (figures~\ref{blibliographie_grapheme}, \ref{blibliographie_grapheme_2}) qu'il faut décrire d'une manière exploitable par des modèles mathématiques de reconnaissance tels que des réseaux de neurones.
+
+
+
+		\begin{figure}[t]
+    $$\frame{$\begin{array}[c]{c}\includegraphics[height=6cm, width=10cm]
+     {\filext{../bibliographie/image/pretraitement_image}}\end{array}$}$$
+    \caption{De l'image à la segmentation en graphèmes, \indexfr{graphème} le mot est extrait, 
+    					son image est binarisée, puis nettoyée
+             des bruits résiduels et enfin segmentée en graphèmes souvent en utilisant le squelette. 
+             Les nettoyages sont parfois adaptés de manière spéficique à un type de
+             document précis. Ici, le prénom déborde souvent sur l'intitulé \textit{Date de naissance}, 
+             les nettoyages sont donc faits en conséquence.}
+    \label{blibliographie_grapheme}
+		\end{figure}
+
+
+		\begin{figure}[ht]
+    $$\frame{$\begin{array}[c]{c}\includegraphics[height=3cm, width=6cm]
+    {\filext{../bibliographie/image/biblio_graph_hole}}\end{array}$}$$
+		\caption{	Stabilité de la squelettisation, deux images du même mot dont la seule différence 
+              réside dans deux pixels manquant
+              dans le second exemple. Le squelette s'en trouve modifié et la segmentation du premier 
+              "g" passe de un graphème à deux.}
+			\indexfr{graphème}
+			\indexfrr{graphème}{stabilité}
+			\indexfr{squelettisation}    
+			\label{blibliographie_grapheme_2}
+		\end{figure}
+
+
+Ce prétraitement est constitué d'heuristiques qui le rendent instable et qui sont adaptées au problème de
+reconnaissance à résoudre, par exemple, la segmentation de chiffres imprimés \indexfrr{style}{imprimé} est différente de celle de chiffres cursifs qui peuvent être attachés. \indexfrr{style}{cursif} \indexfr{segmentation}
+
+Pourquoi découper~? Pourquoi ne pas conserver l'image du mot dans son intégralité plutôt que de la segmenter avec une méthode instable~? Deux arguments penchent pourtant en sa faveur~:
+
+    \begin{enumerate}
+    \item Il est plus facile de décrire des morceaux de lettres plutôt que l'image complète du mot.
+    \item Dans un problème où les mots sont peu nombreux, il est facile de classer telle ou telle 
+    			image comme étant tel ou tel mot. Lorsque ce nombre de mots est grand 
+    			(quelques milliers), la classification devient impossible. 
+          Il est préférable de classer des objets plus petits comme les lettres ou des morceaux de lettres.
+    \end{enumerate}
+
+Un exemple de segmentation sera repris en détail au paragraphe~\ref{image_choix_segmentation}. Un résultat parfait est difficile à obtenir quelle que soit la méthode si aucune reconnaissance n'est associée à cette segmentation. 
+
+
+
+
+\subsection{Segmention explicite-implicite}
+\indexfrr{segmentation}{explicite}
+\indexfrr{segmentation}{implicite}
+
+
+La litterature (voir~\citeindex{Vinciarelli2002}) distingue parfois deux types de segmentations~: implicite et explicite. Lorsque la segmentation en graphèmes a pour objectif le découpage de l'image d'un mot directement en lettres, celle-ci est explicite. La reconnaissance de ce mot est alors réduite à une reconnaissance de caractères. En revanche, lorsque la segmentation en graphèmes découpe cette image en lettres ou en morceaux de lettres, la reconnaissance statistique doit intégrer le fait qu'une lettre est constituée d'un ou plusieurs morceaux. Par conséquent, la segmentation est dite implicite car les lettres n'apparaissent jamais de manière explicite.
+
+\indexfrr{segmentation}{paradoxe de Sayre}
+\indexfr{paradoxe de Sayre}
+\indexfr{sur-segmentation}
+L'article~\citeindex{Sayre1973} souligne le paradoxe de la segmentation implicite qui se résume par cette phrase~: une lettre ne peut être segmentée avant d'avoir été reconnue et ne peut être reconnue avant d'avoir été segmentée. Par conséquent, les segmentations explicites sont plutôt un compromis, pas assez précises pour définir explicitement des lettres, mais suffisamment pour avoir une association graphème-lettre relativement simple. En règle générale, elles tentent de segmenter l'image d'un mot en morceaux qui sont inclus dans le dessin d'une lettre. Ces segmentations sont souvent regroupées sous le terme \emph{sur-segmentation}.
+
+
+
+
+
+
+
+
+
+
+\subsection{Caractéristiques}
+\label{biblio_caracteristique}
+
+
+Etant donné que les graphèmes \indexfr{graphème} peuvent avoir des tailles variables, l'étape suivante consiste
+à décrire ces images par un vecteur de caractéristiques de dimension fixe. \indexfr{caractéristiques} Ces
+nombres sont réels et chacun d'eux est censé décrire un aspect de l'image comme~:
+
+    \begin{description}
+    \itemm la taille du graphème (largeur, hauteur),
+    \itemm l'aire occupée par les pixels noirs,
+    \itemm le barycentre des pixels noirs,
+    \itemm l'inclinaison,
+    \itemm l'épaisseur moyenne des traits vetircaux et horizontaux, 
+    				ces chiffres peuvent être calculés sur l'image entière ou une des
+            bandes verticales ou horizontales, l'image est découpée en quatre ou cinq, selon la résolution,
+    \itemm le nombre moyen de traits verticaux et horizontaux (transition pixel noir - 
+    				pixel blanc sur une colonne de l'image),
+    \itemm la position relative du précédent graphème, du suivant.
+    \end{description}
+
+Ce n'est qu'une description parmi les nombreuses possibles dont un éventail est proposé au paragraphe~\ref{reco_description_grapheme}. En définitive, ce prétraitement transforme l'image d'un mot en une séquence de vecteurs de dimension fixe ou \emph{mot mathématique}. Si cette dimension est notée $D$, un mot mathématique est donc : 
+
+\indexfr{mot}\indexfr{séquence}
+
+			\begin{xdefinition}{mot mathématique}
+			\label{biblio_definition_mot_statistique}%
+			\indexfrr{mot}{mathématique}%
+			On définit un mot mathématique comme une séquence finie de vecteurs de dimension fixe~:
+			    $$
+			    \text{mot} \longleftrightarrow m \in \pa{\R^D}^\N
+			    $$
+			où $D$ est la dimension de l'espace des caractéristiques. \indexfr{caractéristiques}
+			\end{xdefinition}
+
+
+\indexfrr{dimension}{infinie}
+Le passage d'une séquence d'images à une séquence de vecteurs sera décrit en détail au paragraphe~\ref{reco_description_grapheme}. La reconnaissance est similaire à un problème de classification. Cette tâche est un problème classique lorsqu'il s'agit d'un espace vectoriel de dimension finie. En revanche, la classification dans l'espace des mots mathématiques (de dimension infinie) est une tâche plus ardue que le paragraphe~\ref{biblio_reconnaissance_statistique} et pour laquelle le paragraphe~\ref{biblio_modelisation} recense des solutions existantes.
+
+
+
+
+
+
+
+
+%-----------------------------------------------------------------------------------------------------------------
+\section{Reconnaissance statistique}
+%-----------------------------------------------------------------------------------------------------------------
+\label{biblio_reconnaissance_statistique}
+
+
+\subsection{Classification en mots} \label{section_classification_mots}
+
+\indexfrr{classification}{mot} 
+\indexfrr{reconnaissance}{dictionnaire} 
+\indexfrr{mot}{mathématique} 
+
+Dans le cas du problème de reconnaissance avec dictionnaire, reconnaître un mot écrit sur une image revient à
+classer le mot mathématique qui lui correspond dans la classe qui regroupe toutes les écritures différentes de ce même mot (figure~\ref{blibliographie_same_word}). La reconnaissance est un problème de classification.
+
+\indexfr{classification} 
+\indexfr{reconnaissance} 
+\indexfrr{mot}{mathématique} 
+\indexfr{étiquette}%
+
+		\begin{figure}[ht]
+    $$\frame{$\begin{array}[c]{ccc}
+    \includegraphics[height=0.75cm,     width=3cm] {\filext{../bibliographie/image/biblio_cursif_exemple_1}} &
+        \includegraphics[height=0.75cm, width=3cm] {\filext{../bibliographie/image/biblio_cursif_exemple_2}} &
+        \includegraphics[height=0.75cm, width=2cm] {\filext{../bibliographie/image/biblio_cursif_exemple_3}} \\
+    \includegraphics[height=0.75cm,     width=2cm] {\filext{../bibliographie/image/biblio_cursif_exemple_4}} &
+        \includegraphics[height=0.75cm, width=3cm] {\filext{../bibliographie/image/biblio_cursif_exemple_5}} &
+        \includegraphics[height=0.75cm, width=3cm] {\filext{../bibliographie/image/biblio_cursif_exemple_6}} \\
+    \includegraphics[height=0.75cm,     width=2cm] {\filext{../bibliographie/image/biblio_cursif_exemple_10}} &
+        \includegraphics[height=0.75cm, width=2cm] {\filext{../bibliographie/image/biblio_cursif_exemple_8}} &
+        \includegraphics[height=0.75cm, width=3cm] {\filext{../bibliographie/image/biblio_cursif_exemple_9}} 
+    %& \includegraphics[height=0.75cm,   width=3cm] {\filext{../bibliographie/image/biblio_cursif_exemple_10}} &
+    \end{array}$}$$
+    \caption{Plusieurs manières d'écrire le même mot.}
+    \label{blibliographie_same_word}
+		\end{figure}
+
+
+Pour chaque classe de mots, un modèle mathématique est construit afin de modéliser l'ensemble des mots mathématiques
+lui correspondant. Ensuite, pour attribuer la bonne classe à un mot mathématique, tous les modèles de mots sont
+sollicités et celui qui donne la meilleure réponse est considéré comme la bonne réponse
+(figure~\ref{blibliographie_reponse_modele}).
+
+		\begin{figure}[ht]
+    $$\frame{$\begin{array}[c]{c}
+    \includegraphics[height=1.5cm, width=3cm]
+    	 {\filext{../bibliographie/image/biblio_cursif_ex_reco}} \\
+        \begin{array}{lllll}
+        MARIO   &   0,782 & & MARIA   &   0,004 \\
+        MAIRE   &   0,108 & & FRANC   &   0,002 \\
+        MARIE   &   0,076 & & FRANS   &   0,002 \\
+        MAUD    &   0,023 & & HANS    &   0,001 \\
+        ...     &   ...   & & ...     &   ...
+        \end{array}
+    \end{array}$}$$
+    \caption{Réponse des modèles mathématiques associés aux mots du dictionnaire.}
+    \label{blibliographie_reponse_modele}
+		\end{figure}
+
+
+L'avantage majeur de cette organisation est le possible ajout de modèles. Par exemple, en ce qui concerne la reconnaissance du montant littéral des chèques, le passage à l'euro consiste à ajouter le mot \emph{EURO} \indexfr{euro} à l'ensemble des mots possibles pour écrire un montant. 
+
+\indexfrr{modèle}{mot}\indexfrr{modèle}{lettre} 
+
+La construction des modèles de mots dépend du problème à résoudre. Toujours dans le cas de la reconnaissance avec dictionnaire, \indexfrr{reconnaissance}{dictionnaire} si le dictionnaire est petit (pas plus d'une centaine de mots), un modèle par mot sera construit, c'est-à-dire qu'il aura été appris pour reconnaître ce mot. Dans le cas d'un grand dictionnaire (quelques millieurs de mots), on préférera obtenir ce modèle de mot par l'assemblage de modèles de lettres, qui auront appris à reconnaître spécifiquement les lettres. C'est dans cette optique qu'une bonne segmentation en graphèmes \indexfr{graphème} est importante. Si un graphème représente plus d'une lettre, la reconnaissance aura toutes les chances d'être faussée.
+
+
+
+
+
+
+\subsection{Séquence et forme} 
+
+\indexfr{séquence} \indexfr{forme} \indexfr{mot} \indexfr{modèle} \label{section_classification_lettre} 
+
+
+La définition~\ref{biblio_definition_mot_statistique} définit un mot mathématique comme une séquence de vecteurs, ceci signifie qu'à un mot correspond des mots mathématiques de longueurs différentes et de vecteurs différents mais de dimension fixe. Le paragraphe~\ref{biblio_section_grapheme} a déjà répondu à propos de l'intérêt de conserver un paramètre variable dans la description de l'image d'un mot. Cette description fait donc intervenir deux aspects~:
+
+    \begin{enumerate}
+    \item une \emph{séquence} de longueur variable,
+    \item la \emph{forme} des graphèmes car cette séquence est 
+    				composée de vecteurs de dimension fixe décrivant la \emph{forme}
+            de chacun des graphèmes qui la composent.  \indexfr{graphème}
+    \end{enumerate}
+
+
+
+\label{biblio_grapheme_segmentation_choix}
+
+Dans les modèles présentés dans ce document, beaucoup traitent ces deux aspects séparément. La forme, le plus simple des deux aspects puisque de dimension fixe, est traitée par un classifieur \indexfr{classifieur} qui peut être un réseau de neurones, \indexfr{RN} une machine à support vectoriel plus connu sous sa dénomination anglaise \emph{Support Vector Machine} (SVM), \indexfr{SVM} un arbre de décision... 
+
+La séquence est principalement modélisée par des modèles de Markov cachés. \indexfr{MMC} Ceux-ci ont été développés par Baum (\citeindex{Baum1968}, \citeindex{Baum1972}) et s'inscrivent dans un problème plus général décrit par Dempster (\citeindex{Dempster1977}) qui expose pour la première fois l'algorithme EM (expectation-maximisation),\indexfr{EM}\indexsee{expectation}{EM}\indexfr{maximisation} permettant d'estimer les paramètres d'un modèle prenant en compte des observations cachées. Les modèles de Markov cachés en sont un cas particulier. Pour terminer la liste des articles cités chaque fois, il faut mentionner une excellente introduction (\citeindex{Rabiner1986}) dont l'étude est approfondie par~\citeindex{Levinson1983}. Toutefois, ces articles ne présentent que des chaînes de Markov cachées discrètes qu'il faut adapter afin qu'elles prennent en compte l'aspect forme qui, lui, est continu. Un modèle intégrant le couple séquence-forme de manière séparée constitue un modèle appelé \emph{hybride} ou
+\emph{semi-continu}. 
+
+\indexfr{hybride} \indexfr{semi-continu}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Choix d'une modélisation}
+
+Choisir une modélisation mathématique pour un problème impose de faire certaines hypothèses sur les données à représenter (indépendance temporelle, la loi probabiliste qu'elles suivent,~...). Une fois celles-ci converties en un modèle, il peut contenir plus ou moins de degrés de liberté. Plus il en a, plus il peut s'adapter facilement aux données à modéliser et plus il s'adapte difficilement à de nouvelles données. 
+
+Les hypothèses doivent donc être les mieux adaptées, elles conditionnent la structure du modèle (modèles de Markov cachés, réseaux de neurones, ...).   \indexfr{modélisation}\indexfr{hypothèse} Il suffit de déterminer le choix du degré de liberté (ou nombre de coefficients) pour le modèle sélectionné. \indexfr{degré de liberté} Le choix des hypothèses est toujours le plus important car il détermine les algorithmes d'estimation des paramètres et ceux de leur utilisation. Diverses modélisations sont présentées par la suite.
+
+
+
+
+
+
+
+
+
+
+
+%------------------------------------------------------------------------------------------------------------------
+\section{Modélisation}
+%------------------------------------------------------------------------------------------------------------------
+\label{biblio_modelisation}
+
+
+
+
+
+
+
+
+\subsection{Modèles de Markov cachés hybrides et classifieur quelconque}
+
+\label{biblio_mmc_classifieur} 
+\indexfrr{MMC}{+classifieur} \indexfr{classifieur}
+\indexfr{séquence} \indexfr{caractéristiques}
+\indexfrr{écriture}{arabe}
+
+Cette modélisation est utilisée depuis quelques années pour la reconnaissance de textes en écriture romaine et est plus récemment adaptée pour la reconnaissance de textes arabes (\citeindex{Khorsheed2003}). C'est le modèle le plus simple, à chaque vecteur de caractéristiques est associée une classe de manière à transformer la séquence de vecteurs d'observations continues en séquence d'observations discrètes (figure~\ref{blibliographie_mmc_classifieur}). Ce modèle convertit ensuite cette séquence en une probabilité~: celle que le modèle émette cette séquence discrète. Ce processus est répété pour chaque modèle de mot, le mot reconnu est celui ayant obtenu la meilleure probabilité d'émission\seeannex{interdoc_mmc}{MMC}. \indexfrr{probabilité}{émission}
+
+		\begin{figure}[ht]
+    $$\frame{$\begin{array}[c]{c}
+    \includegraphics[height=6cm, width=5cm] {\filext{../bibliographie/image/biblio_mmc_classifieur}} \\
+    \end{array}$}$$
+    \caption{Modèle de Markov caché + classifieur.}
+    \label{blibliographie_mmc_classifieur}
+		\end{figure}
+
+Les classifieurs peuvent être de toutes sortes (séparateurs linéaires, centres mobiles, réseau de neurones, réseau de Kohonen, arbre de décision, SVM...).\indexfr{linéaire}\indexfr{RN}\indexfr{Kohonen}\indexfr{centres mobiles}\indexfr{SVM}\indexfrr{arbre}{décision} Le choix de ces modèles est influencé par le fait que les observations sont annotées (leur classe est connue) ou non. \indexfr{annotation} Si elles sont annotées, les graphèmes sont de taille suffisante \indexfr{graphème} pour être interprétés (lettres ou parties de lettres), dans ce cas, cette interprétation ou classification donnée est alors apprise par le classifieur\footnote{Cette annotation est en général coûteuse à obtenir puisqu'il faut segmenter manuellement chaque image puis classer chaque morceau ou lettre.}. Cette méthode possède l'avantage de fixer le nombre de classes mais aussi l'inconvénient de parfois générer des ambiguïtés car certaines différences apparaissant sur l'image peuvent disparaître dans le vecteur de caractéristiques. De plus, au niveau de l'image, la lettre "u" divisée en deux parties ressemble fortement à deux lettres "i". Si elles ne sont pas annotées, la classification est automatique (centres mobiles par exemple) mais il reste à déterminer le nombre de classes idéal. Cette partie peut faire l'objet d'une étude statistique préalable\seeannex{classification_non_supervisee}{classification non supervisée}. 
+    
+
+Soit un mot mathématique noté $O = \vecteur{O_1}{O_T}$ et la séquence des classes d'observations associée à ce mot $C = \vecteur{C_1}{C_T}$ (annotation), \indexfr{annotation} on définit la probabilité que le modèle $M$ émette la séquence $O$ par~: \indexfrr{probabilité}{émission}
+
+			\begin{eqnarray}
+			\pr{O \sachant M}  &=&     \summyone{\vecteur{q_1}{q_T}}   \pr{O,\vecteurno{q_1}{q_T} \sachant M} \nonumber \\
+			                   &=&     \summyone{\vecteur{q_1}{q_T}}   \cro{\pr{q_1 \sachant M} \pr{C_1 \sachant q_1, M}
+			                           \prody{t=2}{T} \pr{q_t \sachant q_{t-1}, M} \pr{C_t \sachant q_t,M}}
+			                           \label{biblio_equation_hmm} \\
+			 && \text{où } \vecteur{q_1}{q_T} \text{ est une séquence d'états du modèle} \nonumber
+			\end{eqnarray}
+
+L'équation (\ref{biblio_equation_hmm}) découle des hypothèses inhérentes aux chaînes de Markov cachées d'ordre~un\seeannex{interdoc_mmc}{chaîne de Markov cachée}. Cette modélisation fait intervenir deux décisions~:%
+
+    \begin{enumerate}
+    \item La première est prise par le classifieur qui attribue une classe à chaque graphème.
+    				\indexfr{graphème}
+    \item La seconde est prise par le module de décision qui décide de lire dans l'image le mot dont 
+    				le modèle associé
+            est le plus probable.
+    \end{enumerate}
+
+La seconde décision est incontournable mais la première peut l'être en adoptant une modélisation plus fine comme celle des paragraphes~\ref{biblio_mmc_gauss} et~\ref{biblio_mmc_rn}.
+
+
+
+Ces modèles sont utilisés par \citeindex{Knerr2001} qui compare leurs résultats à ceux de modèles de Markov cachés discrets. L'intérêt de cet article porte sur l'utilisation de leurs propriétés lors de la segmentation d'une image d'un mot en lettres (figure~\ref{blibliographie_knerr_2001}). Plusieurs topologies de chaînes de Markov sont exposées accompagnées de l'idée qui a présidé à leur élaboration. Ces modèles sont aussi utilisés dans la thèse \citeindex{Augustin2001} qui aborde le problème de la recherche de la meilleure topologie de la chaîne de Markov (paragraphe~\ref{biblio_architecture}). Ces modèles font encore l'objet de recherche, \citeindex{Koerich2002b} présente leur utilisation pour de grands vocabulaires.
+
+
+
+		\begin{figure}[t]
+    $$\frame{$\begin{array}[c]{c}\includegraphics[height=6cm, width=9cm]
+    {\filext{../bibliographie/image/biblio_knerr_2001}}\end{array}$}$$
+    \caption{Image extraite de~\citeindexfig{Knerr2001}, elle représente un graphe de segmentation du mot "et", 
+    								parmi toutes les
+                    possibilités, celle en trait gras est la plus probable.}
+    \label{blibliographie_knerr_2001}
+		\end{figure}
+
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Modèles de Markov cachés hybrides et lois gaussiennes}%
+
+\label{biblio_mmc_gauss} \indexfrr{MMC}{+Gauss} \indexfrr{loi}{gaussienne} \indexfrr{loi}{normale}
+\indexfrr{loi}{normale multidimensionnelle}%
+
+Au lieu de classer les observations afin de les rendre discrètes, celles-ci sont supposées suivre une loi normale, différente pour chaque état du modèle (\citeindex{Bottou1991}), ou être partagées par plusieurs états à la fois (\citeindex{Bunke1995}). L'expression de la probabilité d'émission est résumée par les deux équations (\ref{biblio_equation_gauss}) et (\ref{biblio_equation_gauss_emission})~:
+
+
+
+    \begin{eqnarray}
+    \pr{O \sachant M}  &=&     \summyone{\vecteur{q_1}{q_T}}   \cro{\pr{q_1 \sachant M} \pr{O_1 \sachant q_1, M}
+                                                                \prody{t=2}{T} \pr{q_t \sachant q_{t-1}, M} 
+                                                                \pr{O_t \sachant q_t,M}}
+                                                                \label{biblio_equation_gauss} \\
+    && \text{où } \pr{O_t \sachant q_t=i, M} =  \dfrac{1}{\pa{2\pi}^{\frac{n}{2}} \sqrt{ \det \pa{ V_i}} }
+                            \; e ^{\pa{ - \frac{1}{2} \pa{O_t - \mu_i}' \,  \pa{V_i}^{-1} \pa{O_t - \mu_i}}}
+                            \label{biblio_equation_gauss_emission} \\
+    && \text{avec } n \text{ la dimension de l'espace vectoriel des observations} \nonumber 
+		\end{eqnarray}
+
+
+L'inconvénient de ce modèle est sa gourmandise : pour des vecteurs d'observations de 50 caractéristiques, la matrice carrée $V_i$ contient 2500 coefficients et ce pour chaque état de la chaîne de Markov. Par conséquent, l'utilisation de ces modèles s'accompagne d'hypothèses simplificatrices : $V_i$ est souvent supposée diagonale.
+
+
+
+
+
+
+
+
+
+\subsection{Modèles de Markov cachés hybrides et réseau de neurones}%
+\label{para_biblio_image_reco}
+
+\label{biblio_mmc_rn} \indexfrr{MMC}{+RN} \indexsee{réseau de neurones}{RN} \indexfr{RN} \indexsee{neural network}{RN}
+\indexsee{NN}{RN}
+
+
+Le classifieur de la figure~\ref{blibliographie_mmc_classifieur} est remplacé par un réseau de neurones illustré par la figure~\ref{blibliographie_mmc_rn}. Il associe à une séquence d'observations $O = \vecteur{O_1}{O_T}$ une séquence de vecteurs de probabilités $V = \vecteur{V_1}{V_T}$ où $V_t = \vecteur{V_t^1}{V_t^L}$ et $\summy{k=1}{L} V_t^k = 1$. L'expression\seeannex{definition_mmc_1}{MMC} de la probabilité devient~:
+
+		\begin{figure}[t]
+    $$\frame{$\begin{array}[c]{c}
+    \includegraphics[height=7cm, width=5cm] 
+    {\filext{../bibliographie/image/biblio_mmc_rn}} \\
+    \end{array}$}$$
+    \caption{Modèle de Markov caché + réseau de neurones}
+    \label{blibliographie_mmc_rn}
+		\end{figure}
+
+			\begin{eqnarray}
+			\pr{O \sachant M}  &=&     \summyone{\vecteur{q_1}{q_T}}   \pr{O,\vecteurno{q_1}{q_T} \sachant M} \nonumber \\
+			\pr{O \sachant M}  &=&     \summyone{\vecteur{q_1}{q_T}}   \cro{\pr{q_1 \sachant M} \pr{O_1 \sachant q_1, M}
+			                                                            \prody{t=2}{T} \pr{q_t \sachant q_{t-1}, M} 
+			                                                            \pr{O_t 		\sachant q_t,M}}
+			                                                            \label{biblio_equation_hmm_rn} \\
+			\text{avec } \pr{O_t \sachant q_t, M} &=& \summy{k=1}{L} \pr{ O_t \sachant C_t=k} 
+																	\pr{C_t=k \sachant q_t, M} \nonumber\\
+			\text{où le vecteur} && \cro{ \pr{ O_t \sachant C_t=k}} _ {1 \infegal k \infegal L} 
+									\text{ est retourné par le réseau de neurones (ou }
+			            \pr{C_t \sachant O_t} \text {)} \nonumber
+			\end{eqnarray}
+			\indexfrr{probabilité}{émission}
+
+
+
+L'avantage de ce modèle par rapport à celui du paragraphe~\ref{biblio_mmc_classifieur} est qu'une observation n'appartient plus impérativement à telle ou telle classe, le réseau de neurones ne donne que les probabilités d'appartenance, la décision n'est plus aussi brutale. Ne pas prendre de décision est une expression récurrente dans la reconnaissance de l'écriture, un leitmotiv. Une décision brutale implique un seuillage, c'est-à-dire l'utilisation d'une fonction non dérivable et difficile à apprendre.
+
+L'estimation du modèle est évidemment plus compliquée. L'initialisation du réseau de neurones s'effectue grâce à un classifieur, l'estimation des coefficients de la chaîne de Markov cachée est identique à celle du modèle~\ref{blibliographie_mmc_classifieur}. Une fois ces deux étapes effectuées, l'apprentissage du réseau de neurones est supervisé par la chaîne de Markov. L'apprentissage du modèle global résulte d'une alternance entre apprentissage chaîne de Markov et apprentissage réseau de neurones, jusqu'à convergence de l'un et de l'autre.
+
+Les modèles utilisés chez la société A2iA \indexfr{A2iA} contiennent entre 20000 et 70000 coefficients pour le réseau de neurones, entre 100 et 1000 coefficients pour la chaîne de Markov cachée. Le facteur forme (réseau de neurones) \indexfr{forme} est donc beaucoup plus important que le facteur séquence (chaîne de Markov cachée). \indexfr{séquence}
+
+Un apprentissage simultané est envisagé dans~\citeindex{Bengio1992}, néanmoins, pour un aussi volumineux système, il est parfois préférable de scinder le problème.
+
+
+
+
+
+
+
+
+
+
+\subsection{Modèles de Markov cachés hybrides et SVM} \indexfr{SVM}
+\label{biblio_svm}
+
+Une alternative au réseau de neurones (\ref{biblio_mmc_rn}) est apportée par \indexsee{Support Vector Machine}{SVM} \indexfr{SVM} les "Support Vector Machine" (SVM) ou machines à support vectoriel qui ont été proposées par Vapnik (\citeindex{Vapnik1979}, voir aussi~\citeindex{Burges1998}). Leur principe consiste à porter un problème non linéairement séparable dans un espace vectoriel où il le devient. \indexfrr{espace}{vectoriel} Ces modèles sont proches des réseaux de neurones. Toutefois, leur formalisation permet une plus grande lisibilité des résultats obtenus contrairement aux réseaux de neurones souvent comparés à une boîte noire puisqu'il n'existe pas d'interprétation évidente de leurs coefficients.
+
+
+
+
+
+
+
+
+\subsection{Input Output Hidden Markov Models : IOHMM}
+\indexfr{IOHMM} \indexsee{Input Output Hidden Markov Models}{IOHMM}
+\label{biblio_iohmm_par_ref}
+
+Le modèle \emph{IOHMM} décrit dans~\citeindex{Bengio1996} est presque une chaîne de Markov cachée. La séquence d'observations $\vecteur{O_1}{O_T}$ est expliquée par un processus discret caché $\vecteur{q_1}{q_T}$ ou séquence d'états et un autre processus discret $u = \vecteur{u_1}{u_T}$ connu. La probabilité de la séquence d'observations sachant la séquence $u$ selon le modèle $M$ (IOHMM) est donnée par la formule (\ref{biblio_equation_iohmm}) (figure~\ref{biblio_hmm_iohmm})~:
+
+
+		\begin{figure}[ht]
+    $$\frame{$\begin{array}[c]{c}\includegraphics[height=3cm, width=9cm] 
+    {\filext{../dessin2/hmm_iohmm}}\end{array}$}$$
+    \caption{Illustration d'un IOHMM, les flèches indiquent le sens des dépendances.}
+    \label{biblio_hmm_iohmm}
+		\end{figure}
+
+					\begin{eqnarray}
+					\pr{O \sachant u,M}  &=&     \summyone{\vecteur{q_1}{q_T}}   
+																				\pr{O,\vecteurno{q_1}{q_T} \sachant u,M} \nonumber \\
+					             &=&     \summyone{\vecteur{q_1}{q_T}}   
+					             					\Bigg[ \pr{q_1 \sachant u_1,M} \pr{O_1 \sachant q_1, u_1,M}  \nonumber \\
+					             &&      \quad \quad \quad \quad
+					                             \prody{t=2}{T} \pr{q_t \sachant u_t, q_{t-1}, M} 
+					                             \pr{O_t \sachant u_t, q_t,M}
+					                             \Bigg]
+					                             \label{biblio_equation_iohmm}
+					\end{eqnarray}
+
+
+La séquence $u$ est considérée comme l'entrée du modèle (input) et $O$ sa sortie (output). Ces modèles englobent les chaînes de Markov cachées (il suffit que le processus $u$ soit constant) et permettent aux transitions de dépendre d'un processus connu. Dans ce modèle, la séquence $\pa{q_t}$ dépend de la séquence $\pa{u_t}$, alors que, dans une chaîne de Markov cachée, si on remplace la séquence d'observations $\pa{O_t}$ par $\pa{O_t,u_t}$, les observations $\pa{u_t}$ dépendent de la séquence d'états $\pa{q_t}$. Les IOHMM inversent en partie cette dépendance.
+
+Par rapport aux modèles exposés dans les paragraphes~\ref{biblio_mmc_classifieur}, \ref{biblio_mmc_gauss}, \ref{biblio_mmc_rn}, et~\ref{biblio_svm}, les IOHMM proposent une alternative pour la chaîne de Markov cachée, les discussions relatives au choix du classifieur demeurent.
+
+
+
+
+
+
+
+
+
+\subsection{Transducteurs}
+\indexfr{transducteur}
+
+Les transducteurs sont assez proches des chaînes de Markov cachées puisqu'il est possible de les assimiler à des chaînes de Markov cachées d'ordre $\pa{1,1}$ (voir \citeindex{Mohri1996}), c'est-à-dire que l'émission d'une observation dépend à la fois de l'état courant et de l'état précédent, on dit généralement que l'émission se fait sur la transition, ceci se traduit par l'expression (\ref{biblio_equation_transducteur})~:
+
+			\begin{eqnarray}
+			\pr{O \sachant M}  &=&     \summyone{\vecteur{q_1}{q_T}}   \pr{O,\vecteurno{q_1}{q_T} \sachant M} \nonumber \\
+			\pr{O \sachant M}  &=&     \summyone{\vecteur{q_1}{q_T}}   \cro{\pr{q_1 \sachant M} \pr{O_1 \sachant q_1, M}
+			                                                            \prody{t=2}{T} \pr{q_t \sachant q_{t-1}, M} 
+			                                                            \pr{O_t \sachant q_t, q_{t-1},M}}
+			                                                            \label{biblio_equation_transducteur}
+			\end{eqnarray}
+
+La correspondance entre transducteurs et chaînes de Markov cachées existe\seeannex{corollaire_chaine_markov_cachee_1}{MMC} sans toutefois conserver le même nombre de coefficients. Transducteurs et chaînes de Markov cachées sont équivalents. Encore une fois, par rapport aux modèles exposés dans les paragraphes~\ref{biblio_mmc_classifieur}, \ref{biblio_mmc_gauss}, \ref{biblio_mmc_rn}, et~\ref{biblio_svm}, les transducteurs proposent une alternative pour la chaîne de Markov cachée, les discussions relatives au choix du classifieur demeurent.
+
+
+
+
+
+
+
+
+
+
+\subsection{Class Hidden Model Markov : CHMM}
+\indexfr{CHMM} \indexsee{Class Hidden Model Markov}{CHMM} \label{biblio_mmc_chmm}
+
+Ces modèles sont décrits par~\citeindex{Krogh1994} ou~\citeindex{Riis1998}. Le modèle CHMM $M$ émet une séquence d'observations $\vecteur{O_1}{O_T}$ ainsi qu'une séquence de labels $\vecteur{l_1}{l_T}$. Si on note une séquence d'états $\vecteur{q_1}{q_T}$, on obtient~:
+
+    \begin{eqnarray}
+      && \pr{\vecteurno{O_1}{O_T},\vecteurno{l_1}{l_T},\vecteurno{q_1}{q_T} |M} \nonumber\\
+    = &&            \pr{q_1|M} \pr{O_1|q_1,M} \pr{l_1|q_1,M} \prody{t=2}{T} 
+    	  						\pr{q_t|q_{t-1},M} \pr{O_t|q_t,M} \pr{l_t|q_t,M}
+    \end{eqnarray}
+
+
+Si les labels correspondent aux lettres, alors la reconnaissance d'une séquence d'observations consiste à trouver~:
+
+    \begin{eqnarray}
+    \vecteur{l_1^*}{l_t^*} = \underset {\vecteur{l_1}{l_T}} {\arg \max}
+                        \crochet{ \summyone{\vecteur{q_1}{q_T}}
+                        \pr{\vecteurno{O_1}{O_T},\vecteurno{l_1}{l_T},\vecteurno{q_1}{q_T}  |M} }
+    \end{eqnarray}
+
+L'apprentissage peut être problématique car il demande des séquences d'observations labellisées, c'est-à-dire que chaque observation doit être associée à une lettre. Cette information n'est pas toujours disponible lorsque le nombre de graphèmes diffère de celui des lettres. Si l'annotation \indexfr{annotation} de chaque image ne contient que le mot écrit dedans sans aucune indication de position des lettres, ces modèles ne peuvent être estimés.
+
+
+
+
+
+
+
+
+
+
+\subsection{Generalized Markov Models : GMM} 
+
+\indexsee{Generalized Markov Models}{GMM} \indexfr{GMM} 
+\indexsee{modèles de Markov généralisés}{GMM}
+
+L'apprentissage de modèles de Markov cachés se résume à une optimisation sous contrainte puisque les coefficients de ces modèles doivent être des probabilités. Cette optimisation peut être menée sans contrainte, les modèles obtenus sont alors appelés Generalized Markov Models (\citeindex{Niles1990}, \citeindex{Balasubramanian1993}). L'apprentissage est plus facile mais ces modèles ne définissent plus une loi de probabilité sur l'espace des observations. Toutefois, Balasubramanian souligne le fait qu'à nombre de coefficients égal, les GMM semblent être de meilleurs classifieurs que les modèles de Markov cachés. Le refrain est ensuite le même puisque par rapport aux modèles exposés dans les paragraphes~\ref{biblio_mmc_classifieur}, \ref{biblio_mmc_gauss}, \ref{biblio_mmc_rn}, et~\ref{biblio_svm}, les GMM proposent une alternative pour la chaîne de Markov cachée, les discussions relatives au choix du classifieur demeurent.
+
+
+
+
+
+
+
+
+
+
+\subsection{Arbres de décision} 
+
+\indexfrr{arbre}{décision}
+\label{biblio_geman}
+
+Un autre modèle de classifieur basé sur un arbre est proposé par~\citeindex{Amit1997}. \indexfr{arbre} La méthode décrite allie à la fois construction d'un arbre de classification et sélection de caractéristiques. Les réponses positives de plusieurs filtres matriciels (4x4, 16x16 selon la résolution de l'image) sont recensées et appelées "tag". Il est possible de discriminer deux images de caractères en comparant les distances et les angles formés par les droites reliant les tags (figure~\ref{blibliographie_geman}).
+
+		\begin{figure}[ht]
+    $$\frame{$\begin{array}[c]{c}
+    \includegraphics[height=4cm, width=12cm] {\filext{../bibliographie/image/biblio_geman}} \\
+    \end{array}$}$$
+    \caption{Image extraite de~\citeindexfig{Amit1997}, les tags 0,1,2 sont reconnus dans toutes les images, 
+    					les images de "0" sont séparées des images de "3" et de "5" par l'absence du tag 3, 
+    					les images "3" et "5" sont classées 
+              en comparant les angles entre les arcs reliant les tags. \citeindexfig{Amit1997} propose
+              une méthode permettant de déterminer les relations discriminantes soit l'ensemble minimal
+              de règles permettant de classer chaque image de chiffre.
+              \citeindexfig{Amit1997}
+              }
+    \label{blibliographie_geman}
+		\end{figure}
+
+La construction d'un tel système passe par un choix adéquat des tags et des relations qui les unissent afin d'obtenir un système de classification robuste et utilisant le moins de règles possible. L'ensemble présenté par~\citeindex{Amit1997} est un reconnaisseur de caractères mais il pourrait être adapté pour la classification des graphèmes. \indexfr{graphème} Dans ce cas, ce système est une alternative aux quatre déjà décrites dans les paragraphes~\ref{biblio_mmc_classifieur}, \ref{biblio_mmc_gauss}, \ref{biblio_mmc_rn}, et~\ref{biblio_svm}.
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Réseau de neurones incluant des prétraitements d'images}
+\indexfr{traitement d'image} \indexfr{RN}
+
+Ce système présenté dans~\citeindex{LeCun1998} est un autre reconnaisseur de caractères basé sur un réseau de neurones. Il diffère des autres par l'incorporation de plusieurs couches de neurones dévolues au traitement d'image (figure~\ref{blibliographie_bengio}). Son apprentissage est aussi différent des autres puisqu'il est appris à partir d'une base d'images de caractères annotés et de transformations de ces images (inclinaison, rotation, bruitage,~...).
+
+		\begin{figure}[ht]
+    $$\frame{$\begin{array}[c]{c}\includegraphics[height=4cm, width=12cm]
+    {\filext{../bibliographie/image/biblio_bengio}}\end{array}$}$$
+    \caption{Figure extraite de~\citeindexfig{LeCun1998} représentant le réseau baptisé LeNet-5, 
+    						 un réseau de neurones à
+                 convolution pour la reconnaissance de caractères, tous les plans de la couche C1 partagent
+                 les mêmes coefficients, les sorties de cette couche forment un ensemble de caractéristiques pour la
+                 couche suivante puisque directement extraites de l'image.}
+    \label{blibliographie_bengio}
+		\end{figure}
+
+
+L'ensemble présenté par~\citeindex{LeCun1998} est un reconnaisseur de caractères mais il pourrait être adapté pour la classification des graphèmes. \indexfr{graphème} Dans ce cas, ce système est une autre alternative aux cinq déjà décrites dans les paragraphes~\ref{biblio_mmc_classifieur}, \ref{biblio_mmc_gauss}, \ref{biblio_mmc_rn}, \ref{biblio_svm} et~\ref{biblio_geman}.
+
+
+
+
+
+
+
+
+
+
+\subsection{Hidden Neural Network : HNN}
+\indexfr{HNN} \indexsee{Hidden Neural Network}{HNN}
+
+
+Ces modèles développés dans~\citeindex{Riis1998} sont construits autour de réseaux de neurones classifieurs\seeannex{classification}{classification}. Soit $M$ un HNN possédant $N$ états, à chaque état $q \in \intervalle{1}{N}$ sont associés deux réseaux de neurones $f_q$ et $g_q$ dont les poids sont respectivement $w_q^f$ et $w_q^g$. Soit une séquence d'observations $\vecteur{O_1}{O_T}$, et $s=\vecteur{s_1}{s_T}$ une autre séquence, les probabilités de transition et d'émission du modèle $M$ sont~:
+
+			\begin{eqnarray*}
+			\pr{q_t | q_{t-1}, s_{t-1}, M} &=& f_{q_{t-1}}\pa{w_{q_{t-1}}^f, s_{t-1}}\\
+			\pr{O_t | q_t, s_{t-1}, M} &=& g_{q_t}\pa{w_{q_t}^g, s_{t-1}}
+			\end{eqnarray*}
+
+On en déduit que, si $\vecteur{q_1}{q_T}$ est une séquence d'états (voir figure~\ref{biblio_figure_hmm_hnn}), alors~:
+
+			\begin{eqnarray}
+			\pr{\vecteurno{O_1}{O_T}, \vecteurno{q_1}{q_T} | s,M} = \pr{q_1,s_1,M} 
+			\prody{t=2}{T} f_{q_{t-1}}\pa{w_{q_{t-1}}^f, s_{t-1}} g_{q_t}\pa{w_{q_t}^g,
+			s_{t-1}}
+			\end{eqnarray}
+
+\indexfr{IOHMM}%
+Les entrées $s_t$ des réseaux des neurones $f_{q_{t-1}}$ et $g_{q_t}$ incluent, comme pour les IOHMM (paragraphe~\ref{biblio_hmm_iohmm}), des informations complémentaires mais la séquence $\vecteur{s_1}{s_T}$ n'est plus discrète.
+
+Ces modèles contiennent trop de coefficients pour pouvoir être appliqués à la reconnaissance de l'écriture car la dimension de l'espace des observations est de quelques dizaines. L'autre inconvénient de ce modèle est de ne pas se prêter facilement à des modifications d'architecture, une suppression d'états entraîne des changements dans la structure de la chaîne de Markov cachée et dans les réseaux de neurones qui lui sont attachés.
+
+		\begin{figure}[ht]
+    $$\frame{$\begin{array}[c]{c}\includegraphics[height=4cm, width=8cm] 
+    {\filext{../dessin2/hmm_hnn}}\end{array}$}$$
+    \caption{Illustration d'un HNN}
+    \label{biblio_figure_hmm_hnn}
+		\end{figure}
+
+
+Ces modèles sont les plus généraux présentés, ils englobent les IOHMM qui eux-mêmes englobent les modèles de Markov cachés. Ils sont peu utilisés, leur sont préférés les modèles qui suivent utilisant eux-aussi des réseaux de neurones mais sont organisés selon une structure plus simple.
+
+
+
+
+
+
+
+
+
+
+\subsection{Time Delayed Neural Networks : TDNN}
+\indexfr{TDNN} \indexsee{Time Delayed Neural Network}{TDNN} \label{blibliographie_tdnn}
+
+
+Jusqu'à présent, même s'ils utilisent des réseaux de neurones, les modèles présentés sont explicitement basés sur un squelette incluant le formalisme des chaînes de Markov. Les modèles appelés Time Delay Neural Network ou réseau de neurones à temps retardés s'en passent (\citeindex{Schenkel1995}, \citeindex{Senior1994}, \citeindex{Senior1998}). Le principe de ces modèles illustrés figures~\ref{biblio_figure_tdnn} est d'étiqueter chaque observation selon sa classe d'appartenance (ici des classes de lettres) en tenant compte de ses voisins temporels. Ainsi, un TDNN contenant une couche d'entrée et deux autres couches fonctionnera comme suit~:
+
+    \begin{itemize}
+    
+    \item La première couche cachée aura pour entrées un vecteur de dimension trois fois celle des observations, la séquence $\vecteur{O_1}{O_T}$ deviendra la séquence $\vecteur{S_1^1}{S_T^1}$ où $S_i^1$ est de dimension $D_1$ et $S_t^1 = \pa{O_{t-1},O_t,O_{t+1}}$.
+    
+    \item La seconde couche aura pour entrées un vecteur de dimension trois fois $D_1$ et pour sorties un vecteur de probabilités $\vecteur{p_1}{p_T}$ correspondant aux classes de sorties des observations $\vecteur{O_1}{O_T}$
+    
+    \end{itemize}
+
+Ce genre de réseaux fonctionne comme une fenêtre temporelle locale qui se déplace. Il reste à traiter les effets de bord ou les extrémités de séquences, pour ce faire, on peut supposer que la séquence $\vecteur{O_1}{O_T}$ est transformée en la séquence $\pa{O_{-1},O_0,\vecteurno{O_1}{O_T},O_{T+1},O_{T+2}}$ où $O_{-1} = O_0 = O_{T+1} = O_{T+2} = 0$. Cette man\oe uvre est répétée pour les deux autres couches.
+
+
+    		\begin{figure}[ht]
+        $$\frame{$\begin{array}[c]{c}\includegraphics[height=4cm, width=8cm]
+        %{\filext{../bibliographie/image/biblio_tdnn}}\end{array}$}$$
+        {\filext{../bibliographie/image/rnnsenior}}\end{array}$}$$
+        \caption{Illustration d'un TDNN, figure extraite de \citeindexfig{Senior1994}}
+        \label{biblio_figure_tdnn}
+    		\end{figure}
+
+
+
+Les TDNN associent étroitement forme et séquence, dès la première couche, les graphèmes sont considérés avec leur voisinage et ce jusqu'à la dernière couche qui étiquettera un graphème en tenant compte de ses quatre plus proches voisins, qu'ils soient situés avant ou après dans la séquence, ce que ne font pas les modèles de Markov cachés qui ne prennent en compte qu'une dépendance vers le passé.
+
+L'apprentissage de ces modèles comme celui des CHMM (voir paragraphe~\ref{biblio_mmc_chmm}) nécessite l'étiquetage de chaque graphème et cette information n'est pas toujours disponible dans les bases de données. C'est pourquoi, ces modèles n'ont pour le moment pas été envisagés seuls mais plutôt comme simples réseaux de neurones dans un modèle hybride comme celui décrit au paragraphe~\ref{biblio_mmc_rn} où la chaîne de Markov cachée fournit l'annotation\seeannex{hmm_reestimation_rn_classification}{annotation réseau de neurones}.
+
+
+
+
+\subsection{Réseau de neurones récurrent}
+\indexfrr{réseau de neurones}{récurrent}  \label{blibliographie_reseau_recurrent}
+
+Le TDNN est composé de plusieurs couches qui utilisent les résultats des précédentes estimés sur plusieurs instants consécutifs. Le réseau de neurones récurrent utilise comme entrée l'observation à l'instant $t$ ainsi que des sorties intermédiaires ou finales du réseau de neurones à l'instant $t-1$ (voir figure~\ref{biblio_figure_tdnn2}, \citeindex{Senior1994}).
+
+    		\begin{figure}[ht]
+        $$\frame{$\begin{array}[c]{c}\includegraphics[height=4cm, width=16cm]
+        {\filext{../bibliographie/image/tdnnsenior}}\end{array}$}$$
+        \caption{Figure extraite de \citeindexfig{Senior1994} illustrant un réseau de neurones récurrant.}
+        \label{biblio_figure_tdnn2}
+    		\end{figure}
+
+
+
+\indexfr{MMC}
+
+L'article \citeindex{Senior1998} compare les performances obtenues par un TDNN, un réseau de neurones récurrent, un modèle de Markov caché seul et un modèle de Markov caché hybride associé à un réseau de neurones récurrents. Cette dernière option est la meilleure puisqu'elle permet selon l'auteur d'obtenir un taux d'erreur deux fois moindre par rapport à un réseau de neurones récurrent seul.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Modèle de Markov cachés 2D}
+\label{biblio_hmm_2d_label}
+
+\indexfrr{MMC}{-2D} \indexsee{HMM-2D}{MMC-2D} \indexsee{Hidden Markov Models 2D}{MMC-2D} \indexsee{Modèles de Markov cachés 2D}{MMC-2D} \indexfr{quadrillage} \indexfr{pixel} 
+
+Deux versions de ces modèles sont présentées, ils diffèrent des chaînes de Markov cachées simples (1D) car les observations qu'ils modélisent ne sont plus organisées sous forme de séquences indicées temporellement mais sous forme de quadrillage indicé par deux entiers. La figure~\ref{biblio_figure_hmm2d} illustre ce principe dans le cas de la reconnaissance d'un visage. De par cette différence, ces modèles 2D ne peuvent plus partir des graphèmes ordonnés sous forme de séquence mais des pixels eux-mêmes ou d'un découpage quadrillé plus grossier.
+
+\indexfr{PHMM} \indexsee{Pattern Hidden Markov Models}{PHMM} \indexsee{HMM 2D}{PHMM} 
+\label{blibliographie_phmm}
+
+La première version de ces modèles sont les Pattern Hidden Markov Models ou PHMM, ils sont bien adaptés au traitement d'image et sont utilisés dans la reconnaissance de visages. Leur emploi peut être étendu à la reconnaissance de caractères (voir \citeindex{Kuo1994}). Il s'agit de modèle à deux niveaux, le premier niveau est constitué de super-états, chacun associé à un modèle de Markov caché simple (voir~\citeindex{Eickeler1998} et figure~\ref{biblio_figure_hmm2d_2}).
+
+    		\begin{figure}[ht]
+        $$\frame{$\begin{array}[c]{c}\includegraphics[height=4cm, width=7cm]
+        {\filext{../bibliographie/image/biblio_hmm2d_2}}\end{array}$}$$
+        \caption{	Figure extraite de~\citeindexfig{Eickeler1998}, observations d'un modèle de 
+        					Markov caché adapté à la reconnaissance de visage}
+        \label{biblio_figure_hmm2d}
+    		\end{figure}
+
+    		\begin{figure}[ht]
+        $$\frame{$\begin{array}[c]{c}\includegraphics[height=4cm, width=5cm]
+        {\filext{../bibliographie/image/biblio_hmm2d}}\end{array}$}$$
+        \caption{	Figure extraite de~\citeindexfig{Eickeler1998}, 
+        					modèle de Markov caché adapté à la reconnaissance de visage à deux niveaux, 
+        					le premier niveau (celui contenant les super-états),
+                	déplie les sous-modèles selon l'axe des abscisses tandis que le second niveau contient des 
+                	modèles dont les états se déplient selon l'axe des ordonnées.}
+        \label{biblio_figure_hmm2d_2}
+    		\end{figure}
+
+
+\indexfr{NSPH-HMM} \indexsee{Non-symmetric Half-Plane Hidden Markov models}{NSPH-HMM}
+
+Une seconde version de ces modèles est présentée dans~\citeindex{Saon1997}, ce sont les Non-symmetric Half-Plane Hidden Markov models ou NSPH-HMM. Contrairement au modèle PHMM, ils ne comportent qu'un niveau. Ils sont caractérisés par une matrice d'observations $X=\pa{X_{ij}}_{ \begin{subarray}{c} 1 \infegal i \infegal m \\ 1 \infegal j \infegal n \end{subarray} }$ qui peuvent être les pixels eux-mêmes et une chaîne de Markov cachée $Q=\pa{q_j}_{1 \infegal j \infegal n }$. On note $\lambda$ les paramètres du modèle et $\Theta_{ij}$ un voisinage de chaque élément $X_{ij}$ défini comme dans la figure~\ref{biblio_figure_hmm2d_theta}.
+
+    \begin{eqnarray*}
+    P\pa{X \sachant \lambda}    &=& \summyone{Q} \pr{X,Q \sachant \lambda} \\
+                                &=& \summyone{Q} \pr{X \sachant \lambda} \pr{Q \sachant \lambda} \\
+                                &=& \summyone{Q} \prody{j=1}{n}  \pr{q_j \sachant q_{j-1}}
+                                                 \prody{i=1}{m}  \pr{X_{ij} \sachant X_{\Theta_{ij}}, q_j, \lambda}
+    \end{eqnarray*}
+
+
+
+    		\begin{figure}[ht]
+        $$\frame{$\begin{array}[c]{c}\includegraphics[height=4cm, width=4cm]
+        {\filext{../bibliographie/image/biblio_hmm2d_th}}\end{array}$}$$
+        \caption{Figure extraite de~\citeindexfig{Saon1997}, voisinage d'un pixel 
+        						(ou d'une observation) dans le cas d'un modèle NSHP-HMM,
+                    le voisinage $\Theta_{ij}$ est inclus dans les pixels situés à gauche ou au-dessus 
+                    d'un pixel $\Sigma_{ij}$.}
+        \label{biblio_figure_hmm2d_theta}
+    		\end{figure}
+
+Les PHMM diffèrent des NSPH-HMM par le type de dépendance, dans une seule direction à la fois pour les PHMM, dans les trois quarts du plan pour les NSPH-HMM.
+
+
+
+
+
+
+
+\subsection{Champs de Markov}
+\label{biblio_champ_markov}
+
+\indexfr{champs de Markov}\indexfrr{Markov}{champs}\index{dépendance temporelle}\indexfr{texture}
+
+Jusqu'à présent, les modèles présentés utilisent des modèles de Markov incluant une dépendance temporelle uniquement tournée vers le passé or, lors du décryptage d'un mot, une lettre mal écrite est en général déchiffrée à l'aide de celles qui l'entourent, autant sur sa droite que sur sa gauche. Il serait donc plus logique que la dépendance temporelle inclut les caractères à gauche et à droite. Cette dépendance n'est plus modélisable par une chaîne de Markov mais par un champ de Markov, modèles souvent utilisés pour la modélisation de textures. Un tel système de reconnaissance utilisant les champs de Markov est décrit dans l'article \citeindex{Cai2002} et est comparé à d'autres modélisations. Les champs de Markov y obtiennent des performances comparables tout en étant moins gourmands en terme de coefficients.
+
+
+
+
+
+
+
+
+
+%-----------------------------------------------------------------------------------------------------------------
+\section{Sélection d'architecture}
+%-----------------------------------------------------------------------------------------------------------------
+\label{biblio_architecture} \indexsee{architecture}{structure}  \indexfr{structure}  \indexfr{topologie}
+\indexfrr{sélection}{architecture}
+
+
+Il est facile de choisir entre deux modèles, il suffit d'estimer leurs paramètres sur une base d'apprentissage comprenant environ 75\% des données puis de comparer leurs performances sur une base de test comprenant environ 25\% des données (\citeindex{Bishop1995}). Cependant, elle est mal adaptée au problème de la reconnaissance car l'apprentissage d'un modèle est coûteux (une à plusieurs semaines de calculs). Dans ces conditions, la validation croisée\indexfrr{validation}{croisée} (\citeindex{Saporta1990}) d'un modèle est superflue. \citeindex{Bunke1995} envisage quant à lui différentes topologies puis choisit la mieux adaptée à son problème, les architectures envisagées sont encore dessinées par celui qui conçoit le système de reconnaissance et ne sont toutefois pas le résultat d'un algortihme de sélection.
+
+Il est donc préférable d'utiliser des méthodes qui font évoluer l'architecture des modèles au cours de l'apprentissage. Pour une modélisation donnée (une de celles proposées dans les paragraphes~\ref{biblio_modelisation}), il faut trouver le bon nombre d'états, le bon nombre de coefficients. 
+
+La figure~\ref{biblio_lettre_g} représente la modélisation Markovienne de la lettre 'G', comme l'écriture se lit de gauche à droite, celle-ci ne comporte aucun cycle, mais comment savoir que cette lettre s'écrit avec un ou deux graphèmes~? L'objectif des méthodes de sélection d'architecture est d'aboutir au plus petit modèle capable de représenter l'ensemble des données qu'il doit modéliser, ceci revient à trouver la limite entre~:
+
+    \begin{itemize}
+    \item sous-apprentissage : la modélisation aboutit à de mauvaises performances en reconnaissance,
+            \indexfr{sous-apprentissage}
+    \item sur-apprentissage : la modélisation est excellente 
+    				sur les données apprises mais s'adapte très mal à de nouvelles données.
+            \indexfr{sur-apprentissage}  (voir figure~\ref{biblio_equilibre_sur_sous} et \citeindex{Bishop1995})
+    \end{itemize}
+
+		    \begin{figure}[ht]
+        $$\frame{$\begin{array}[c]{c}\includegraphics[height=3cm, width=4cm]
+        {\filext{../bibliographie/image/biblio_lettre_g}}\end{array}$}$$
+        \caption{Modélisation de la lettre "G".}
+        \label{biblio_lettre_g}
+		    \end{figure}
+
+		    \begin{figure}[ht]
+		    $$\begin{array}[c]{c}{\includegraphics[height=2.0116in, width=3.608in]
+		    {\filext{../dessin2/mod_err_test_l_complex}}}\end{array}$$
+		    \caption{Equilibre entre sous-apprentissage et sur-apprentissage.}
+		    \label{biblio_equilibre_sur_sous}
+		    \end{figure}
+
+\indexfrr{base}{test}\indexfrr{base}{apprentissage}
+
+La figure~\ref{biblio_equilibre_sur_sous} suggère une définition du modèle optimal~:\indexfrr{modèle}{optimal} celui qui s'adapte le mieux aux données d'une base de test. Il n'est pas possible d'utiliser cette mesure lors de l'apprentissage auquel cas cette base de test n'en est plus une. La sélection de l'architecture d'un modèle doit donc intervenir uniquement à partir des données d'apprentissage. Les paragraphes qui suivent se proposent de jouer avec la structure des modèles.
+
+
+
+
+
+
+
+\subsection{Sélection de la structure d'un réseau de neurones}
+\indexfrr{sélection}{réseau de neurones} \label{biblio_rn_selection}
+
+L'article~\citeindex{Cottrel1995} propose une méthode permettant d'estimer la pertinence des coefficients d'un réseau de neurones. Un test statistique (\citeindex{Saporta1990}) permet de tester la nullité d'un coefficient, de cette manière, il est possible de réduire considérablement le nombre de coefficients et d'améliorer le pouvoir de généralisation du réseau. L'inconvénient de cette méthode est qu'elle nécessite la création d'une matrice carrée de dimension le nombre de coefficients. Pour de grands réseaux ($\sim 20000$ coefficients), cette méthode amène quelques difficultés d'implémentation au niveau des capacités de stockage en mémoire vive.
+
+Cette sélection utilise des résultats sur les estimateurs du maximum de vraisemblance, ils ne peuvent pas être adaptés tels quels aux modèles de Markov cachés car l'estimation de leurs paramètres dépend d'une optimisation sous contrainte.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Estimateur du nombre d'états d'une chaîne de Markov}
+\indexfr{estimateur} \indexfr{source de Markov}
+
+L'article \citeindex{Ziv1992} s'intéresse à un estimateur du nombre d'états d'une source de Markov, cette famille de modèles incluant les chaînes de Markov cachées. On note $\mathcal{P}_j$ l'ensemble des modèles dont le nombre d'états est inférieur ou égal à $j$, pour une séquence $x$ de longueur $n$, si $P \in \mathcal{P}_j$, on note $P\pa{x}$ la probabilité de la séquence $x$ sachant le modèle $P$. Par conséquent, si $S_n$ est l'ensemble des séquences d'états de longueur $n$, alors~:
+
+			$$
+			P\pa{x} = \summyone{s \in S_n} \cro{ \pr{x_1, s_1} \prody{i=2}{n} \pr{x_i, s_i \sachant s_{i-1}} }
+			$$
+
+On définit $N^*$ un estimateur du nombre d'états du modèle $P$~:
+
+			\begin{eqnarray}
+			N^* = \min \acc{ j \; \left| \; - \dfrac{1}{n} 
+			\ln \cro{\underset{P \in \mathcal{P}_j}{\max} P\pa{x}} - \dfrac{1}{n} U_{LZ}\pa{x} < \lambda
+			\right.}
+			\end{eqnarray}
+
+$U_{ZL}$ est la longueur en bits du code de Lempel-Ziv (LZ) défini dans l'article~\citeindex{Lempel1978}. D'après l'auteur, si $N^*$ est la vraie valeur du nombre d'états, cet estimateur vérifie la condition suivante~: \indexsee{Lempel Ziv}{LZ} \indexfr{LZ}
+
+			\begin{eqnarray}
+			\underset{n \longrightarrow \infty}{\lim \inf} \cro{ - \dfrac{1}{n} \ln  \pr{N^* > N} } \supegal \lambda
+			\end{eqnarray}
+
+$n$ représente la longueur d'une seule séquence mais il peut correspondre également au nombre de séquences finies que le modèle $P$ doit apprendre. Bien que le résultat soit intéressant, le calcul de l'estimateur est encore beaucoup trop coûteux car il nécessite l'estimation de nombreux modèles. De plus, ce résultat intervient pour des chaînes de Markov non cachées.
+
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Réduction du nombre de coefficients d'une chaîne de Markov}
+\indexfr{réduction de coefficients}
+
+
+Etant donné que les mots mathématiques sont de longueur finie, il est possible de surestimer le nombre d'états optimal nécessaire à un modèle afin de les apprendre. \citeindex{Augustin2001} propose une méthode dont l'initialisation repose sur un modèle à structure riche (figure~\ref{biblio_hmm_colonne_riche}) auquel vont être enlevés états et connexions faibles pour aboutir à une architecture équivalente et réduite.
+
+    \begin{figure}[ht]
+        $$\frame{$\begin{array}[c]{c}\includegraphics[height=5cm, width=9cm]
+        {\filext{../dessin2/selection_emmanuel1}}\end{array}$}$$
+        \caption{Un modèle à structure riche organisé en colonnes}
+        \label{biblio_hmm_colonne_riche}
+    \end{figure}
+
+Les modèles utilisés par~\citeindex{Augustin2001} sont organisés en colonnes d'états, chaque colonne comprend au départ $C$ états où $C$ est le nombre de classes d'observations et chaque état émet une seule classe d'observations
+(paragraphe~\ref{biblio_mmc_rn}). La suppression des états et connexions faibles est conçue comme suit~:
+
+    \begin{enumerate}
+    
+    \item Le modèle est appris grâce aux formules de Baum-Welch 
+    			(voir~\citeindex{Levinson1983}, \citeindex{Rabiner1986}).
+    
+    \item Pour chaque séquence~:
+        \begin{enumerate}
+        \item Le meilleur chemin d'états est obtenu grâce à l'algorithme de
+        			 Viterbi\seeannex{paragraphe_viterbi_principe}{Viterbi} 
+        			 (voir~\citeindex{Levinson1983}, \citeindex{Rabiner1986}),
+        			 il correspond aux écritures les plus probables (voir figure~\ref{biblio_lettre_g}).
+
+        \item Pour chaque connexion, on compte le nombre de meilleurs chemins l'empruntant.
+        
+        \item On supprime les connexions trop peu utilisées (en dessous d'un certain seuil), le nombre de connexions supprimées ne peut être supérieur à un petit nombre ($\sim 10\%$), les manières les moins courantes d'écrire telle ou telle lettre sont oubliées.
+        
+        \item Les états n'étant plus connectés sont supprimés également.
+        \end{enumerate}
+        
+    \item On retourne à l'étape 1 tant que l'étape 2 supprime des connexions.
+    
+    \end{enumerate}
+
+La suppression des connexions s'effectue par étape, en théorie, elle devrait s'effectuer une par une, en pratique, pas plus de approximativement 10\% sont supprimées. Lorsqu'une connexion marginale est supprimée, une autre qui l'était peut ne plus l'être pour pallier la disparition de la première, c'est pourquoi, les connexions sont supprimées petit à petit. La figure~\ref{biblio_hmm_colonne_selection} donne un exemple de résultat de cette méthode.
+
+    		\begin{figure}[ht]
+        $$\frame{$\begin{array}[c]{c}\includegraphics[height=3cm, width=9cm]
+        {\filext{../dessin2/selection_emmanuel2}}\end{array}$}$$
+        \caption{L'architecture sélectionnée par la méthode développée par~\citeindexfig{Augustin2001}}
+        \label{biblio_hmm_colonne_selection}
+    		\end{figure}
+
+
+
+
+
+
+
+\subsection{Bayesian Information Criterium ou BIC}
+\indexfr{BIC}
+\indexfr{série temporelle}
+\indexfr{auto-régressif}
+
+L'article \citeindex{Bicego2003} adapte aux modèles de Markov cachés une méthode fréquemment utilisée pour la sélection de modèles auto-régressifs appliqués à la prévision de séries temporelles. Cette méthode consiste à pondérer la vraisemblance, toujours croissante lorsque le nombre de coefficients augmente, par un terme décroissant. Le modèle sélectionné doit alors maximiser la vraisemblance pondérée. Cette méthode est développée au paragraphe~\ref{reco_selection_architecture} qui évoque également les problèmes que soulève son adaptation au cas de la reconnaissance de l'écriture.
+
+
+
+
+
+
+
+\subsection{Modèles de Markov équivalents}
+\indexfr{équivalence}
+
+L'article \citeindex{Kamp1985} propose une méthode pour réduire encore la taille des modèles de Markov cachés, elle permet de détecter le cas des états qui jouent des rôles similaires\seeannex{hmm_select_thoereme_kamp_second}{états similaires}~:
+
+\begin{enumerate}
+\item les probabilités d'émissions de ces états sont identiques,
+\item le regroupement de ces deux états en un seul aboutit à un modèle équivalent, deux modèles $M_1$ et $M_2$ sont dits équivalents si quelle que soit la séquence d'observations $O$, $\pr{O \sachant M_1} = \pr{O \sachant M_2}$.
+\end{enumerate}
+
+En pratique, l'équivalence de deux modèles est vérifiée uniquement sur la base ayant servi à estimer les modèles.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Assemblage de chaînes de Markov cachées}
+\indexfr{assemblage} \indexfrr{état}{non émetteur}
+
+
+Le formalisme des modèles de Markov cachés permet également de les assembler de manière simple. En introduisant des
+états non émetteurs (voir~\citeindex{Lallican1999}\seeannex{hmm_intro_entree_sortie}{état non émetteur}, un modèle complexe devient la "somme" de modèles plus simples comme sur la figure~\ref{biblio_figure_hmm_exemple_modele_imbrique_non_emetteur_deux}.
+
+		\begin{figure}[ht]
+    \[\frame{$\begin{array}[c]{c}{\includegraphics[height=0.6789in,
+    width=4.4547in]{\filext{../dessin2/hmm_etat_ne_ex_fin}}}\end{array}$}\]
+    \caption{
+        Modèle de mot avec états non émetteurs (états noirs ainsi que les états E (entrée) et S (sortie)),
+        ce modèle est en quelque sorte une imbrication de modèles de Markov cachés notés (a,b,c,d,e,f) 
+        et peut représenter les chaînes
+        suivantes~: abcdef, abcd, abcde, abcdf, bcdef, bcd, bcde, bcdf.
+    }
+    \label{biblio_figure_hmm_exemple_modele_imbrique_non_emetteur_deux}
+		\end{figure}
+
+Les états non émetteurs sont en quelque sorte des aiguillages, ils n'émettent pas d'observations, c'est-à-dire que pour une séquence d'états de longueur $T$, une séquence d'états associée contiendra $T$ états émetteurs et un nombre quelconque d'états non émetteurs (de zéro à l'infini).
+
+Ce formalisme peut être utilisé pour construire des modèles de mots à partir de modèles de lettres, dans ce cas, vingt-six modèles de Markov cachés seulement modélisent l'ensemble des mots. Cet assemblage peut être adapté aux IOHMM, \indexfr{IOHMM} aux HNN \indexfr{HNN} et imaginé comme un jeu de lego qui peut réduire la complexité des modèles en éliminant des connexions redondantes. \indexfr{lego} Ce formalisme ne traite pas à proprement parler de la sélection de modèles mais il propose un moyen intéressant d'assembler les modèles -~ par exemple des modèles de lettres pour former des modèles de mots~- sans accroître le nombre de coefficients.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%------------------------------------------------------------------------------------------------------------------
+\section{Conclusion}
+%------------------------------------------------------------------------------------------------------------------
+\indexfr{conclusion}
+\label{biblio_conclusion}
+
+La modélisation sous forme de chaînes de Markov cachées est relativement bien adaptée à la reconnaissance de l'écriture manuscrite. Elle permet de traiter aisément des séquences de petites images. Néanmoins, les recherches sur ces modèles s'estompent. Outre l'association de modèles Markov cachés avec différents types de classifieurs, cette modélisation a atteint sa limite sans pour autant être véritablement dépassée par d'autres modélisations. Dorénavant, les chercheurs s'orientent plus vers leur inclusion dans un ensemble plus grand et une meilleure utilisation du contexte (voir~\citeindex{Knerr2001}, \citeindex{Koerich2002b}). C'est dans cette direction que ces travaux seront orientés. 
+
+Cette conclusion s'appuie sur l'article~\citeindex{Steinherz1999} qui considère que la reconnaissance de mots cursifs limitée à un lexique réduit est un problème quasiment résolu. La recherche est principalement orientée vers l'optimisation de méthodes déjà existantes, ce dont témoigne la multitude de modèles inspirés du formalisme des modèles de Markov cachés. Toutefois, bien que pour de grands lexiques les résultats obtenus ne soient pas encore satisfaisants, ce même article évoque la possibilité que le problème de la seule reconnaissance d'un mot cursif ait atteint sa limite et que dorénavant, elle doive être dirigée vers des post-traitements pouvant inclure des informations contextuelles ou tout simplement l'utilisation de plusieurs classifieurs.\indexfrr{classifieur}{vote} Les HMM et les IOHMM seront les seuls modèles expérimentés. Ce choix peut paraître arbitraire, il est guidé par le fait que la société A2iA\indexfr{A2iA} utilise déjà ces modèles. 
+
+%Bien que les modèles de Markov cachés soient à la base du système de reconnaissance de l'écriture manuscrite décrit dans ce document, les travaux qui y sont présentés se situent à leur périphérie. Ils ne s'agit pas de remettre en cause cette modélisation mais plutôt de l'améliorer par des pré-traitements ou des post-traitements.
+
+Lors d'une reconnaissance, le processus part de l'image en passant par une modélisation mathématique avant d'arriver au résultat. Les chapitres suivants suivront ce plan, c'est-à-dire la transformation progressive de l'image en un résultat de reconnaissance, rappelant les méthodes déjà développées par d'autres et insérant celles qui sont le fruit de ces travaux. Le chapitre suivant est dédié aux traitements d'images abordés d'une manière plus détaillée que dans ce chapitre. Le chapitre d'après est dédié à la reconnaissance statistique puis viendra le chapitre concernant la décision. 
+
+Un dernier chapitre \ref{nouveaux_enjeux} s'intéresse aux nouveaux enjeux, des problèmes pour lesquels des solutions satisfaisantes commencent à faire leur apparition à partir des années 2004-2005.
+
+
+
+
+\newpage
+
+\firstpassagedo{
+	\begin{thebibliography}{99}
+	\input{bibliographie_article.tex}
+	\end{thebibliography}
+}
+
+\input{../../common/livre_table_end.tex}%
+\input{../../common/livre_end.tex}%

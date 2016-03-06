@@ -1,0 +1,62 @@
+\input{../../common/livre_begin.tex}%
+
+
+\sloppy
+
+\chapter{Introduction}
+
+
+
+
+\section{Avant propos}
+
+\indexfr{intelligence artificielle}
+
+Une machine capable de lire toute seule sans aucune aide humaine fascine, si bien qu'elle incite à comprendre ses mécanismes internes. Elle fascine tellement qu'elle semble douée d'intelligence artificielle. Ce dernier terme est bien souvent accompagné d'une multitude d'autres comme analyse d'image, modélisation, optimisation... C'est peut-être à ce moment que la machine perd quelque peu de son mystère pour dévoiler ses engrenages complexes qui s'enroulent telle une annonce de défi. C'est peut-être aussi à ce moment qu'on se surprend à vouloir insérer son propre rouage pour croire enfin apercevoir cette machine vous adresser son premier sourire~!
+
+
+
+
+\section{Reconnaissance de l'écriture manuscrite}
+
+Quelques articles plus loin, la reconnaissance de l'écriture manuscrite apparaît comme un sujet de recherche toujours vivace et suffisamment vaste pour que très peu d'articles envisagent de décrire un tel système dans sa globalité. De l'image au résultat, deux grandes étapes se succèdent dont la première est une trancription de l'image dans une forme faisant intervenir des espaces vectoriels. Celle-ci fait intervenir de nombreux traitements d'images selon la qualité du document initial. Vient ensuite une modélisation plus formelle qui constitue la reconnaissance proprement dite, on y croise le terme apprentissage cher à l'intelligence artificielle qui équivaut souvent à une optimisation de fonctions aux nombreux coefficients.
+
+Au premier abord, cette seconde partie apparaît comme la plus importante, celle qui, puisqu'elle est apprise, permet de rattraper les imprécisions de la première vouée au traitement d'image. C'est donc a priori vers celle-ci que sont principalement orientées les recherches. Toutefois, depuis quelques années, avec la montée en puissance des ordinateurs, les articles concernant cette modélisation se sont peu à peu taris. Certains ont même conclu que ce domaine avait presque atteint ses limites et que la recherche devait maintenant se diriger vers d'autres cieux comme le traitement d'images auquel la puissance des ordinateurs donne de plus en plus de liberté, ou la prise en compte d'information contextuelle, ou encore l'association de plusieurs systèmes.
+
+Dans un premier temps, le travail a consisté à rassembler par thèmes de nombreuses méthodes utilisées par d'autres chercheurs en ayant pour objectif l'élaboration d'un sytème capable de reconnaître un mot manuscrit depuis l'image jusqu'au résultat. Cette tâche explique la longueur de ce manuscrit. Dans un second temps, chaque brique du système a été construite soit en choisissant l'algorithme le plus performant d'après la littérature, soit en sélectionnant la meilleure méthode à partir de résultats d'expériences, soit en innovant. Ces travaux ont abouti à l'élaboration d'un système complet de reconnaissance.
+
+
+
+
+
+
+\section{Plan}
+
+
+Il n'est jamais facile de rédiger une synthèse de trois années de travail, d'adopter une logique et de s'y tenir. Les annexes représentent une part importante. Elles pourraient être tout ce qu'il est difficile d'ordonner qui a été jeté pêle-mêle sur le papier. Elles incluent toutefois peu de résultats expérimentaux liés à la reconnaissance de l'écriture, chacune d'elles aborde une modélisation (réseau de neurones, modèles de Markov cachés,~...) ou des méthodes (distance d'édition, plus proches voisins,~...) d'un point de vue mathématique. Ces définitions et théorèmes sont extraits et regroupés par thèmes, ils sont ainsi assemblés de manière plus structurée et plus exhaustive. Ces annexes peuvent ainsi presque se lire indépendamment du reste de ce manuscrit. Comme leur connaissance dépend de chaque lecteur, les premières parties décrivant le travail de cette thèse y feront souvent référence sans détailler ces concepts. 
+
+Le premier chapitre reviendra plus particulièrement sur les différentes options de modélisation mathématique de la reconnaissance puis chaque étape du système sera décrite en commençant par le traitement d'image que conclut l'élaboration d'une segmentation en graphèmes. Le troisième chapitre décrira la reconnaissance d'un point de vue mathématique intégrant la description des graphèmes en vecteurs et la  reconnaissance. Le quatrième chapitre s'intéressera à la prise de décision, dernière étape avant l'obtention du résultat. 
+
+Les annexes terminent le document. Elles regroupent des méthodes issues d'articles et classées par thèmes tels que la squelettisation, les réseaux de neurones, les chaînes de Markov cachées, la classification non supervisée, les distances d'éditions, la recherche de voisins dans un espace métrique quelconque, les n-grammes.
+
+
+
+\section{Notes à propos de ce manuscrit}
+
+Ce document est conclu par la liste des tables, des figures et des références, ainsi qu'une table des matières détaillée. Les dernières pages de ce manuscrit forment un index permettant de retrouver notamment les pages où chaque article est cité, les pages où sont écrits définitions, théorèmes et algorithmes. Enfin, cet index contient une rubrique "directions de recherche" qui répertorie chaque page où une possible extension de ces travaux a été envisagée.
+
+
+
+
+
+
+
+
+
+
+
+
+\newpage
+
+
+\input{../../common/livre_end.tex}%

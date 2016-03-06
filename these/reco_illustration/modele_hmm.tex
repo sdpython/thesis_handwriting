@@ -1,0 +1,87 @@
+\input{../../common/livre_begin.tex}
+\firstpassagedo{\input{modele_hmm_titre.tex}}
+\input{../../common/livre_table_begin.tex}
+\firstpassagedo{\input{modele_hmm_chapter.tex}}
+
+
+\label{annexe_reco_illustration}
+
+
+Cette annexe regroupe pour chaque lettre une représentation simplifiée d'un modèle de Markov caché qui lui est associé. Chaque état émet une classe d'observations illustrée par un ou deux de ses éléments les plus probables. Chaque image de modèle résume les écritures les plus fréquentes pour chaque lettre. Ces lettres ont été estimées sur une base d'apprentissage de 30000 prénoms français. Seuls ont été conservées les transitions dont les probabilités sont supérieures à~0,15 afin de ne garder que les principaux coefficients sur les quelques centaines que contient chaque modèle. Leur architecture a été sélectionnée à partir des méthodes développées dans l'annexe~\ref{annexe_hmm_select}.
+
+
+			$$
+			\begin{tabular}[t]{|c|c|} \hline
+			\textbf{lettre} & \textbf{modèle} \\ \hline
+			\huge{a}								& \includegraphics[height=3cm, width=4cm]{\filext{../reco/image2/_a}} \\ \hline
+			\huge{b}								& \includegraphics[height=2cm, width=4cm]{\filext{../reco/image2/_b}} \\ \hline
+			\huge{c}								& \includegraphics[height=0.75cm, width=3cm]{\filext{../reco/image2/_c}} \\ \hline
+			\huge{d}								& \includegraphics[height=3cm, width=4cm]{\filext{../reco/image2/_d}} \\ \hline
+			\huge{e}								& \includegraphics[height=0.75cm, width=3cm]{\filext{../reco/image2/_e}} \\ \hline
+			\end{tabular}
+			$$
+
+			$$
+			\begin{tabular}[c]{|c|c|} \hline
+			\textbf{lettre} & \textbf{modèle} \\ \hline
+			\huge{f}	         			& \includegraphics[height=5cm, width=6cm]{\filext{../reco/image2/_f}} \\ \hline
+			\huge{g}								& \includegraphics[height=3cm, width=6cm]{\filext{../reco/image2/_g}} \\ \hline
+			\huge{h}								& \includegraphics[height=3cm, width=6cm]{\filext{../reco/image2/_h}} \\ \hline
+			\huge{i}								& \includegraphics[height=0.75cm, width=3cm]{\filext{../reco/image2/_i}} \\ \hline
+			\huge{j}								& \includegraphics[height=4cm, width=6cm]{\filext{../reco/image2/_j}} \\ \hline
+			\huge{k}	         			& \includegraphics[height=5cm, width=8cm]{\filext{../reco/image2/_k}} \\ \hline
+			\end{tabular}
+			$$
+
+			$$
+			\begin{tabular}[c]{|c|c|} \hline
+			\textbf{lettre} & \textbf{modèle} \\ \hline
+			\huge{l}								& \includegraphics[height=3cm, width=4cm]{\filext{../reco/image2/_l}} \\ \hline
+			\huge{m}								& \includegraphics[height=5cm, width=8cm]{\filext{../reco/image2/_m}} \\ \hline
+			\huge{n}								& \includegraphics[height=3cm, width=5cm]{\filext{../reco/image2/_n}} \\ \hline
+			\huge{o}								& \includegraphics[height=3cm, width=5cm]{\filext{../reco/image2/_o}} \\ \hline
+			\huge{p}								& \includegraphics[height=5cm, width=7cm]{\filext{../reco/image2/_p}} \\ \hline
+			\end{tabular}
+			$$
+
+			$$
+			\begin{tabular}[c]{|c|c|} \hline
+			\textbf{lettre} & \textbf{modèle} \\ \hline
+			\huge{q}								& \includegraphics[height=4cm, width=6cm]{\filext{../reco/image2/_q}} \\ \hline
+			\huge{r}								& \includegraphics[height=2cm, width=4cm]{\filext{../reco/image2/_r}} \\ \hline
+			\huge{s}								& \includegraphics[height=1cm, width=4cm]{\filext{../reco/image2/_s}} \\ \hline
+			\huge{t}								& \includegraphics[height=1cm, width=4cm]{\filext{../reco/image2/_t}} \\ \hline
+			\huge{u}								& \includegraphics[height=3cm, width=6cm]{\filext{../reco/image2/_u}} \\ \hline
+			\huge{v}								& \includegraphics[height=3cm, width=6cm]{\filext{../reco/image2/_v}} \\ \hline
+			\huge{w}								& \includegraphics[height=5cm, width=8cm]{\filext{../reco/image2/_w}} \\ \hline
+			\end{tabular}
+			$$
+
+			$$
+			\begin{tabular}[c]{|c|c|} \hline
+			\textbf{lettre} & \textbf{modèle} \\ \hline
+			\huge{x}								& \includegraphics[height=4cm, width=6cm]{\filext{../reco/image2/_x}} \\ \hline
+			\huge{y}								& \includegraphics[height=4cm, width=6cm]{\filext{../reco/image2/_y}} \\ \hline
+			\huge{z}								& \includegraphics[height=1cm, width=4cm]{\filext{../reco/image2/_z}} \\ \hline
+			\end{tabular}
+			$$
+
+
+Les lettres les moins fréquentes "k", "w", "x" ont des modèles incluant des symboles parfois éloignés du dessin de la lettre. Lors de leur apprentissage, étant donné le faible nombre d'exemples -~seulement une centaine pour la lettre "w"~- servant à l'estimation de leur coefficients, chaque image représente une écriture chaque fois presque unique. Il suffit alors qu'une erreur de segmentation intervienne ou que le mot soit mal écrit pour que le modèle inclut une écriture peu vraisemblable de même importance que les autres. C'est le cas des lettres "y" ou "x" pour lesquels on ne dispose que peu d'exemples d'apprentissage. En revanche, la lettre "z" pourrait être considérée comme une lettre rare elle aussi mais les prénoms présents dans la base d'apprentissage balayent tout un siècle. Des prénoms comme Elizabeth, Gonzague, Suzanne ne sont pas rares.
+
+
+
+
+
+
+%\firstpassagedo{
+%	\begin{thebibliography}{99}
+%	\input{ngrams_biblio.tex}
+%	\end{thebibliography}
+%}
+
+
+%\input{../../common/livre_table_end.tex}
+\input{../../common/livre_end.tex}
+
+

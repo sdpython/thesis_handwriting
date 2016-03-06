@@ -1,0 +1,184 @@
+% -*- coding: utf-8 -*-
+
+\ifx\firstpassage\undefined
+\def\firstpassage{1}
+\newcount\nbpassages
+\nbpassages=1
+
+
+\documentclass[10pt,onecolumn]{article}
+
+\usepackage{ucs}
+\usepackage[utf8x]{inputenc}
+\usepackage{CJK}
+\usepackage[T1]{fontenc}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{subfigure}
+\usepackage{float}
+\usepackage{latexsym}
+\usepackage{amsfonts}
+\usepackage{epic}
+\usepackage{eepic}
+\usepackage{makeidx}
+\usepackage{multido}
+\usepackage{varindex}
+\usepackage{moreverb}
+\usepackage[usenames]{color}
+\usepackage{alltt}
+\usepackage{moreverb}
+\usepackage{fancyvrb}
+\usepackage{fancyhdr}
+\usepackage{color}
+\usepackage{eurosym}
+\usepackage{multirow}
+\usepackage[small,normal]{caption2}  % hang
+\usepackage{tabularx}
+\usepackage{placeins}
+\usepackage{hyperref}
+\usepackage{url}
+\urlstyle{sf}
+\usepackage[lmargin=3cm,rmargin=3cm,tmargin=3cm,bmargin=3cm]{geometry}
+\pagestyle{fancy}
+\usepackage{xcolor}
+\usepackage{colortbl,hhline}
+
+\usepackage[pdftex]{graphicx}   %[pdftex]
+\usepackage{mfpic}
+
+\usepackage{lscape}
+\usepackage{rotating}
+\usepackage[all]{xy}
+
+\newcommand{\pa}[1]						{ \left(#1\right)}
+\newcommand{\cro}[1]						{ \left[#1\right]}
+\newcommand{\acc}[1]					{ \left\{#1\right\}}
+\newcommand{\ydirac}[1]				{ \mathbf{1\!\!1}_{\acc{#1}} }
+\newcommand{\suggestion}[2] 	{\bigskip \textbf{Suggestion:}\\ \index{suggestion!#1}#2}
+\newcommand{\moredetail}[2] 	{\bigskip \textbf{More details:}\\ \index{more details!#1}#2}
+\newcommand{\murl}[1]					{\footnotesize{\url{#1}}\normalsize}
+\newcommand{\infegal}[0]			{\leqslant}
+\newcommand{\supegal}[0]			{\geqslant}
+\newcommand{\abs}[1]						{ \left|#1\right|}
+\newcommand{\turl}[1]{\begin{scriptsize}\url{#1}\end{scriptsize}}
+\newcommand{\indicatrice}[1]{\mathbf{1\!\!1}_{\acc{#1}}}
+\newcommand{\pr}[1]						{\mathbb{P}\pa{#1}}
+
+\parindent 0pt
+
+
+\sloppy
+
+% graphics part
+\setlength{\unitlength}{1cm}
+
+% rectangle x,y,w,l
+\newcommand{\figrect}[4]			{ \multiput(#1, #2)(#3, 0){2}{\line(0, 1){#4}}
+																\multiput(#1, #2)(0, #4){2}{\line(1, 0){#3}} }
+\newcommand{\figrecttext}[5]	{ \multiput(#1, #2)(#3, 0){2}{\line(0, 1){#4}}
+																\multiput(#1, #2)(0, #4){2}{\line(1, 0){#3}} 
+																\put(#1,#2){#5}}
+
+
+\newenvironment{mbpicture}[2] 	{  \begin{center} \begin{tabular}{|c|} \hline \\  \begin{minipage}{#1 cm} \begin{picture}(#1,#2) }
+															{ \end{picture} \end{minipage}  \\ \hline \end{tabular}\end{center}  }
+
+\newenvironment{ypicture}[2] 	{  \begin{center} \begin{picture}(#1,#2) }
+													 		{ \end{picture} \end{center}}
+													 		
+
+\makeindex
+
+\newcounter{xcremark}[section]
+\renewcommand{\thexcremark}    {\thesection.\arabic{xcremark}}
+
+\newenvironment{remark}[1] 	{\refstepcounter{xcremark}\medskip\textbf{Remark \thexcremark: #1}\index{remark!#1}\\}
+													 	{ }
+
+\newcommand{\cpp}[0]{\textit{C++}}
+\newcommand{\cpps}[0]{\textit{C++} }
+
+\newcommand{\codes}[1]{\small$\mathtt{#1}$\normalsize}
+\newcommand{\codesnote}[1]{$\mathtt{#1}$}
+
+\if 1
+\makeatletter  % makes '@' an ordinary character
+\renewcommand{\verbatim@font}{%
+\ttfamily\small%
+\catcode`\^^I=\active \gdef^^I{\ \ \ \ }%
+\catcode`\`=\active\gdef`{\relax\lq}%
+\catcode`\<=\active\catcode`\>=\active%
+\catcode`\^^I=\active%
+\catcode`\<=\active \catcode`\>=\active %
+\catcode`\,=\active \catcode`\'=\active %
+\catcode`\`=\active%
+}
+\makeatother   % makes '@' a special symbol again
+\fi
+
+
+\DefineVerbatimEnvironment{verbatimx}{Verbatim}{%
+frame=single, framerule=.1pt, framesep=1.5mm, fontsize=\footnotesize,
+%gobble=2,
+%fillcolor=\color{yellow},
+xleftmargin=0pt
+}
+
+\setlength{\parskip}{1ex plus 0.5ex minus 0.2ex}
+
+\newcommand{\definespacepar}[0]{ \setlength{\parskip}{1ex plus 0.5ex minus 0.2ex} }
+
+%\setlength{\topsep}{0pt}
+%\setlength{\partosep}{0pt}
+%\setlength{\itemsep}{0pt}
+
+\newenvironment{myitem}%
+{ \begin{list}%
+	{$\bullet$}%
+	{\setlength{\labelwidth}{30pt}%
+	 \setlength{\leftmargin}{35pt}%
+	 \setlength{\parskip}{0pt}
+	 \setlength{\itemsep}{0pt}
+	 \setlength{\parsep}{0pt}
+	 }}%
+{ \end{list} }
+
+\newcommand{\inputcode}[2]{\index{program!#2}
+ %\VerbatimInput[frame=single,numbers=right,numbersep=2pt,stepnumber=5,firstnumber=1,fontsize=\footnotesize]{#1} }
+\VerbatimInput[frame=single,fontsize=\footnotesize]{#1} }
+
+
+\newcommand{\nsubset}[0]{\subset \hspace{-9pt} \backslash \hspace{4pt} }
+
+\rfoot[paire droite]{\begin{footnotesize} \textit{\date{\today}} \end{footnotesize}}
+\lfoot[paire droite]{\begin{footnotesize} \textit{Microsoft STC Europe%Confidential
+																									} \end{footnotesize}}
+\newcommand{\msn}[0]{\textit{Microsoft}}
+\newcommand{\msns}[0]{\textit{Microsoft }}
+
+\hyphenation{digging}
+\hyphenation{selecting}
+
+%\include {../_header_footer/ideogram.tex}
+\newcommand{\unicode}[1]{\includegraphics{../_ideogram/char_0x#1.png}}
+\newcommand{\unicodes}[1]{\includegraphics[height=0.6cm]{../_ideogram/char_0x#1.png}}
+
+\begin{document}
+
+
+\else
+
+
+\ifnum\nbpassages=3
+\nbpassages=4
+\fi
+
+\ifnum\nbpassages=2
+\nbpassages=3
+\fi
+
+\ifnum\nbpassages=1
+\nbpassages=2
+\fi
+
+\fi

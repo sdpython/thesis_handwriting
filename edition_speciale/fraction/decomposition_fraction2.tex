@@ -1,0 +1,938 @@
+\input{../../common/livre_begin.tex}
+\firstpassagedo{\input{fraction_titre.tex}}
+\input{../../common/livre_table_begin.tex}
+
+
+\chapter{Introduction}
+\indexfr{système linéaire}%
+
+Il existe une méthode systématique qui permet de décomposer une fraction rationelle en éléments simples : la première étape est d'écrire la forme a priori de la décomposition, puis, après mise sous même dénominateur, d'identifier les coefficients de la décomposition. Cette méthode revient à résoudre un système linéaire de $n$ inconnues à $n$ équations. Les $n$ inconnues sont les $n$ coefficients de la décomposition de la fraction en éléments simples. Un théorème \indexfr{théorème} affirme que cette décomposition existe et est unique ce qui nous assure que le système linéaire à résoudre admet nécessairement une solution unique.
+
+Les chapitres qui suivront ont pour de présenter un algorithme de décomposition des fractions rationnelles en éléments simples.
+
+\chapter{Préliminaires}
+
+\section{Opérations sur les polynômes}
+\indexfr{polynôme}%
+
+La multiplication de polynômes sera la seule opération sur les polynômes utilisée par l'algorithme. Néanmoins, l'addition sera également présentée.
+
+Un polynôme $P$ est défini par :
+
+$$
+\left\{
+\begin{array}{l}
+\text{un degré }d_{P} \\
+\text{un tableau de coefficients } \intervalle{a_0}{a_{d_P}} \\
+\end{array}
+\right.
+$$
+
+D'après ces notations :
+
+$$
+P\pa{x} =\summy{i=0}{d_P} a_i x^i
+$$
+
+Par définition, un polynôme est constant si et seulement si $d_{P}=0$, par convention, le polynôme nul aura pour degré~0.
+
+
+
+
+
+\subsection{L'addition}
+\indexfr{addition}%
+
+On considère deux polynômes :
+
+$P$ de degré $d_{P}$ et de coefficients $\intervalle{a_0}{a_{d_P}}$ et $Q$ de degré $d_{Q}$ et de coefficients $\intervalle{b_0}{b_{d_Q}}$.
+
+Soit $R=P+Q$, on sait que $d_{R}\leqslant \max \left( d_{P},d_{Q}\right)$, et es coefficients de $R$\ sont $\intervalle{c_0}{c_{d_R}}$.
+
+$$
+\forall i\in \intervalle{0}{d_R}, \; c_i = \left\{
+\begin{array}{l}
+a_i + b_i   \text{ si } i \infegal \min \acc{d_P,d_Q} \\
+a_i         \text{ si } i \infegal d_P \text{ et } i > d_Q \\
+b_i         \text{ si } i > d_P \text{ et } i \infegal d_Q
+\end{array}
+\right.
+$$
+
+La valeur précise de $d_R$ est donnée par :
+
+$$
+d_R = \left\{
+\begin{array}{l}
+\max \acc{d_P, d_Q} \text{ si } d_P \neq d_Q \\
+\inf \acc{ i \;|\; i \in \intervalle{0}{d_R} \text{ et } \forall k > i, \, c_k = 0 } 
+\text{ si } d_P \neq d_Q \\
+\end{array}
+\right.
+$$
+
+On prend cette précaution pour s'assurer que le coefficient du terme de plus haut degré est non nul. Dans le programme, cette addition n'est pas utilisée.
+
+
+
+
+
+\subsection{La multiplication}
+\indexfr{multiplication}%
+
+On considère deux polynômes $P$ de degré $d_{P}$ et de coefficients $\intervalle{a_0}{a_{d_P}}$ et $Q$ de degré $d_{Q}$ et de coefficients $\intervalle{b_0}{b_{d_Q}}$.
+
+\begin{eqnarray*}
+P &=& \summy{i=0}{d_P} a_i x^i \\
+Q &=& \summy{i=0}{d_Q} b_i x^i
+\end{eqnarray*}
+
+Par conséquent, soit $R$ le polynôme vérifiant $R = PQ$, de degré $d_R$ et de coefficients $\intervalle{c_0}{c_{d_R}}$, alors :
+
+$$
+d_R = \left \{
+\begin{array}{l}
+0 \text{ si } P = 0 ou Q = 0 \\
+d_P + d_Q \text{ sinon }
+\end{array}
+\right.
+$$
+
+Dans le cas où $P\neq 0$ et $Q\neq 0$~:
+
+\begin{eqnarray*}
+R &=& \pa{\summy{i=0}{d_P} a_i x^i} \pa{\summy{i=0}{d_Q} b_i x^i} \\
+R &=& \; \summy{i = 0}{d_R} \summyone{ \begin{subarray}{c} k+l = i \\ k \infegal d_R \\ l \infegal d_Q \end{subarray} } a_k \, b_l \, x^i \\
+R &=& \; \summy{i = 0}{d_R} \;\; \summy{ k=\max \acc{0,i-d_{Q}} } { \min \acc{ i,d_{P}}} a_k \, b_{i-k} \, x^i
+\end{eqnarray*}
+
+
+\section{Opérations sur les matrices}
+
+\indexfr{matrice}
+
+L'algorithme fait intervenir deux opérations sur les matrices : la multiplication et l'inversion.
+
+Une matrice $M$ est représentée de manière informatique par :
+
+$$
+\left \{
+\begin{array}{l}
+\text{un nombre de lignes }L_{M} \\
+\text{un nombre de colonnes }C_{M} \\
+\text{un tableau de coefficients } \pa{a_{ij}}_
+{ \begin{subarray}{c} 1 \infegal i \infegal L_M \\ 1 \infegal j \infegal C_M \end{subarray}} \\
+\end{array}
+\right.
+$$
+
+
+
+\subsection{La multiplication}
+\indexfr{multiplication}
+
+On considère deux matrices : $M$ de coefficients $\pa{a_{ij}}_{ \begin{subarray}{c} 1 \infegal i \infegal L_M \\ 1 \infegal j \infegal C_M
+\end{subarray}}$ et $N$ de coefficients $\pa{b_{ij}}_{ \begin{subarray}{c} 1 \infegal i \infegal L_N \\ 1 \infegal j \infegal C_N \end{subarray}}$.
+
+On peut effectuer le produit $K=MN$ si $C_{M}=L_{N}$ :
+
+$$
+\left \{
+\begin{array}{l}
+K = \pa{c_{ij}}_{ \begin{subarray}{c} 1 \infegal i \infegal L_M \\ 1 \infegal j \infegal C_N \end{subarray}} \\
+\forall i \in \intervalle{1}{L_M}, \, \forall j \in \intervalle{1}{C_N}, \; 
+c_{ij} = \summy{k = 0}{C_M} a_{ik} b_{kj}
+\end{array}
+\right.
+$$
+
+\subsection{Multiplication et opérations sur les lignes et colonnes}
+\indexfr{multiplication} \indexfr{opérations sur les lignes et les colonnes}
+
+Les multiplications entre matrices permettent à l'aide de matrices simples de traduire des opérations sur les lignes et les colonnes.
+
+Exemple :
+
+\[
+\left(
+\begin{array}{lll}
+1 & 0 & 0 \\
+0 & 1 & -5 \\
+2 & 0 & 1
+\end{array}
+\right) \underset{\QARRAYno {\text{matrice quelconque}}{\text{%
+composée de 3 lignes}}}{\underbrace{\left(
+\begin{array}{l}
+L_{1} \\
+L_{2} \\
+L_{3}
+\end{array}
+\right) }}=\left(
+\begin{array}{l}
+L_{1} \\
+L_{2}-5L_{3} \\
+L_{3}+2L_{1}
+\end{array}
+\right)
+\]
+
+Dans le cas général, multiplier à gauche par une matrice carrée $M\in
+\mathbf{M}_{n},\; M=\left( a_{ij}\right) _{  \begin{subarray}{c} 1\leqslant i\leqslant n  \\ %
+1\leqslant j\leqslant n  \end{subarray} } $ revient à faire des opérations sur les lignes sur la matrice de droite :
+
+\[
+\left( a_{ij}\right) \left(
+\begin{array}{l}
+L_{1} \\
+L_{2} \\
+\vdots \\
+L_{n}
+\end{array}
+\right) =\left(
+\begin{array}{l}
+\underset{j=1}{\stackrel{n}{\sum }}a_{1j}L_{j} \\
+\underset{j=1}{\stackrel{n}{\sum }}a_{2j}L_{j} \\
+\vdots \\
+\underset{j=1}{\stackrel{n}{\sum }}a_{nj}L_{j}
+\end{array}
+\right)
+\]
+
+De même, multiplier à droite par une matrice carrée $M\in \mathbf{M}%
+_{n},\quad M=\left( a_{ij}\right) _{  \begin{subarray}{c} 1\leqslant i\leqslant n  \\ 1\leqslant j\leqslant n  \end{subarray} } $ revient à faire
+des opérations sur les colonnes sur la matrice de gauche :
+
+\[
+\left(
+\begin{array}{llll}
+C_{1} & C_{2} & \ldots & C_{n}
+\end{array}
+\right) \left( a_{ij}\right) =\left(
+\begin{array}{llll}
+\underset{i=1}{\stackrel{n}{\sum }}a_{i1}C_{i} & \underset{i=1}{%
+\stackrel{n}{\sum }}a_{i2}C_{i} & \ldots & \underset{i=1}{\stackrel{n}{%
+\sum }}a_{in}C_{i}
+\end{array}
+\right)
+\]
+
+Ces précisions sont importantes en terme de coût algorithime \indexfr{coût d'un algorithme}. En effet, pour effectuer le produit de
+matrices suivant :
+
+$$
+\left(
+\begin{array}{lll}
+1 & 0 & 0 \\
+0 & 1 & -5 \\
+2 & 0 & 1
+\end{array}
+\right) \underset{\QARRAYno {\text{matrice quelconque}}{\text{%
+composée de 3 lignes}}}{\underbrace{\left(
+\begin{array}{l}
+L_{1} \\
+L_{2} \\
+L_{3}
+\end{array}
+\right) }}
+$$
+
+Il est plus judicieux de faire des opérations sur les lignes plutôt que d'effectuer le produit matriciel complet. Le coût d'un produit matriciel
+est en $O\left( n^{3}\right) $ ceci signifie que pour deux matrices carrées d'ordre $n$, le nombre d'opérations (au sens informatique) est un
+multiple constant (indépendant des matrices choisies) de $n^{3}$, ou 3 boucles imbriquées de $n$ itérations. Or, effectuer les opérations
+suivantes sur les lignes :
+$$
+\left(
+\begin{array}{l}
+L_{1} \\
+L_{2}-5L_{3} \\
+L_{3}+2L_{1}
+\end{array}
+\right)$$ est beaucoup moins coûteux. Dans ce cas, chaque ligne de la matrice résultat est une somme coefficientée de deux autres lignes. Le coût
+de ce produit sera donc en $O\left( n^{2}\right) $. Ce sera justement le seul cas rencontré lors du pivot de Gauss.
+
+\subsection{Matrice de passage du pivot de Gauss}
+\indexfr{matrice de passage}%
+\indexfr{pivot de Gauss}%
+\indexfr{Gauss}%
+\indexfr{triangulaire}%
+\indexfr{matrice triangulaire}%
+
+Lors du calcul de l'inverse, il est nécessaire de calculer la matrice de passage qui permet de passer de la matrice initiale à la matrice
+triangulaire supérieure obtenue par pivot de Gauss.
+
+$$
+\underset{\text{matrice de passage}}{\underbrace{\left(
+\begin{array}{lll}
+1 & 0 & 0 \\
+-2 & 1 & 0 \\
+-3 & -5 & 1
+\end{array}
+\right) }}\left(
+\begin{array}{l}
+L_{1} \\
+L_{2} \\
+L_{3}
+\end{array}
+\right) =\underset{\text{obtenue directement par pivot de Gauss}}{%
+\underbrace{\left(
+\begin{array}{l}
+L_{1} \\
+L_{2}-2L_{1} \\
+L_{3}-3L_{1}-5L_{2}
+\end{array}
+\right) }}=\left(
+\begin{array}{lll}
+a_{11} & a_{12} & a_{13} \\
+0 & a_{22} & a_{23} \\
+0 & 0 & a_{33}
+\end{array}
+\right)
+$$
+
+On peut écrire également :
+
+$$\left(
+\begin{array}{lll}
+1 & 0 & 0 \\
+-2 & 1 & 0 \\
+-3 & -5 & 1
+\end{array}
+\right) \underset{\text{matrice identité}}{\underbrace{\left(
+\begin{array}{lll}
+1 & 0 & 0 \\
+0 & 1 & 0 \\
+0 & 0 & 1
+\end{array}
+\right) }}\left(
+\begin{array}{l}
+L_{1} \\
+L_{2} \\
+L_{3}
+\end{array}
+\right) =\left(
+\begin{array}{l}
+L_{1} \\
+L_{2}-2L_{1} \\
+L_{3}-3L_{1}-5L_{2}
+\end{array}
+\right) =\left(
+\begin{array}{lll}
+a_{11} & a_{12} & a_{13} \\
+0 & a_{22} & a_{23} \\
+0 & 0 & a_{33}
+\end{array}
+\right)
+$$
+
+Si on note la matrice identité :%
+\indexfr{matrice identité}%
+\indexfr{identité}%
+$$
+\left(
+\begin{array}{lll}
+1 & 0 & 0 \\
+0 & 1 & 0 \\
+0 & 0 & 1
+\end{array}
+\right) =\left(
+\begin{array}{l}
+I_{1} \\
+I_{2} \\
+I_{3}
+\end{array}
+\right)
+$$
+
+On peut écrire le résultat précédent sous la forme :
+
+$$\left(
+\begin{array}{l}
+I_{1} \\
+I_{2}-2I_{1} \\
+I_{3}-3I_{1}-5I_{2}
+\end{array}
+\right) \left(
+\begin{array}{l}
+L_{1} \\
+L_{2} \\
+L_{3}
+\end{array}
+\right) =\left(
+\begin{array}{l}
+L_{1} \\
+L_{2}-2L_{1} \\
+L_{3}-3L_{1}-5L_{2}
+\end{array}
+\right) =\left(
+\begin{array}{lll}
+a_{11} & a_{12} & a_{13} \\
+0 & a_{22} & a_{23} \\
+0 & 0 & a_{33}
+\end{array}
+\right) $$
+
+Le pivot de Gauss consiste à appliquer une série d'opérations sur les lignes à partir de la matrice initiale pour la rendre triangulaire
+supérieure. La matrice de passage s'obtient donc en effectuant exactement les mêmes opérations sur les lignes à partir de la matrice identité.
+
+\subsection{L'inversion}
+\indexfr{inversion}%
+\indexfr{triangulaire}%
+\indexfr{matrice triangulaire}%
+
+L'inversion d'une matrice utilise le pivot de Gauss. Cette méthode permet de rendre les matrices triangulaires supérieures. C'est également cette
+méthode qui est utilisée pour calculer son déterminant.
+
+La méthode utilisée se décrit simplement, nous supposons que nous avons une matrice de la forme :
+
+$$
+\left(
+\begin{array}{l}
+L_{1} \\
+L_{2} \\
+L_{3} \\
+L_{4} \\
+L_{5}
+\end{array}
+\right) =\left(
+\begin{array}{lllll}
+a_{11} & * & * & * & * \\
+0 & a_{22} & * & * & * \\
+0 & 0 & a_{33} & a_{34} & * \\
+0 & 0 & a_{43} & a_{44} & * \\
+0 & 0 & a_{53} & a_{54} & *
+\end{array}
+\right)
+$$
+$$ \text{ les * désignent un coefficient quelconque)} $$
+
+
+L'objectif est de rendre nul les coefficients $a_{43}$ et $a_{53}$, pour ce faire, on effectue les opérations sur les lignes comme si on résolvait
+un système linéaire, ces opérations correspondent également à un produit de matrice :
+\indexfr{système linéaire}%
+
+\begin{eqnarray*}
+L_{4} &\leftarrow & L_{4}-L_{3}\dfrac{a_{43}}{a_{33}} \\
+L_{5} &\leftarrow & L_{5}-L_{3}\dfrac{a_{53}}{a_{33}}
+\end{eqnarray*}
+
+On suppose que $a_{33}\neq 0$ :
+
+$$
+\underset{P_{3}}{\underbrace{\left(
+\begin{array}{lllll}
+1 & 0 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 & 0 \\
+0 & 0 & 1 & 0 & 0 \\
+0 & 0 & -a_{43} & 1 & 0 \\
+0 & 0 & -a_{53} & 0 & 1
+\end{array}
+\right) }}\underset{M_{3}}{\underbrace{\left(
+\begin{array}{lllll}
+a_{11} & * & * & * & * \\
+0 & a_{22} & * & * & * \\
+0 & 0 & a_{33} & a_{34} & * \\
+0 & 0 & a_{43} & a_{44} & * \\
+0 & 0 & a_{53} & a_{54} & *
+\end{array}
+\right) }}=\underset{M_{4}}{\underbrace{\left(
+\begin{array}{lllll}
+a_{11} & * & * & * & * \\
+0 & a_{22} & * & * & * \\
+0 & 0 & a_{33} & a_{34} & * \\
+0 & 0 & 0 & a_{44}-\frac{a_{43}}{a_{33}}a_{34} & * \\
+0 & 0 & 0 & a_{54}-\frac{a_{53}}{a_{33}}a_{44} & *
+\end{array}
+\right) }}
+$$
+
+Dans le cas où $a_{33}=0$ et que $a_{43}\neq 0$, on fait d'abord : $%
+L_{3}\leftarrow L_{4}$ puis on continue le pivot de Gauss :
+
+$$
+\begin{array}{r}
+\underset{P_{3}}{\underbrace{\left(
+\begin{array}{lllll}
+1 & 0 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 & 0 \\
+0 & 0 & 1 & 0 & 0 \\
+0 & 0 & -a_{43} & 1 & 0 \\
+0 & 0 & -a_{53} & 0 & 1
+\end{array}
+\right) \left(
+\begin{array}{lllll}
+1 & 0 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 & 0 \\
+0 & 0 & 1 & 1 & 0 \\
+0 & 0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 0 & 1
+\end{array}
+\right) }}\underset{M_{3}}{\underbrace{\left(
+\begin{array}{lllll}
+a_{11} & * & * & * & * \\
+0 & a_{22} & * & * & * \\
+0 & 0 & 0 & a_{34} & * \\
+0 & 0 & a_{43} & a_{44} & * \\
+0 & 0 & a_{53} & a_{54} & *
+\end{array}
+\right) }} = \\
+
+\underset{M_{4}}{\underbrace{\left(
+\begin{array}{lllll}
+a_{11} & * & * & * & * \\
+0 & a_{22} & * & * & * \\
+0 & 0 & a_{43} & a_{43}+a_{44} & * \\
+0 & 0 & 0 & -a_{34} & * \\
+0 & 0 & 0 & a_{54}-\frac{a_{53}}{a_{43}}a_{34} & *
+\end{array}
+\right) }}
+\end{array}
+$$
+
+Dans le cas général, on suppose que $M$ est une matrice carrée d'ordre $n$, on suppose que $M_{1}=M$ et la suite $\left( P_{i}\right) $ est
+construite de telle sorte que :
+
+\begin{eqnarray*}
+P_{i}M_{i} &=&M_{i+1} \\
+M_{i} &=&\left( a_{i}^{kl}\right) _{1\leqslant k,l\leqslant n} \\
+\forall \left( k,l\right) \text{ tel que } i >k>l\geqslant 1, \; a_{i}^{kl}&=&0
+\end{eqnarray*}
+
+On obtient finalement que $\left( P_{n}P_{n-1}\ldots P_{1}\right) M=N$ avec $ N$ matrice triangulaire supérieure. Comme la matrice
+$P_{n}P_{n-1}\ldots P_{1}$ est inversibles (c'est un produit de matrice inversibles), la matrice $ M $ est inversible si la matrice $N$ l'est
+aussi et $N$ est inversible si tous ses coefficients sur la diagonale sont non nuls.
+
+En effet, on note $N=\left( b_{{}}^{kl}\right) _{1\leqslant k,l\leqslant n}$, $N$ est triangulaire supérieure donc :
+\begin{eqnarray*}
+\det N &=& \underset{i=1}{\stackrel{n }{\prod }}b^{ii} \\
+ &=& \underset{=1\text{ par construction}}{\underbrace{\det \left( P_{n}P_{n-1}\ldots P_{1}\right) }}\times \det M \\
+ &=& \det M
+\end{eqnarray*}
+
+On suppose maintenant que la matrice $M$ est inversible, tous les coefficients diagonaux de $N$ sont donc non nuls. Dans cette première phase,
+nous avons, dans l'ordre croissant des lignes, rempli la matrice $M$ de $0$ en dessous de sa diagonale, il est alors possible en appliquant le
+même pivot de Gauss mais cette fois dans l'ordre décroissant des lignes de remplir la matrice de $0$ au-dessus de sa diagonale.
+
+Il existe donc une suite de matrice $\left( Q_{i}\right) $ tel que $\left( Q_{n}Q_{n-1}\ldots Q_{1}\right) N=D_{n}$ où $D_{n}$ est une matrice
+diagonale. De plus, on peut choisir les matrices $Q_{i}$ de telle sorte que $%
+D_{n}=I_{n}$ où $I_{n}$ est la matrice identité. Par exemple :
+
+$$
+\begin{array}{r}
+\underset{Q_{3}}{\underbrace{\left(
+\begin{array}{lllll}
+1 & 0 & -b_{13} & 0 & 0 \\
+0 & 1 & -b_{23} & 0 & 0 \\
+0 & 0 & 1 & 0 & 0 \\
+0 & 0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 0 & 1
+\end{array}
+\right) \left(
+\begin{array}{lllll}
+1 & 0 & 0 & 0 & 0 \\
+0 & 1 & 0 & 0 & 0 \\
+0 & 0 & \frac{1}{b_{33}} & 0 & 0 \\
+0 & 0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 0 & 1
+\end{array}
+\right) }}\underset{N_{3}}{\underbrace{\left(
+\begin{array}{lllll}
+b_{11} & b_{12} & b_{13} & 0 & 0 \\
+0 & b_{22} & b_{23} & 0 & 0 \\
+0 & 0 & b_{33} & 0 & 0 \\
+0 & 0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 0 & 1
+\end{array}
+\right) }} = \\
+\underset{N_{4}}{\underbrace{\left(
+\begin{array}{lllll}
+b_{11} & b_{12} & 0 & 0 & 0 \\
+0 & b_{22} & 0 & 0 & 0 \\
+0 & 0 & 1 & 0 & 0 \\
+0 & 0 & 0 & 1 & 0 \\
+0 & 0 & 0 & 0 & 1
+\end{array}
+\right) }}
+\end{array}
+$$
+
+Donc :
+$$
+\left( Q_{n}Q_{n-1}\ldots Q_{1}\right) \left( P_{n}P_{n-1}\ldots P_{1}\right) M=I_{n}
+$$
+
+D'où :
+$$
+\fbox{$ M^{-1}=\left( Q_{n}Q_{n-1}\ldots Q_{1}\right) \left( P_{n}P_{n-1}\ldots P_{1}\right)$}
+$$
+
+\chapter{Application aux fractions rationnelles}
+\indexfr{fraction rationnelle}%
+\indexfr{décomposition}%
+
+\section{Principe}
+\indexfr{système linéaire}%
+
+
+Trouver tous les coefficients de la décomposition a priori d'une fonction rationnelle revient à résoudre un système linéaire.
+
+Soit $P$ et $Q$ deux polynômes à coefficients réels, $Q$ se décompose en :
+
+$$
+Q=\alpha \; \underset{i=1}{\stackrel{s}{\prod }}\left( X-a_{i}\right)^{d_i} \; \underset{i=1}{\stackrel{t}{\prod }}\left(
+X^{2}+p_{i}X+q_{i}\right)^{d'_i}
+$$
+
+La fraction $\frac{P}{Q}$ se décompose donc en :
+$$
+\dfrac{P}{Q}=E + \summy{i=1}{s} \summy{k=1}{d_i}  \dfrac{\alpha_i^k}{\pa{X-a_{i}}^k}
++ \summy{i=1}{t} \summy{k=1}{d'_i} \dfrac{\beta _i^k X + \gamma _{i}^k } {\pa{X^2+p_iX+q_i}^k}
+$$
+
+où $E$ est la partie entière.
+
+On met tout sous le même dénominateur :
+$$
+\begin{array}{rcl}
+P  =  && EQ \\ \\
+&+&   \alpha  \summy{i=1}{s}  \pa{ \prodyone{j \neq i} \pa{X + a_j}^{d_j} \; \prodyone{j} \pa{X^2 + p_i X + q_i}^{d'_j }}
+\pa{\summy{k=1}{d_i}  \alpha_i^k \pa{X-a_i}^{d_i-k}   } \\ \\
+&+& \alpha    \summy{i=1}{t}  \pa{ \prodyone{j} \pa{X + a_j}^{d_j} \; \prodyone{j \neq i} \pa{X^2 + p_i X + q_i}^{d'_j }}
+\pa{ \summy{k=1}{d'_i} \pa{\beta _i^k X + \gamma _{i}^k } \pa{X^2+p_iX+q_i}^{d'_i-k} }
+\end{array}
+$$
+
+Il suffit d'identifier ces deux polynômes, ce qui revient à résoudre un système linéaire. Pour que l'algorithme marche, il faut néanmoins
+connaître la factorisation en éléments simples du dénominateur.
+
+\section{Construction du système linéaire}
+\indexfr{exemple}%
+
+L'illustration par un exemple permet de mieux comprendre l'algorithme qu'une description théorique utilisant une multitude d'indice.
+
+Nous allons donc décortiquer chaque étape de l'algorithme sur la fraction rationnelle :
+
+\begin{eqnarray}
+\dfrac{P}{Q}=\dfrac{X^{9}}{\left( X+1\right) ^{3}\left( X^{2}+X+2\right) ^{2} } \label{fraction}
+\end{eqnarray}
+
+\subsection{Numérotation des coefficients}
+\indexfr{numérotation}%
+
+La partie entière est de degré 2 (=9-7).
+
+La forme a priori de la décomposition de la fraction rationnelle est :
+
+\[
+\dfrac{P}{Q}=a_{1}+a_{2}X+a_{3}X^{2}+\frac{a_{4}}{X+1}+\frac{a_{5}}{\left(
+X+1\right) ^{2}}+\frac{a_{6}}{\left( X+1\right) ^{3}}+\frac{a_{7}+a_{8}X}{%
+X^{2}+X+2}+\frac{a_{9}+a_{10}X}{\left( X^{2}+X+2\right) ^{2}}
+\]
+
+La numérotation suit le sens croissant des puissances en commen\c{c}ant par la partie entière.
+
+\subsection{Construction du système linéaire}
+
+En mettant tout sous le même dénominateur, on obtient :
+
+\[
+P=a_{1}Q+a_{2}XQ+a_{3}X^{2}Q+\frac{a_{4}Q}{X+1}+\frac{a_{5}Q}{\left(
+X+1\right) ^{2}}+\frac{a_{6}Q}{\left( X+1\right) ^{3}}+\frac{\left(
+a_{7}+a_{8}X\right) Q}{X^{2}+X+2}+\frac{\left( a_{9}+a_{10}X\right) Q}{%
+\left( X^{2}+X+2\right) ^{2}}
+\]
+
+On construit la matrice suivante :
+
+\[
+\left(
+\begin{array}{ll}
+&  \\
+\mathbf{a}_{1}\times  & Q \\
+\mathbf{a}_{2}\times  & XQ \\
+\mathbf{a}_{3}\times  & X^{2}Q \\
+\mathbf{a}_{4}\times  & Q/\left( X+1\right)  \\
+\mathbf{a}_{5}\times  & Q/\left( X+1\right) ^{2} \\
+\mathbf{a}_{6}\times  & Q/\left( X+1\right) ^{3} \\
+\mathbf{a}_{7}\times  & Q/\left( X^{2}+X+2\right)  \\
+\mathbf{a}_{8}\times  & XQ/\left( X^{2}+X+2\right)  \\
+\mathbf{a}_{9}\times  & Q/\left( X^{2}+X+2\right) ^{2} \\
+\mathbf{a}_{10}\times  & XQ/\left( X^{2}+X+2\right) ^{2}
+\end{array}
+\right) =\underset{=M\text{ (10 lignes et 10 colonnes)}}{\underbrace{%
+\left(
+\begin{array}{lllllllllll}
+& \mathbf{X}^{0} & \mathbf{X}^{1} & \mathbf{X}^{2} & \mathbf{X}^{3} &
+\mathbf{X}^{4} & \mathbf{X}^{5} & \mathbf{X}^{6} & \mathbf{X}^{7} & \mathbf{X%
+}^{8} & \mathbf{X}^{9} \\
+& \times  & \times  & \times  & \times  & \times  & \times  & \times  &
+\times  & \times  & \times  \\
+\mathbf{a}_{1}\times  & 4 & 16 & 29 & 33 & 26 & 14 & 5 & 1 &  &  \\
+\mathbf{a}_{2}\times  &  & 4 & 16 & 29 & 33 & 26 & 14 & 5 & 1 &  \\
+\mathbf{a}_{3}\times  &  &  & 4 & 16 & 29 & 33 & 26 & 14 & 5 & 1 \\
+\mathbf{a}_{4}\times  & 4 & 12 & 17 & 16 & 10 & 4 & 1 &  &  &  \\
+\mathbf{a}_{5}\times  & 4 & 8 & 9 & 7 & 3 & 1 &  &  &  &  \\
+\mathbf{a}_{6}\times  & 4 & 4 & 5 & 2 & 1 &  &  &  &  &  \\
+\mathbf{a}_{7}\times  & 1 & 4 & 6 & 4 & 1 &  &  &  &  &  \\
+\mathbf{a}_{8}\times  &  & 1 & 4 & 6 & 4 & 1 &  &  &  &  \\
+\mathbf{a}_{9}\times  & 1 & 3 & 3 & 1 &  &  &  &  &  &  \\
+\mathbf{a}_{10}\times  &  & 1 & 3 & 3 & 1 &  &  &  &  &
+\end{array}
+\right) }}
+\]
+
+On peut écrire ce système sous la forme : ($M^{T}$ est la transposée de $M$)\medskip
+
+$$
+\left(
+\begin{array}{llllllllll}
+a_{1} & a_{2} & a_{3} & a_{4} & a_{5} & a_{6} & a_{7} & a_{8} & a_{9} &
+a_{10}
+\end{array}
+\right) M\left(
+\begin{array}{l}
+X^{0} \\
+X^{1} \\
+X^{2} \\
+X^{3} \\
+X^{4} \\
+X^{5} \\
+X^{6} \\
+X^{7} \\
+X^{8} \\
+X^{9}
+\end{array}
+\right) =\underset{=P\text{ numérateur de la fraction}}{\underbrace{%
+\left(
+\begin{array}{l}
+0 \\
+0 \\
+0 \\
+0 \\
+0 \\
+0 \\
+0 \\
+0 \\
+0 \\
+1
+\end{array}
+\right) ^{T}\left(
+\begin{array}{l}
+X^{0} \\
+X^{1} \\
+X^{2} \\
+X^{3} \\
+X^{4} \\
+X^{5} \\
+X^{6} \\
+X^{7} \\
+X^{8} \\
+X^{9}
+\end{array}
+\right) }}$$
+
+Donc par identification des deux polynômes, on obtient :
+
+$$\left(
+\begin{array}{llllllllll}
+a_{1} & a_{2} & a_{3} & a_{4} & a_{5} & a_{6} & a_{7} & a_{8} & a_{9} &
+a_{10}
+\end{array}
+\right) M=\left(
+\begin{array}{llllllllll}
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1
+\end{array}
+\right) $$
+
+D'où :
+
+$$\underset{\text{c'est le système linéaire cherché}}{%
+\underbrace{M^{T}\left(
+\begin{array}{llllllllll}
+a_{1} & a_{2} & a_{3} & a_{4} & a_{5} & a_{6} & a_{7} & a_{8} & a_{9} &
+a_{10}
+\end{array}
+\right) ^{T}=\left(
+\begin{array}{llllllllll}
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1
+\end{array}
+\right) ^{T}}}$$
+
+\subsection{Résolution}
+\indexfr{résolution}%
+
+D'après le système précédent, on déduit que :
+
+$$\left(
+\begin{array}{llllllllll}
+a_{1} & a_{2} & a_{3} & a_{4} & a_{5} & a_{6} & a_{7} & a_{8} & a_{9} &
+a_{10}
+\end{array}
+\right) ^{T}=\left( M^{T}\right) ^{-1}\left(
+\begin{array}{llllllllll}
+0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 0 & 1
+\end{array}
+\right) ^{T}$$
+
+La décomposition de la fraction rationnelle est donc :
+
+\[
+\frac{P}{Q}=11-5X+X^{2}-\frac{6,6875}{X+1}+\frac{2}{\left( X+1\right) ^{2}}-%
+\frac{0,25}{\left( X+1\right) ^{3}}-\frac{15+4,3125X}{X^{2}+X+2}+\frac{%
+5,75+5,625X}{\left( X^{2}+X+2\right) ^{2}}
+\]
+
+\section{Un exemple de programme informatique}
+
+La fraction (~\ref{fraction}) peut être décrite comme dans la figure ~\ref{figure_description}, le résultat est imprimé dans la figure
+~\ref{figure_resultat}.
+
+\begin{figure}
+$$
+\fbox{$
+\begin{array}{l}
+\text{numerateur degre 9 } \\
+\text{d0 0 } \\
+\text{d1 0 } \\
+\text{d2 0 } \\
+\text{d3 0 } \\
+\text{d4 0 } \\
+\text{d5 0 } \\
+\text{d6 0 } \\
+\text{d7 0 } \\
+\text{d8 0 } \\
+\text{d9 1 } \\
+\text{..................denominateur produit 2 } \\
+\text{denominateur puissance 3 } \\
+\text{denominateur degre 1 } \\
+\text{d0 1 } \\
+\text{d1 1 } \\
+\text{denominateur puissance 2 } \\
+\text{denominateur degre 2 } \\
+\text{d0 2 } \\
+\text{d1 1 } \\
+\text{d2 1 }
+\end{array}$}
+$$
+\caption{Description d'une fraction rationnelle}
+\label{figure_description}
+\end{figure}
+
+\begin{figure}
+$$
+\fbox{ $
+\begin{array}{ll}
+\text{fraction a decomposer : } &\\
+\text{numerateur : }      &                              X^ \land 9\\
+\text{nombre de terme au denominateur : }  &             2  \\
+\text{terme 1 : }                           &            \pa{ 1 + X} ^\land 3 \\
+\text{terme 2 : }                            &           \pa{ 2 + X + X^ \land 2 } ^ \land 2 \\
+\text{decomposition en elements simples } &\\
+\text{partie entiere : }                   &             11 -5*X + 1*X^ \land 2 \\
+\text{terme en }                            &            \pa{  1 + X } : -6.6875 \\
+\text{terme en }                             &           \pa{  1 + X }^ \land 2 : 2 \\
+\text{terme en }                              &          \pa{  1 + X }^ \land 3 : -0.25 \\
+\text{terme en }                               &         \pa{  2 + X + X^ \land 2}  : -15 -4.3125*X \\
+\text{terme en }                                &        \pa{  2 + X + X^ \land 2 }^ \land 2 : 5.75 + 5.625*X
+\end{array}
+$}
+$$
+\caption{Résultat de la décomposition}
+\label{figure_resultat}
+\end{figure}
+
+
+Quelques différences peuvent être observées entre la solution fournies par le programme et la véritable solution, ceci est dû aux approximations
+de calcul des ordinateurs qui code les nombres réels avec environ 15 chiffres de précision. Certains termes nuls peuvent alors être non nuls mais
+très petits par rapport aux autres coefficients.
+
+\chapter{Le programme informatique}
+
+\section{Tableaux}
+\indexfr{tableaux}%
+
+Etant que les tableaux informatique de dimension $n$ sont indicés de 0 à $n-1$ inclus, un polynôme devient :
+
+$$
+\left \{
+\begin{array}{l}
+a\left[ 50\right] \text{ est un tableau appelé }a\text{ à }50\text{ éléments numérotés de }0\text{ à }49 \\ \\
+a[i]\text{ représente l'élément d'indice }i \\ \\
+\text{un polynôme s'écrit }P=\underset{i=0}{\stackrel{n}{\sum }}%
+a\left[ i\right] X^{i}
+\end{array}
+\right.
+$$
+
+Et une matrice :
+
+$$
+\left\{
+\begin{array}{l}
+a\left[ 40\right] \left[ 50\right] \text{ est un tableau appelé }a\text{ de }40\text{ lignes et }50\text{ colonnes} \\ \\
+a[i][j]\text{ représente l'élément placé sur la ligne }i \text{ et la colonne }j \\ \\
+\text{le dernier élément est l'élément }a\left[ 39\right] \left[ 49\right] \\ \\
+\text{une matrice s'écrit }M=\left(
+\begin{array}{lll}
+a\left[ 0\right] \left[ 0\right] & \cdots & a\left[ 0\right] \left[  n-1\right] \\
+\vdots & \cdots & \vdots \\
+a\left[ m-1\right] \left[ 0\right] & \cdots & a\left[ m-1\right] \left[ n-1\right]
+\end{array}
+\right) =\left( a\left[ i\right] \left[ j\right] \right) _{  \begin{subarray}{c} 0\leqslant i\leqslant m-1  \\ 0\leqslant j\leqslant n-1
+\end{subarray} }
+\end{array}
+\right.
+$$
+
+\section{Structures possibles}
+
+Deux types spéciaux peuvent être créés pour contenir matrices et polynômes.
+
+Structure d'une matrice :
+$$
+\begin{array}{l}
+\text{typedef struct \{}\\
+\text{      double *C ;}\\
+\text{      int Ligne ;}\\
+\text{      int Colonne ;} \\
+\text{\} Matrice ;}
+\end{array}
+$$
+
+Structure d'un polynôme :
+$$
+\begin{array}{l}
+\text{typedef struct \{}\\
+\text{      double *C ;}\\
+\text{      int Degre ; }\\
+\text{\} Polynome ;}
+\end{array}
+$$
+
+\section{Expression de la décomposition à l'aide de ces structures}
+\indexfr{expression}
+
+\begin{eqnarray*}
+\dfrac{P}{Q}&=&partie\_entiere+\underset{n=0}{\stackrel{facteur-1}{\sum }}~%
+\underset{k=0}{\stackrel{puissance[n]-1}{\sum }}\dfrac{resultat[n][k]}{%
+\left( element[n]\right) ^{k+1}} \\ \\
+\dfrac{P}{Q}&=&\underset{i=0}{\stackrel{partie\_entiere.Degre}{\sum }}%
+partie\_entiere.C\left[ i\right] \times X^{i}+ \\ \\
+&& \quad \quad \quad \quad \quad \quad \underset{n=0}{\stackrel{%
+facteur-1}{\sum }}~\underset{k=0}{\stackrel{puissance[n]-1}{\sum }}%
+\dfrac{\underset{i=0}{\stackrel{resultat[n][k].Degre}{\sum }}%
+resultat[n][k].C\left[ i\right] \times X^{i}}{\left( \underset{i=0}{%
+\stackrel{element[n].Degre}{\sum }}element[n].C\left[ i\right] \times X^{i}\right) ^{k+1}}
+\end{eqnarray*}
+
+
+
+
+\firstpassagedo{
+\begin{thebibliography}{99}
+\input{fraction_bibliographie.tex}
+\end{thebibliography}
+}
+
+
+\input{../../common/livre_table_end.tex}
+\input{../../common/livre_end.tex}

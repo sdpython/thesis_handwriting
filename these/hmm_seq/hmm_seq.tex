@@ -1,0 +1,1176 @@
+\input{../../common/livre_begin.tex}
+\firstpassagedo{\input{hmm_seq_titre.tex}}
+\input{../../common/livre_table_begin.tex}
+\firstpassagedo{\input{hmm_seq_chapter.tex}}
+
+
+
+
+\indexsee{modèle de Markov caché}{MMC}
+\indexfr{MMC}
+\indexsee{chaîne de Markov cachée}{MMC}
+\indexsee{Hidden Markov Model}{MMC}
+\indexfr{HMM}
+\indexsee{HMM}{MMC}
+
+                        
+                        
+                        
+\label{annexe_hmm_seq}
+
+
+
+\indexfr{graphème}\indexfrr{segmentation}{erreur}
+
+Le chapitre~\ref{reco_modele_presentation_1} montre comment sont utilisés les modèles de Markov cachés dans la reconnaissance de l'écriture. Le paragraphe~\ref{hmm_bi_lettre} présente une méthode dont l'obectif est de contourner le problème des mauvaises segmentations graphèmes. Elle s'appuie sur la modélisation des erreurs les plus fréquentes. Une autre direction possible est la représentation de la segmentation graphèmes sous forme de graphe. La figure~\ref{hmm_seq_graph_obs} illustre un cas où, plutôt que de prendre une décision afin d'obtenir une séquence de graphèmes, la segmentation aboutit à un graphe d'observations.
+
+
+        \begin{figure}[ht]
+        $$\frame{$\begin{array}[c]{c}\includegraphics[height=8cm, width=14cm]
+        {\filext{../hmm_seq/image/graphe_obs}}\end{array}$}$$
+        \caption{       Exemple de graphe d'observations~: aucune décision n'est prise concernant 
+        								les trois lettres "sou" et leur segmentation est représentée sous forme de graphe, espérant
+        								que l'une des options proposées correspond à la bonne solution. }
+        \label{hmm_seq_graph_obs}
+        \end{figure}
+
+
+L'objectif de ce chapitre est de proposer l'extension des résultats obtenus dans l'annexe~\ref{annexe_hmm_def} et le chapitre~\ref{reco_modele_presentation_1} pour des séquences d'observations à des graphes d'observations. Les résultats s'inspirent de la thèse de \citeindex{Saon1997a}. 
+
+\indexfr{réseau de neurones}
+
+Ce chapitre se conclut sur la présentation d'un formalisme fondé sur les graphes (voir \citeindex{Bengio1992}) et qui permet d'imbriquer plusieurs couches de modèles, de concevoir l'utilisation et l'estimation de ces modèles non plus de manière globale mais comme un enchaînement de graphes, à l'instar des couches de neurones à l'intérieur d'un réseau. Le calcul d'une probabilité propage les propabilités du premier graphe (proche de l'image) au dernier (proche du résultat final). L'estimation rétropropage ces probabilités en sens opposé.
+
+
+
+%--------------------------------------------------------------------------------------------------------------------
+\section{Graphe d'observations}
+%--------------------------------------------------------------------------------------------------------------------
+\indexfrr{observations}{graphe}
+\indexfrr{graphe}{observations}
+\indexfrr{graphe}{acyclique}
+\indexfrr{graphe}{cyclique}
+
+Soit $O=\acc{\vecteurno{O_1}{O_G}}$ un ensemble d'observations, il s'agit de définir un graphe sur cet ensemble qui puisse être modélisable par une chaîne de Markov cachée. Etant donné que ces modèles imposent une dépendance temporelle d'une observation envers son passé, les graphes construits sur l'ensemble $O$ ne peuvent pas être cycliques. Les graphes d'observations utilisés par la suite obéissent à la définition~\ref{hmm_seq_def_graph_obs}. En outre, chaque arc de ce graphe sera pondéré par une probabilité déterminée par le prétraitement d'image.
+
+
+		\begin{xdefinition}{graphe d'observations} \label{hmm_seq_def_graph_obs}
+		\indexfrr{graphe}{observations}
+		
+		Soit $O=\acc{\vecteurno{O_1}{O_G}}$ un ensemble d'observations, $O^1$ est la première observation, $O^f$ est 
+		la dernière observation, $O^{next}\pa{O_i}$ désigne l'observation suivant $O_i$. 
+		On définit les vecteurs $\Pi^O=\pa{\pi^O_i}_{1 \infegal i \infegal G}$, $\Theta^O=\pa{\theta^O_i}_{1 \infegal 
+		i \infegal G}$ 
+		et la matrice $A^O = \pa{a^O_{ij}}_ { \begin{subarray}{c} 1 \infegal i \infegal G \\ 1 \infegal j \infegal 
+		G \end{subarray}}$ de telle sorte que~: 
+		
+					\begin{eqnarray}
+					\begin{array}{rrcl}
+					\forall i,  								& \pi^O_i 			&=& \pr{ O^1 = O_i} \\
+					\forall i, 									& \theta^O_i 		&=& \pr{ O^f = O_i \sac O_i } \\
+					\forall i, \, \forall j,  	& a^O_{ij} 			&=& \pr{ O^{next}\pa{O_i} = O_j \sac O_i }
+					\end{array}
+					\end{eqnarray}
+		
+		Les coefficients $\Pi$, $\Theta$, $A$ vérifient les conditions suivantes~:
+		
+				\begin{eqnarray}
+				\summy{i=1}{G} \, \pi^O_i = 1 \text { et } \forall i, \, \theta^O_i + \summy{j=1}{G} \, a^O_{ij} = 1
+				\end{eqnarray}
+				
+		Le graphe ne doit contenir aucun cycle, ce qui est équivalent à dire qu'il existe une permutation des lignes et 
+		des colonnes de la matrice $A^O$ de telle sorte qu'elle soit triangulaire supérieure avec des zéros sur 
+		la diagonale.
+		
+		\end{xdefinition}
+
+
+
+Cette définition est semblable à celle d'une chaîne de Markov (\ref{markov_chaine_definition}) avec la contrainte supplémentaire de ne contenir aucun cycle\seeannex{hmm_selec_recurrent_cycle}{cycle}.
+
+
+
+
+
+
+
+
+
+
+
+%-------------------------------------------------------------------------------------------------------------------
+\section{Probabilité d'un graphe d'observations} \label{hmm_seq_sec_gr_obs}
+%-------------------------------------------------------------------------------------------------------------------
+\indexfrr{probabilité}{calcul}
+
+
+
+
+\subsection{Séquences admissibles}
+
+
+
+Soit $M$ un modèle de Markov caché d'ordre un vérifiant la définition~\ref{markov_chaine_cachee_definition} (page~\pageref{markov_chaine_cachee_definition}), on note $\Pi^M$, $\Theta^M$, $A^M$, $B^M$ ses paramètres. Soit $G\pa{O}$ un graphe d'observations sur l'ensemble $O=\acc{\vecteurno{O_1}{O_G}}$, $G$ désigne également le nombre de n\oe uds de ce graphe qui a pour paramètres $\Pi^G$, $\Theta^G$, $A^G$. L'objectif est de construire la probabilité $\pr{ G\pa{O} \sac M}$. Soit $S^M = \vecteur{s^M_1}{s^M_s}$ une séquence d'états du modèle $M$, alors~:
+
+				$$
+				\pr{ G\pa{O} \sac M} = \summyone{S^M} \, \pr{ G\pa{O}, \, S^M \sac M}
+				$$
+
+\indexfrr{séquence}{admissible}				
+
+La différence par rapport aux chaînes de Markov cachée est que les séquences d'états admissibles pour le graphe $G\pa{O}$ ne sont plus de longueur fixe. De plus, cette séquence $q$ doit être associée à une séquence $S^G$ de n\oe uds de $G$ de même longueur $s$. Pour simplifier, on note deux séquences $S^M$ et $S^G$, si elles sont admissibles ($S^M \, \mathcal{R} \, S^G$), alors le calcul de la probabilité $\pr{ G\pa{O}, \, S^M, \, S^G \sac M}$ est possible. Par conséquent~:
+
+				\begin{eqnarray}
+				\pr{ G\pa{O} \sac M} = 	\summyone{S^M \,\mathcal{R}\, S^G} \; \pr{ S^M, \, S^G \sac M, G} 
+				\label{hmm_seg_sequence_admissible}
+				\end{eqnarray}
+
+
+
+\indexfr{forward}
+\indexfrr{algorithme}{forward}
+
+Cette formulation définit bien la probabilité cherchée mais ne permet pas de la calculer. L'objectif est de définir un algorithme similaire à l'algorithme \emph{forward} (\ref{hmm_algo_forward}). Toutefois, avant d'aller plus loin dans la description de cet algorithme, il est préférable de revenir sur ce que signifie cette modélisation au sens "physique".
+
+
+
+
+
+
+
+
+
+
+
+\subsection{Aparté : sens physique de la modélisation}
+\indexfr{sens physique}
+
+
+La figure~\ref{hmm_seq_graph_obs} est sans ambiguïté en ce sens que le graphe des observations qu'elle décrit propose quatre différentes manières d'écrire le groupe de lettres "sou". Parmi ces quatre-là, on peut raisonnablement penser qu'une seule est bonne, c'est-à-dire que parmi les différentes séquences d'observations incluses dans ce graphe, il en existe une qui correspond à la véritable segmentation en graphèmes. 
+
+\indexfrr{segmentation}{graphème}
+\indexfr{graphème}
+
+
+\indexfrr{segmentation}{accent}
+\indexfr{accent}
+
+Intéressons-nous maintenant au problème des accents. Ces derniers se balladent fréquemment au-dessus de la lettre accentuée mais empiètent parfois un peu ou complètement sur l'espace aérien de ses voisines comme le montre la figure~\ref{hmm_seq_accent_aerien}.
+
+
+
+        \begin{figure}[ht]
+        $$\frame{$\begin{array}[c]{c}\includegraphics[height=2cm, width=5cm]
+        {\filext{../hmm_seq/image/accent}}\end{array}$}$$
+        \caption{       Accent empiétant sur l'espace aérien de la lettre "b", comment représenter le graphe
+        								de segmentation du couple "éb".
+                }
+        \label{hmm_seq_accent_aerien}
+        \end{figure}
+
+
+Il est possible de réduire le problème de segmentation au couple de lettres "éb". Le formalisme induit par la formule (\ref{hmm_seg_sequence_admissible}) considère qu'il existe une seule bonne séquence d'observations correspondant au couple "éb", celle-ci est incluse dans le graphe d'observations proposé par la figure~\ref{hmm_seq_accent_graphe1}. L'accent est associé à une lettre pour former un graphème mais n'apparaît pas seul.
+
+
+        \begin{figure}[ht]
+        $$\frame{$\begin{array}[c]{c}\includegraphics[height=3cm, width=6cm]
+         {\filext{../hmm_seq/image/accent_gr1}}\end{array}$}$$
+        \caption{       Accent empiétant sur l'espace aérien de la lettre "b" (voir
+        								figure~\ref{hmm_seq_accent_aerien})~:	graphe d'observations relatif
+        								au couple "éb" incluant la véritable séquence d'observations. L'accent est associé à une lettre 
+        								pour former un graphème mais n'apparaît pas seul.
+                }
+        \label{hmm_seq_accent_graphe1}
+        \end{figure}
+
+Une seconde option de représentation est celle de la figure~\ref{hmm_seq_accent_graphe2}. Plus proche spatialement de l'image, certaines séquences d'observations ne contiennent cependant pas d'accent. Toutefois, est-ce que cette modélisation est en soit inadaptée à la modélisation du paragraphe précédent~? Un rapide retour à l'objectif de la reconnaissance nous permet de trouver des éléments de réponse à cette question. S'il importe de distinguer les lettres accentuées de celles qui ne le sont pas, voyons si les deux graphes d'observations (figures~\ref{hmm_seq_accent_graphe1}, et~\ref{hmm_seq_accent_graphe2}) permettent la distinction des deux groupes de lettres "eb" et "éb".
+
+
+        \begin{figure}[ht]
+        $$\frame{$\begin{array}[c]{c}\includegraphics[height=2cm, width=6cm]
+        {\filext{../hmm_seq/image/accent_gr2}}\end{array}$}$$
+        \caption{       Accent empiétant sur l'espace aérien de la lettre "b" 
+        								(voir figure~\ref{hmm_seq_accent_aerien})~:	graphe d'observations relatif
+         								au couple "éb" n'incluant pas la véritable segmentation mais plus proche d'une représentation 
+        								spatiale de la segmentation.
+                }
+        \label{hmm_seq_accent_graphe2}
+        \end{figure}
+
+
+Le graphe de la figure~\ref{hmm_seq_accent_graphe1} inclut l'accent dans un des deux graphèmes de lettres, par conséquent, la forme des graphèmes permet de distinguer une lettre accentuée. Cette tâche est celle d'un classifieur\seeannex{hmm_sec_rn_obs_cont}{observations continues}. Le graphe de la figure~\ref{hmm_seq_accent_graphe2} impose l'accent dans un graphème supplémentaire. Cette différence génère des confusions pour les modèles "eb" et "éb" puisque tous deux ont maintenant une séquence en commun~:
+
+			\begin{itemize}
+			\item le modèle "eb" modélise la séquence de graphèmes "eb"
+			\item le modèle "éb" modélise les deux séquences de graphèmes "eb" et "e$\prime$b"
+			\end{itemize}
+			
+Pour éviter ce genre de confusion, il faudrait construire un graphe d'observations comme celui de la figure~\ref{hmm_seq_accent_graphe3} mais cette schématisation est trop stricte pour des accents qui aiment se promener parfois loin de leur lettre d'attache. 
+			
+			
+        \begin{figure}[ht]
+        $$\frame{$\begin{array}[c]{c}\includegraphics[height=2cm, width=6cm]
+        {\filext{../hmm_seq/image/accent_gr3}}\end{array}$}$$
+        \caption{       Accent empiétant sur l'espace aérien de la lettre "b" (voir
+        								 figure~\ref{hmm_seq_accent_aerien})~:
+        								graphe d'observations relatif au couple "éb" imposant de manière trop stricte la position 
+        								de l'accent qui parfois se promène loin de sa lettre associée.
+                }
+        \label{hmm_seq_accent_graphe3}
+        \end{figure}
+
+
+\indexfr{redondant}\indexfrr{assemblage}{redondant}
+
+Il existe une différence majeure entre ces deux graphes d'observations~\ref{hmm_seq_accent_graphe1} et~\ref{hmm_seq_accent_graphe2}. Le premier (\ref{hmm_seq_accent_graphe1}) est un assemblage redondant de graphèmes, les graphèmes qui composent toute séquence incluse dans le graphe forment l'image complète. Le second graphe (\ref{hmm_seq_accent_graphe2}) est un assemblage non redondant, l'image est la somme de tous les graphèmes qui le composent. Par conséquent, le modèle de Markov caché qui doit donner sa probabilité d'émission doit tenir compte de tous les n\oe uds du graphe d'observations. Cette configuration n'est pas celle habituellement choisie dans le domaine de la reconnaissance.
+
+			
+		
+
+
+
+\subsection{Calcul de $\pr{ G\pa{O} \sac M}$}
+
+
+\indexfr{forward}\indexfrr{graphe}{observations}
+
+La formule~\ref{hmm_seg_sequence_admissible} pourrait être appliquée en association avec l'algorithme \emph{forward} (\ref{hmm_algo_forward}), la probabilité serait alors le résultat d'une somme de probabilités obtenues pour chaque séquence incluse dans le graphe d'observations. Dans ce cas, l'intérêt de ce dernier est minime si ce n'est une meilleure représentation de la segmentation. Les lignes qui suivent proposent l'adaptation de l'algorithme \emph{forward} à un graphe d'observations.
+
+Soit un modèle de Markov caché à $N$ états défini par sa matrice de transitions $A$ et ses vecteurs d'entrées et de sorties $\Pi$, $\Theta$, soit $O=\acc{\vecteurno{O_1}{O_G}}$ un ensemble d'observations sur lequel est défini un graphe $G$ décrit par sa matrice $A^O$ et ses vecteurs $\Pi^O$, $\Theta^O$. On désigne par $q\pa{t}$ l'état du modèle de Markov caché à l'instant $t$ et $\ensemble{1}{N}$ l'ensemble de ses états. On désigne également par $O\pa{t}$ l'observation à l'instant $t$ et par $\overline{O\pa{t}}$ le passé de cette observation défini par le graphe $G$. On pose~:
+
+        \begin{eqnarray}
+        \forall i \in \intervalle{1}{N}, \forall t \supegal 1 , \forall h \in \intervalle{1}{G}, \; 
+        \alpha_{t} \pa{i,h}  = \pr{  q_{t}=i, \, O\pa{t} = O_h, \, \overline{O\pa{t}} \sac  M } 
+        \label{hmm_seq_eq_alpha_1}
+        \end{eqnarray}
+
+Pour $t=1$, on obtient~:
+
+        \begin{eqnarray}
+        \forall i \in \intervalle{1}{N}, \forall h \in \intervalle{1}{G}, \;
+        \alpha_1 \pa{i,h} &=& \pr{ q_{1}=i, \, O\pa{1} = O_h \sac M }  = \pi^O_h \, \pi_i \, b_{i,O_h} 
+        \label{hmm_seq_eq_alpha_2}
+        \end{eqnarray}
+
+\indexfr{forward}
+\indexfr{$\alpha_t\pa{.}$}
+
+On établit la récurrence suivante sur $t$~:
+
+        \begin{eqnarray}
+        \forall i \in \intervalle{1}{N}, \, \forall h \in \intervalle{1}{G}, \;
+        \alpha_{t+1}\pa{j,h}  &=& \summy{i=1}{N} \, \summy{g=1}{G} \, \alpha_t\pa{i,g} \, a_{ij} \, a^O_{gh} \,
+         b_{j,O_h}
+        \label{hmm_seq_eq_alpha_3}
+        \end{eqnarray}
+
+
+Enfin, on note $T$ la longueur de la séquence la plus longue, la probabilité du graphe d'observations sachant le modèle~:
+
+        \begin{eqnarray}
+        \pr{ G\pa{O} \sac M} &=& 	\summy{i=1}{N} 		\, \summy{t=1}{T} \, \summy{h=1}{G} \, 
+        										  		\alpha_t\pa{i,h} 	\, \theta_i 			\, \theta^O_h
+        \label{hmm_seq_eq_alpha_4}
+        \end{eqnarray}
+        
+Le résultat (\ref{hmm_seq_eq_alpha_4}) se démontre de la même manière que celle obtenue en (\ref{hmm_eq_alpha_4}). Ces formules (\ref{hmm_seq_eq_alpha_1}) à (\ref{hmm_seq_eq_alpha_4}) débouchent sur l'algorithme suivant~:
+
+
+		\begin{xalgorithm}{probabilité d'un graphe d'observations}
+		\indexfrr{probabilité}{graphe d'observations}
+		\label{hmm_seq_forward}
+		
+		Les notations utilisées sont celles des formules (\ref{hmm_seq_eq_alpha_1}) à (\ref{hmm_seq_eq_alpha_4}). $T$
+		désigne la longueur de la plus grande séquence d'observations incluse dans le graphe $G$ contenant les observations
+		$\ensemble{O_1}{O_G}$. $T$ vérifie $T \infegal G$.
+		
+		\begin{xalgostep}{initialisation}
+			$\begin{array}{ll} \forall i \in \intervalle{1}{N}, \forall h \in \intervalle{1}{G}, \, &
+			 \alpha_1 \pa{i,o} \longleftarrow \summy{i=1}{N} \, \summy{g=1}{G} \,  a_{ij} \, a^O_{gh} \, b_{j,O_h}
+			 \end{array}$
+		\end{xalgostep}
+		
+		\begin{xalgostep}{récurrence}
+		  $\begin{array}{ll}
+			\forall t \in \ensemble{1}{T}, \, \forall i \in \intervalle{1}{N}, \, & \forall h \in \intervalle{1}{G}, \\
+			 & \alpha_{t+1}\pa{j,h}  \longleftarrow \summy{i=1}{N} \, \summy{g=1}{G} \, 
+					\alpha_t\pa{i,g} \, a_{ij} \, a^O_{gh} \, b_{j,O_h}
+			\end{array}$					
+		\end{xalgostep}
+		
+		\begin{xalgostep}{terminaison}
+			$\pr{ G\pa{O} \sac M} = 	\summy{i=1}{N} 		\, \summy{t=1}{T} \, \summy{h=1}{G} \, 
+		        										  		\alpha_t\pa{i,h} 	\, \theta_i 			\, \theta^O_h$
+		\end{xalgostep}
+		
+		\end{xalgorithm}
+			
+		
+		
+
+
+\indexfr{$\beta_t\pa{.}$}\indexfr{backward}%
+
+La suite $\beta'_t\pa{.}$ peut également être adaptée aux graphes d'observations. On désigne également par $O\pa{t}$ l'observation à l'instant $t$ et par $\widehat{O\pa{t}}$ le futur de cette observation défini par le graphe $G$. On pose~:
+
+
+        \begin{eqnarray}
+        \forall i \in \intervalle{1}{N}, \forall t \supegal 1 , \forall h \in \intervalle{1}{G}, \; 
+        \beta_{t}\pa{i,h}  = \pr{   O_t = O_h, \, \widehat{O\pa{t}} \sac q_{t}=i,M} 
+        \label{hmm_seq_eq_beta_1}
+        \end{eqnarray}
+        
+Bien que presque équivalente à la définition (\ref{hmm_eq_beta_1}), le calcul proposé par les formules (\ref{hmm_eq_beta_2}) à (\ref{hmm_eq_beta_4}) (page~\ref{hmm_eq_beta_2}) est inapplicable à la suite (\ref{hmm_seq_eq_beta_1}) car le graphe $G$ résume plusieurs séquences de longueurs variables. Le raisonnement qui mène aux formules qui suivent est analogue à celui développé dans \citeindex{Lallican1999} lors de la réestimation des transitions entre états muets.
+        
+
+
+Pour $t=T+1$, on obtient pour~:
+
+        \begin{eqnarray}
+        \forall i \in \intervalle{1}{N}, \forall h \in \intervalle{1}{G}, \;
+        \beta'_{T+1} \pa{i,h} &=& \pr{ q_{T+1} = i, \, O_{T+1} = O_h \sac M }  = 0
+        \label{hmm_seq_eq_beta_2}
+        \end{eqnarray}
+
+On établit la récurrence suivante sur $t$~:
+
+        \begin{eqnarray}
+        \forall t \in \intervalle{1}{T}, \, \forall i \in \intervalle{1}{N}, \, \forall h \in \intervalle{1}{G},
+        		  \nonumber \\
+        \beta'_t\pa{i,g}  &=& \summy{j=1}{N} \, \summy{h=1}{G} \, a_{ij} \, a^O_{gh} \, b_{j,O_g} \,
+        												 \beta'_{t+1}\pa{i,g} 
+        												+ b_{i,O_g} \, \theta_i \, \theta^O_g \quad \quad \quad \quad 
+        \label{hmm_seq_eq_beta_3}
+        \end{eqnarray}
+
+Enfin, la probabilité du graphe d'observations sachant le modèle~:
+
+        \begin{eqnarray}
+        \pr{ G\pa{O} \sac M} &=& 	\summy{i=1}{N}  \, \summy{h=1}{G} \, 
+        										  		\beta'_1\pa{i,h} 	\, \pi_i 			\, \pi^O_h
+        \label{hmm_seq_eq_beta_4}
+        \end{eqnarray}
+
+
+Le résultat (\ref{hmm_seq_eq_beta_4}) se démontre de la même manière que celle obtenue en (\ref{hmm_eq_beta_4}). Ces formules (\ref{hmm_seq_eq_beta_1}) à (\ref{hmm_seq_eq_beta_4}) débouchent sur l'algorithme suivant~:
+
+
+		\begin{xalgorithm}{probabilité d'un graphe d'observations}
+		\indexfr{probabilité d'un graphe d'observations}
+		\label{hmm_seq_backward}
+		
+		Les notations utilisées sont celles des formules (\ref{hmm_seq_eq_beta_1}) à (\ref{hmm_seq_eq_beta_4}). $T$ 
+		désigne la longueur de la plus grande séquence d'observations incluse dans le graphe $G$, $T$ vérifie $T \infegal
+		 G$.
+		
+		\begin{xalgostep}{initialisation}
+			$\forall i \in \intervalle{1}{N}, \forall h \in \intervalle{1}{G},$ \\
+		  $\beta'_{T+1} \pa{i,o} = \pr{ q_{T+1} = i, \, O_{T+1} = O_h \sac M }  = 0$ 
+		\end{xalgostep}
+		
+		\begin{xalgostep}{récurrence}
+			$\forall t \in \intervalle{1}{T}, \, \forall i \in \intervalle{1}{N}, \, \forall h \in \intervalle{1}{G},$ \\
+		  $\beta'_t\pa{i,g}  = \summy{j=1}{N} \, \summy{h=1}{G} \, a_{ij} \, a^O_{gh} \, b_{j,O_g} \, \beta'_{t+1}\pa{i,g} 
+		        												+ b_{i,O_g} \, \theta_i \, \theta^O_g $
+		\end{xalgostep}
+		
+		\begin{xalgostep}{terminaison}
+		  $\pr{ G\pa{O} \sac M} = 	\summy{i=1}{N} 	\, \summy{h=1}{G} \, 
+		    									  		\beta'_1\pa{i,h} 	\, \pi_i 			\, \pi^O_h$
+		\end{xalgostep}
+		
+		\end{xalgorithm}
+			
+		
+
+\begin{xremark}{$\beta$ ou $\beta'$}
+Pour un graphe $G$ réduit à une séquence d'observations, les suites $\beta$ (\ref{hmm_eq_beta_1}) et $\beta'$ (\ref{hmm_seq_eq_beta_1}) différent d'un facteur~:
+
+	$$
+	\beta_t\pa{i,h} = \left\{ \begin{array}{l}
+																0 \text{ si } b_{i,h} = 0 \\ \\
+																\dfrac{\beta'_t\pa{i,h}}{b_{i,h}} \text{ sinon}
+														\end{array} \right.
+	$$
+ \label{hmm_seq_remark_beta}
+\end{xremark}
+
+
+
+
+
+\subsection{Apprentissage d'un modèle de Markov caché avec des graphes d'observations}
+\indexfr{apprentissage}
+
+
+La remarque~\ref{hmm_seq_remark_beta} permet d'utiliser presque telles quelles les formules définies dans la table~\ref{figure_formule_baumwelch-fig}. On suppose que cette apprentissage est effectué pour les ensembles de d'observations $\ensemble{O^1}{O^K}$ et leurs graphes $\ensemble{G^1}{G^K}$ correspondant. Les formules de réestimation concernant les probabilités d'émission se déduisent facilement des tables~\ref{figure_formule_baumwelch-fig} (émissions discrètes) et~\ref{figure_formule_baumwelch-fig_2} (émissions continues) et sont exprimées dans la table~\ref{hmm_seq_baum_welch}.
+
+
+
+
+
+
+        \begin{table}[ht]
+        \[
+        \fbox{$%
+        \begin{array}[c]{rcl}%
+        \overline{\pi_i} &=& \dfrac{
+        																\summy{k=1}{K} \dfrac{1}{P_k} \cro {
+        																	\summy{g=1}{G} 
+        																	\pi^O_g \, \pi_i \, \beta^{'k}_1 \pa{i,g}
+        																}
+        														}
+        														{
+        																K
+        														} \\ 
+        														\\
+        \overline{a_{ij}} &=& \dfrac{
+        																\summy{k=1}{K} \dfrac{1}{P_k} \cro{  
+        																	\summy{t=1}{T_k-1} \, \summy{g=1}{G} \, \summy{h=1}{G} \,
+        																	a^O_{gh} \, \alpha^k_t \pa{i,g} \, a_{ij} \, \beta^{'k}_{t+1} \pa{j,h}
+        																}
+        														}
+        														{
+        																\summy{k=1}{K} \dfrac{1}{P_k} \cro {
+        																	\summy{t=1}{T_k} \, \summy{g=1}{G} 
+        																	\alpha^k_t \pa{i,g} \, \beta^{'k}_t \pa{i,g}
+        																}
+        														} \\ 
+        														\\
+        \overline{\theta_i} &=& \dfrac{
+        																\summy{k=1}{K} \dfrac{1}{P_k} \cro{  
+        																	\summy{t=1}{T_k} \, \summy{g=1}{G} \,
+        																	\theta^O_{g} \, \alpha^k_t \pa{i,g} \, \theta_i
+        																}
+        														}
+        														{
+        																\summy{k=1}{K} \dfrac{1}{P_k} \cro {
+        																	\summy{t=1}{T_k} \, \summy{g=1}{G} 
+        																	\alpha^k_t \pa{i,g} \, \beta^{'k}_t \pa{i,g}
+        																}
+        														} \\ 
+        \end{array}
+        $}
+        \]
+        \caption{Formules de réestimation de Baum-Welch.}
+        \label{hmm_seq_baum_welch}
+        \indexfr{Baum-Welch}
+        \indexfr{réestimation}
+    		\end{table}
+        
+
+
+
+
+
+
+
+
+
+
+
+
+%---------------------------------------------------------------------------------------------------------------------
+\section{Composition de graphes}
+%---------------------------------------------------------------------------------------------------------------------
+\indexfrr{modèle}{lettre}
+\indexfrr{modèle}{mot}
+\indexfrr{graphe}{observations}
+\indexfrr{graphe}{modèle}
+\label{hmm_seq_modele_mot}
+
+Les résultats obtenus dans les paragraphes précédents concernent le calcul de la probabilité d'émission d'un graphe d'observations par une chaîne de Markov cachée. Il s'agit maintenant d'adapter les mécanismes décrits au chapitre~\ref{reco_modele_presentation_1}, par conséquent de déterminer la probabilité d'émission d'un graphe d'observations par un modèle constitué d'un graphe de chaînes de Markov cachées. La formalisation utilisée jusqu'à présent rend difficile l'écriture des formules de mise à jour des coefficients. Les modèles de mots construits sont une superposition de modèles de trois graphes~: graphe de segmentation pour les graphèmes, graphe d'états pour la chaîne de Markov, graphe de lettres pour les modèles de mots.
+
+\indexsee{Graph Transformer Network}{GTN}
+\indexfr{GTN}
+
+Les \emph{Graph Transformer Network} développés dans \citeindex{Bengio1992} (voir également \citeindex{Bengio1996}) permettent d'atteindre ce but en construisant un opérateur entre deux graphes permettant d'extraire tous les chemins compatibles (ou communs) des deux graphes.
+
+\indexfrr{chemin}{compatible}
+
+La figure~\ref{hmm_seq_decryptage_mot} reprend la figure illustrée~\ref{reco_decryptage_mot} (page~\pageref{reco_decryptage_mot}). La forte probabilité du mot "Georges" résulte de la concordance entre l'unique chemin de la segmentation en graphèmes et les multiples chemins inclus dans ce modèle de mot. En quelque sorte, la forte probabilité résulte du fait qu'il existe de nombreux chemins communs entre le graphe de segmentation et le graphe correspond au modèle de mot.
+
+
+				\begin{figure}[ht]
+				$$\begin{array}{|c|} \hline
+    		\includegraphics[height=8cm, width=11cm]{\filext{../reco/image/decrypte}} \\ \hline
+    		\end{array}$$
+    		\caption{	Décryptage d'un mot à l'aide d'un modèle hybride réseau de neurones et 
+    							modèle de Markov caché. Le modèle de Markov caché 
+    							associé au mot Georges résulte de la juxtaposition des modèles associés aux lettres qui le 
+    							composent. Chacun d'entre eux est illustré par les séquences de classes graphèmes
+    							les plus courantes qui permettent d'écrire une lettre.
+    		}
+    		\label{hmm_seq_decryptage_mot}
+    		\end{figure}
+
+\indexfrr{composition}{graphe}
+\indexfrr{graphe}{composition}
+\indexfrr{réseau}{bayésien}
+
+Cette représentation sous forme de graphe relie les modèles de Markov cachés aux réseaux bayésiens dont les probabilités de transitions dépendent de toutes celles qui précèdent. Ces réseaux ne peuvent pas non plus inclure de cycles. Toutefois, à partir du moment où cette contrainte est respectée, les deux modélisations s'expriment de manière identique, aussi bien au niveau du calcul des probabilités que de l'estimation des coefficients.
+
+
+
+\subsection{Définition}
+
+L'idée de \citeindex{Bengio1992} consiste à construire un troisième graphe à partir des deux premiers ne contenant que leur partie commune. Cette opération est appelé une \emph{composition}. On suppose alors qu'un graphe est constitué d'un ensemble de n\oe uds reliés par des arcs pondérés par une probabilité et contenant des labels~:
+
+
+			\begin{xdefinition}{graphe orienté}\label{hmm_seq_graphe_oriente}
+			
+			Un graphe est défini par la donnée de l'ensemble $N$ de ses n\oe uds et de l'ensemble $A$ de ses arcs orientés. 
+			Chaque arc $a \in A$ relie les n\oe uds $n_a$, $n_a'$, cet arc est également pondéré par une probabilité 
+			$w_a \in \cro{0,1} $ qui représente la probabilité qu'un chemin emprunte cet arc sachant qu'il passe par 
+			le n\oe ud $n_a$. Cet	arc $a$ contient aussi un label $l_a$. Le graphe possède deux n\oe uds particuliers
+			désignés par le n\oe ud d'entrée $e$ et le n\oe ud de sortie $s$. Ces n\oe uds vérifient~:
+			
+						$$
+						\forall a \in A, \; n_a' \neq e \text{ et } n_a \neq s
+						$$
+			
+			Un graphe est entièrement défini par la donnée de ces n\oe uds et de ces arcs.
+			On écrit que $G = \acc{ N, A, e, s} $.
+			\end{xdefinition}
+
+
+
+\subsection{Composition}
+\indexfrr{composition}{graphe}
+\indexfrr{graphe}{composition}
+
+Le graphe de segmentation graphème ainsi qu'une chaîne de Markov sont des graphes orientés vérifiant la définition~\ref{hmm_seq_graphe_oriente}. Il reste à définir la composition entre deux graphes.
+
+\indexfrr{graphe}{orienté}
+\indexfrr{graphe}{composition}
+
+			\begin{xalgorithm}{composition de graphes orientés}\label{hmm_seq_composition}
+
+			Soient $G_1 = \acc{N_1, A_1, e_1, s_1}$ et $G_2 = \acc{N_2, A_2, e_2, s_2}$ deux graphes orientés vérifiant la
+			définition~\ref{hmm_seq_graphe_oriente}. On	note par $G = \acc{ N,A} = Comp\pa{G_1,G_2}$ le graphe résultant 
+			de la composition des deux premiers graphes. Les ensembles $N$ et $A$ sont construits de manière itérative.
+			Auparavant, on note $n = Comp\pa{n_1,n_2}$ le n\oe ud résultat de la composition des n\oe uds $n_1 \in N_1$ 
+			et $n_2 \in N_2$. De même $a = Comp\pa{a_1,a_2}$ où $a_1 \in A_1$ et $a_2 \in A_2$. $a$ n'existe que si 
+			$l_{a_1} = l_{a_2}$ et il vérifie~:
+				
+						$$\begin{array}{rcl}
+						n_a 	&=& Comp\pa{n_{a_1}, n_{a_2}} 		\\
+						n_a' 	&=& Comp\pa{n'_{a_1}, n'_{a_2}} 	\\
+						w_a   &=& w_{a_1} \, w_{a_2}
+						\end{array}$$
+						
+			\begin{xalgostep}{initialisation}
+			$N \longleftarrow e = Comp\pa{e_1,e_2}$ \\
+			$M \longleftarrow N$ \\
+			$A \longleftarrow \emptyset$ 
+			\end{xalgostep}
+			
+			\begin{xalgostep}{récurrence}\label{hmm_seq_composition_graphe_step}
+			Soit $n = Comp\pa{n_1,n_2} \in M$, $M \longleftarrow M - \acc{n}$ \\
+			\begin{xforeach}{a_1}{A_1}
+				\begin{xforeach}{a_2}{A_2}
+					\begin{xif}{$n_{a_1} = n_1$ et $n_{a_2} = n_2$ et $l_{a_1} = l_{a_2}$}
+							$A \longleftarrow A \cup \acc{ Comp\pa{a_1,a_2} }$ \\
+							$n' \longleftarrow Comp\pa{n'_{a_1},n'_{a_2} }$ \\
+							\begin{xif}{$n' \notin N$} 
+								$M \longleftarrow M \cup \acc{n}$ \\
+								$N \longleftarrow N \cup \acc{n'}$ 
+							\end{xif}
+					\end{xif}
+				\end{xforeach}
+			\end{xforeach}
+			\end{xalgostep}
+			
+			\begin{xalgostep}{terminaison}
+			Tant que $M \neq \emptyset$, retour à l'étape~\ref{hmm_seq_composition_graphe_step}. \\
+			Sinon, $Comp\pa{G_1,G_2} = \acc{ A, N, Comp\pa{e_1,e_2}, Comp\pa{s_1,s_2}}$.
+			\end{xalgostep}
+
+			\end{xalgorithm}
+
+
+
+
+\begin{xremark}{cycles}
+L'algorithme~\ref{hmm_seq_composition} tel qu'il est décrit ici ne peut être utilisé dans le cas où les deux graphes contiennent des cycles et des chemins communs les incluant. \indexfr{cycle} Etant donné que l'algorithme "déroule" les chemins, cette configuration ne permet pas à ce dernier d'aboutir à un résultat fini. La prise en compte des cycles est possible mais inutile si les graphes concernent la reconnaissance de l'écriture manuscrite car le graphe de segmentation en graphèmes ne peut en contenir du fait du sens gauche-droite de l'écriture.
+\end{xremark}
+
+La figure~\ref{hmm_seq_sequence_graphe_oriente_comp} illustre le résultat de la composition des graphes des figures~\ref{hmm_seq_sequence_graphe_oriente} et~\ref{hmm_seq_sequence_graphe_oriente_geo}. Chaque contient un label correspondant à une lettre. Les chemins communs aux deux graphes composés définissent la même séquence de symboles. Dans le cadre de la reconnaissance, le label de chaque arc est une classe d'observations tandis que la probabilité associée est le produit d'une probabilité de transition et d'une probabilité d'émission.
+
+
+
+
+
+				\begin{figure}[ht]
+				$$\begin{array}{|c|} \hline
+    		\includegraphics[height=5cm, width=14cm]{\filext{../hmm_seq/image/seq_orien}} \\ \hline
+    		\end{array}$$
+    		\caption{	Premier graphe, chaque arc est pondéré par une probabilité et son label est une lettre.	}
+    		\label{hmm_seq_sequence_graphe_oriente}
+    		\end{figure}
+
+
+
+				\begin{figure}[ht]
+				$$\begin{array}{|c|} \hline
+    		\includegraphics[height=5cm, width=14cm]{\filext{../hmm_seq/image/seq_orien2}} \\ \hline
+    		\end{array}$$
+    		\caption{	Second graphe, chaque arc est pondéré par une probabilité et son label est une lettre.	
+    							La composition avec le graphe de la figure~\ref{hmm_seq_sequence_graphe_oriente}
+    							va permettre d'extraire l'ensemble des séquences de labels communes aux deux graphes.}
+    		\label{hmm_seq_sequence_graphe_oriente_geo}
+    		\end{figure}
+
+
+
+				\begin{figure}[ht]
+				$$\begin{array}{|c|} \hline
+    		\includegraphics[height=3.5cm, width=14cm]{\filext{../hmm_seq/image/seq_orien3}} \\ \hline
+    		\end{array}$$
+    		\caption{	Graphe résultant de la composition des graphes illustrés par les 
+    							figures~\ref{hmm_seq_sequence_graphe_oriente} et~\ref{hmm_seq_sequence_graphe_oriente_geo}.
+    							Il regroupe l'ensemble des chemins communs à ces deux graphes. Les chemins communs sont 
+    							"ABBA", "ACAA", "ACAB".}
+    		\label{hmm_seq_sequence_graphe_oriente_comp}
+    		\end{figure}
+
+
+\begin{xremark}{égalité des labels}
+L'algorithme~\ref{hmm_seq_composition} suppose que le label d'un arc résultant d'une composition est identique aux labels des arcs composés. Toutefois, cette contrainte n'est pas nécessaire, l'arc composé peut être quelconque. De même, l'égalité entre deux labels comme condition préalable à la composition de deux arcs peut tout-à-fait être remplacée par une fonction qui détermine si deux arcs peuvent être composés.
+\end{xremark}
+
+
+\indexfr{automate à états finis}
+\indexfr{Finite State Machine}
+\indexfr{Weighted Finite Automata}
+\indexfrr{reconnaissance}{parole}
+\indexfr{parole}
+
+Ces algorithmes sont plus souvent reliés aux automates à états finis (Finite State Machine, Weighted Finite Automata) qu'aux graphes (voir \citeindex{Pereira1997}). Ce formalisme est couramment utilisé en reconnaissance de la parole (voir \citeindex{Mohri2002a}). Pour de grands graphes, l'élagage de chemins trop peu probables et la composition sont parfois associés afin d'éviter de trop longs temps de calcul.
+
+
+
+
+
+
+
+
+\subsection{Calcul de la probabilité du graphe}
+
+\indexfrr{graphe}{probabilité}
+\indexfrr{probabilité}{graphe}
+
+La composition des deux graphes permet d'extraire toutes les écritures du modèle de reconnaissance compatibles avec la séquence de graphèmes (voir figure~\ref{hmm_seq_sequence_graphe_oriente_comp}). La probabilité de reconnaissance $\pr{ S \sac M}$ où $S$ est la séquence de graphèmes et $M$ le modèle de reconnaissance s'exprime comme une somme de produits de probabilités~:
+
+			$$
+			\pr{ S \sac M} = \summyone{chemin}  \pr{ chemin \sac S} \; \pr{ chemin \sac M } 
+			$$
+
+Cette probabilité s'exprime plus facilement avec le graphe $G$ résultant de la composition de $S$ et $M$~:
+
+			$$
+			\pr{ S \sac M} = \pr{ G } = \summyone{chemin} \pr{ chemin \sac G} 
+			$$
+
+\indexfr{forward}
+
+Cette probabilité se calcule aisément avec l'algorithme \emph{forward}\seeannex{hmm_alpha_definition_forward}{algorithme forward} suivant~:
+
+
+		\begin{xalgorithm}{algorithme forward}
+		Soit $G = \acc{ N, A, e, s}$ un graphe orienté. La fonction $h\pa{n \in N}$ est égale au nombre d'arcs
+		arrivant au n\oe ud $n$~: $h\pa{n} = \card { a \in A \sac n'_a = n }$. On désigne également par 
+		$for\pa{n} \subset A$ l'ensemble des arcs partant de $n$~: $for\pa{n} = \acc{ a \in A \sac n_a = n}$.
+		
+		\begin{xalgostep}{initialisation}
+		\begin{xforeach}{n}{N}
+		$f\pa{n} \longleftarrow \indicatrice{ n = e}$  \\
+		$g\pa{n} \longleftarrow 0$  
+		\end{xforeach} \\
+		$ M \longleftarrow \acc{ e }$
+		\end{xalgostep}
+		
+		\begin{xalgostep}{propagation}
+		\begin{xwhile}{ $M \neq \empty$}
+				soit $n \in M$, $M \longleftarrow M - \acc{n}$ \\
+				\begin{xforeach}{a}{for\pa{n}}
+					$f\pa{n'_a} \longleftarrow f\pa{n'_a} + f\pa{n} w_a$ \\
+					$g\pa{n'_a} \longleftarrow g\pa{n'_a} + 1$ \\
+					\begin{xif}{ $g\pa{n'_a} = h\pa{n'_a}$ }
+						$ M \longleftarrow M \cup \acc{ n'_a }$
+					\end{xif}
+				\end{xforeach}
+		\end{xwhile}
+		\end{xalgostep}
+
+		\begin{xalgostep}{terminaison}
+		$P = f\pa{s}$ est la probabilité cherchée.
+		\end{xalgostep}
+		
+		\end{xalgorithm}
+		
+\indexfr{backward}
+
+Cet algorithme propage les probabilités depuis l'entrée jusqu'à la sortie d'où son nom. La version symétrique, l'algorithme \emph{backward}, propage les probabilités depuis la sortie jusqu'à l'entrée. A l'instar de l'algorithme forward qui construit la fonction $f$, l'algorithme backward construit une fonction $b$. Ces deux fonctions réunies permettent de calculer le gradient $\partialfrac{P}{w_a}$ de la probabilité $P$ par rapport coefficients de l'arc $a$~:
+		
+			\begin{eqnarray}
+			\partialfrac{P}{w_a}	&=&		f\pa{n_a} \; b\pa{n'_a}
+			\end{eqnarray}
+
+\indexfr{gradient}
+
+Au cas où cet arc est la composition de deux arcs $a_1$ et $a_2$, il est possible de calculer~:
+
+			\begin{eqnarray}
+			\partialfrac{P}{w_{a_1}} =   \partialfrac{P}{w_a} \, w_{a_2} \text{ et }
+			\partialfrac{P}{w_{a_2}} =   \partialfrac{P}{w_a} \, w_{a_1} 
+			\end{eqnarray}
+			
+
+Ces expressions permettent d'appliquer l'apprentissage de Baum-Welch à un graphe orienté résultant de la composition de deux autres graphes orientés. Par extension, ce formalisme permet aisément d'apprendre des graphes orientés issu de deux compositions successives comme c'est le cas pour une reconnaissance intégrant un graphe de segmentation graphème et un graphe de modèles de Markov cachés associés à des lettres et incluant eux-mêmes un graphe d'états. Le formalisme des graphes orientés permet de construire de manière itérative le gradient de cette modélisation à trois couches de graphes sans avoir à écrire de manière explicite le gradient de la vraisemblance par rapport à ces coefficients éparpillés à chaque étage.
+
+
+
+
+
+
+\subsection{Composition avec des arcs non émetteurs}
+\label{hmm_seq_composition_non_emetteur}
+\indexfrr{arc}{non émetteur}
+\indexfrr{composition}{graphe}
+\indexfrr{graphe}{composition}
+
+
+Les arcs non émetteurs permettent de simplifier de réduire le nombre d'arcs tout en conservant un graphe équivalent. Un arc non émetteur ne change pas la séquence dans laquelle il est inclus. La figure~\ref{hmm_seq_graph_eps1} montre un graphe incluant des arcs non émetteurs équivalent au graphe~\ref{hmm_seq_graph_eps1e}. Ce dernier contient plus de n\oe uds et plus d'arcs. L'introduction des arcs non émetteurs permet de réduire la taille des graphes. Toutefois l'algorithme de composition de graphes avec arcs non émetteurs est plus complexe que la version~\ref{hmm_seq_composition}.
+
+
+
+
+				\begin{figure}[ht]
+				$$\begin{array}{|c|} \hline
+    		\includegraphics[height=4cm, width=14cm]{\filext{../hmm_seq/image/epsi1}} \\ \hline
+    		\end{array}$$
+    		\caption{	Premier graphe à composer, les arcs labellés '.' sont non émetteurs. Le graphe équivalent sans 
+    							arc non émetteur est illustré par la figure~\ref{hmm_seq_graph_eps1e}.}
+    		\label{hmm_seq_graph_eps1}
+    		\end{figure}
+
+				\begin{figure}[ht]
+				$$\begin{array}{|c|} \hline
+    		\includegraphics[height=6cm, width=14cm]{\filext{../hmm_seq/image/epsi1_e}} \\ \hline
+    		\end{array}$$
+    		\caption{	Premier graphe à composer, représentation équivalente au graphe~\ref{hmm_seq_graph_eps1}
+    							mais sans arc non émetteur. Ce graphe contient plus de n\oe uds et plus d'arcs.}
+    		\label{hmm_seq_graph_eps1e}
+    		\end{figure}
+
+
+
+L'algorithme de composition de deux graphes contenant des arcs non émetteurs est identique à l'algorithme~\ref{hmm_seq_composition_epsilon} en ce qui concerne le traitement des n\oe uds émetteurs. Les n\oe uds non émetteurs sont traités séparément en introduisant des couples de n\oe uds supplémentaires dans la liste $M$. On note $Em(a)$ la propriété émettrice d'un arc $a$. Si $\pa{n_1,n_2} \in M$, soient deux arcs $a_1 \in for(n_1)$ et $a_2 \in for(n_2)$ tels que $Em(a_1)$ soit vraie et $Em(a_2)$ soit fausse, alors on ajoutera à la liste $M$ la paire de n\oe ud $\pa{n_1,n'_{a_2}}$ en même temps qu'un n\oe ud non émetteur.
+
+				\begin{figure}[ht]
+				$$\begin{array}{|c|} \hline
+    		\includegraphics[height=5cm, width=14cm]{\filext{../hmm_seq/image/epsi2}} \\ \hline
+    		\end{array}$$
+    		\caption{	Second graphe à composer, les arcs labellés '.' sont non émetteurs.}
+    		\label{hmm_seq_graph_eps2}
+    		\end{figure}
+
+
+
+				\begin{figure}[ht]
+				$$\begin{array}{|c|} \hline
+    		\includegraphics[height=3.5cm, width=14cm]{\filext{../hmm_seq/image/epsi3}} \\ \hline
+    		\end{array}$$
+    		\caption{	Résultat de la composition des graphes des figures~\ref{hmm_seq_graph_eps1}, 
+    							\ref{hmm_seq_graph_eps2}.}
+    		\label{hmm_seq_graph_eps3}
+    		\end{figure}
+
+
+			\begin{xalgorithm}{composition de graphes orientés avec arcs non émetteurs}
+			\label{hmm_seq_composition_epsilon}
+
+			Soient $G_1 = \acc{N_1, A_1, e_1, s_1}$ et $G_2 = \acc{N_2, A_2, e_2, s_2}$ deux graphes orientés vérifiant la
+			définition~\ref{hmm_seq_graphe_oriente}. On	note par $G = \acc{ N,A} = Comp\pa{G_1,G_2}$ le graphe résultant 
+			de la composition des deux premiers graphes. Les ensembles $N$ et $A$ sont construits de manière itérative.
+			Auparavant, on note $n = Comp\pa{n_1,n_2}$ le n\oe ud résultat de la composition des n\oe uds $n_1 \in N_1$ 
+			et $n_2 \in N_2$. De même $a = Comp\pa{a_1,a_2}$ où $a_1 \in A_1$ et $a_2 \in A_2$. $a$ n'existe que si 
+			($Em(a_1)$ et $Em(a_2)$ et $l_{a_1} = l_{a_2}$) et il 
+			vérifie\footnote{On adopte comme notation que $n_\emptyset = \emptyset$.}~:
+				
+						$$\begin{array}{rcl}
+						n_a 	&=& Comp\pa{n_{a_1}, n_{a_2}} 		\\
+						n_a' 	&=& Comp\pa{n'_{a_1}, n'_{a_2}} 	\\
+						w_a   &=& \left\{ \begin{array}{ll}
+													w_{a_1}								& \text{si }	a_2 = \emptyset \\
+													w_{a_2}								& \text{si }	a_1 = \emptyset \\
+													w_{a_1} \, w_{a_2}		& \text{sinon}
+													\end{array}\right.
+						\end{array}$$
+						
+			On supose qu'entre deux n\oe uds, il n'existe qu'un seul arc non émetteur. L'algorithme utilise 
+			deux conditions $Cond_1$ et $Cond_2$ définies en (\ref{hmm_seq_composition_cond_1}) et 
+			(\ref{hmm_seq_composition_cond_2}).
+						
+			\begin{xalgostep}{initialisation}
+			$N \longleftarrow e = Comp\pa{e_1,e_2}$ \\
+			$M \longleftarrow N$ \\ 
+			$A \longleftarrow \emptyset$ 
+			\end{xalgostep}
+			
+			\possiblecut
+			
+			\begin{xalgostep}{récurrence}\label{hmm_seq_composition_graphe_step_eps}
+			Soit $n = Comp\pa{n_1,n_2} \in M$, $M \longleftarrow M - \acc{n}$ \\
+			\begin{xforeach}{a_1}{A_1}
+				\begin{xforeach}{a_2}{A_2}
+					\begin{xif}{$n_{a_1} = n_1$ et $n_{a_2} = n_2$}
+					
+							\begin{xif}{non $Em(a_1)$ et non $Em(a_2)$}
+								$A \longleftarrow A \cup \acc{ Comp\pa{a_1,a_2} }$ \\
+								$n' \longleftarrow Comp\pa{n'_{a_1},n'_{a_2} }$ \\
+								\begin{xif}{$n' \notin N$} 
+									$M \longleftarrow M \cup \acc{n}$ \\
+									$N \longleftarrow N \cup \acc{n'}$ 
+								\end{xif}
+							\end{xif}
+					
+							\begin{xif}{$Em(a_1)$ et $Em(a_2)$ et $l_{a_1} = l_{a_2}$}
+								$A \longleftarrow A \cup \acc{ Comp\pa{a_1,a_2} }$ \\
+								$n' \longleftarrow Comp\pa{n'_{a_1},n'_{a_2} }$ \\
+								\begin{xif}{$n' \notin N$} 
+									$M \longleftarrow M \cup \acc{n}$ \\
+									$N \longleftarrow N \cup \acc{n'}$ 
+								\end{xif}
+							\end{xif}
+							
+							\begin{xif}{$Em(a_1)$ et non $Em(a_2)$}
+								\begin{xif}{$Cond_1\pa{N,A,n_1,n_2,a_1,a_2}$}
+									$A \longleftarrow A \cup \acc{ Comp\pa{\emptyset,a_2} }$ \\
+									$n' \longleftarrow Comp\pa{n_1,n'_{a_2} }$ \\
+									\begin{xif}{$n' \notin N$} 
+										$M \longleftarrow M \cup \acc{n}$ \\
+										$N \longleftarrow N \cup \acc{n'}$ 
+									\end{xif}
+								\end{xif}
+							\end{xif}
+
+							\begin{xif}{non $Em(a_1)$ et $Em(a_2)$}
+								\begin{xif}{$Cond_2\pa{N,A,n_1,n_2,a_1,a_2}$}
+									$A \longleftarrow A \cup \acc{ Comp\pa{a_1,\emptyset} }$ \\
+									$n' \longleftarrow Comp\pa{n'_{a_1},n_2 }$ \\
+									\begin{xif}{$n' \notin N$} 
+										$M \longleftarrow M \cup \acc{n}$ \\
+										$N \longleftarrow N \cup \acc{n'}$ 
+									\end{xif}
+								\end{xif}
+							\end{xif}
+							
+					\end{xif}
+				\end{xforeach}
+			\end{xforeach}
+			\end{xalgostep}
+			
+			\begin{xalgostep}{terminaison}
+			Tant que $M \neq \emptyset$, retour à l'étape~\ref{hmm_seq_composition_graphe_step_eps}. \\
+			Sinon, $Comp\pa{G_1,G_2} = \acc{ A, N, Comp\pa{e_1,e_2}, Comp\pa{s_1,s_2}}$.
+			\end{xalgostep}
+
+			%\begin{xalgostep}{nettoyage}
+			%Si n\oe ud du graphe final est atteint par deux arcs non émetteurs, un entrant, un partant, 
+			%ce n\oe ud est supprimé et les deux arcs fusionnés, leur probabilités multipliées. S'il existe deux arcs 
+			%non émetteur reliant les deux mêmes n\oe uds, ceux-ci sont fusionnés et leurs probabilités additionnées.
+			%\end{xalgostep}
+
+			\end{xalgorithm}
+
+
+Les conditions $Cond_1$ et $Cond_2$ permettent d'éviter la création d'un trop grand nombre d'arcs non émetteurs dans le graphe résultant lors que la composition de deux arcs non émetteurs.
+
+			\begin{eqnarray}\begin{array}{r}
+			Cond_1\pa{N,A,n_1,n_2,a_1,a_2} \text{ est fausse} \Longleftrightarrow   \\
+					\exists a = Comp\pa{\alpha_1,\emptyset} \in A \text{ tel que } 
+								\left\{ \begin{array}{l}
+					      \text{non } Em(\alpha_1) \text{ et } \\
+					      \exists a^* = Comp\pa{\alpha_1, a_2} \in A \\
+					      \end{array}\right.
+			\end{array}\label{hmm_seq_composition_cond_1}\end{eqnarray}
+
+
+Par analogie~: 
+
+			\begin{eqnarray}\begin{array}{r}
+			Cond_2\pa{N,A,n_1,n_2,a_1,a_2} \text{ est fausse} \Longleftrightarrow   \\
+					\exists a = Comp\pa{\emptyset,\alpha_2} \in A \text{ tel que } 
+								\left\{ \begin{array}{l}
+					      \text{non } Em(\alpha_2) \text{ et } \\
+					      \exists a^* = Comp\pa{a_1, \alpha_2} \in A \\
+					      \end{array}\right.
+			\end{array}\label{hmm_seq_composition_cond_2}\end{eqnarray}
+
+
+Si ces tests n'étaient pas effectués, le graphe résultant illustré par la figure~\ref{hmm_seq_graph_eps3} deviendrait celui de la figure~\ref{hmm_seq_graph_eps4}. 
+
+				\begin{figure}[ht]
+				$$\begin{array}{|c|} \hline
+    		\includegraphics[height=4cm, width=14cm]{\filext{../hmm_seq/image/epsi4}} \\ \hline
+    		\end{array}$$
+    		\caption{	Résultat de la composition des graphes des figures~\ref{hmm_seq_graph_eps1}, 
+    							\ref{hmm_seq_graph_eps2} si les conditions 
+    							(\ref{hmm_seq_composition_cond_1}) et (\ref{hmm_seq_composition_cond_2}) étaient
+    							toujours vraies dans
+    							l'algorithme~\ref{hmm_seq_composition_epsilon}. Entre les n\oe uds $(2,2)$
+    							et $(3,3)$, il existe trois chemins non émetteurs de même probabilité alors que la composition
+    							doit retourner un seul arc non émetteur de probabilité $0.04$. Les conditions 
+    							$Cond_1$~(\ref{hmm_seq_composition_cond_1})
+    							et $Cond_2$~(\ref{hmm_seq_composition_cond_2})
+    							permettent d'éviter la création des n\oe uds $(3,2)$ et $(2,3)$ ainsi que 
+    							des arcs non émetteurs qui y sont reliés.}
+    		\label{hmm_seq_graph_eps4}
+    		\end{figure}
+
+
+\begin{xremark}{vérification}
+Pour vérifier la validité de l'algorithme~\ref{hmm_seq_composition_epsilon}, il suffit de comparer le résultat de la composition de deux graphes pour lesquels les arcs non émetteurs ont été enlevés (voir paragraphe~\ref{hmm_seq_graphe_equivalent_non_emetteur}) avec le résultat de la composition des deux graphes avec arcs non émetteurs, résultat auquel on aura pris soin d'enlever les arcs non émetteurs.
+\end{xremark}
+
+
+
+
+
+
+
+
+
+
+%--------------------------------------------------------------------------------------------------------------
+\section{Algorithmes et graphes}
+%--------------------------------------------------------------------------------------------------------------
+
+
+
+
+\subsection{Construction du graphe équivalent sans arc non émetteur}
+\label{hmm_seq_graphe_equivalent_non_emetteur}
+\indexfrr{arc}{non émetteur}
+\indexfrr{graphe}{équivalence}
+\indexfrr{équivalence}{graphe}
+\indexfr{successeur}
+
+
+La figure~\ref{hmm_seq_graph_epsw} montre le graphe équivalent à celui de la figure~\ref{hmm_seq_graph_eps2} sans arc non émetteur. A chaque fois qu'un arc non émetteur est rencontré entre les n\oe uds $a$ et $b$, tous les arcs partant du n\oe ud $b$ sont dupliqués de telle sorte que les copies partent du n\oe ud~$a$. Les n\oe uds du graphe sont parcourus de la sortie vers l'entrée pour être certain que tous les arcs successeurs d'un arc non émetteur soient émetteurs. Ceci mène à l'algorithme suivant~:
+
+
+
+				\begin{figure}[ht]
+				$$\begin{array}{|c|} \hline
+    		\includegraphics[height=6cm, width=14cm]{\filext{../hmm_seq/image/epsiw}} \\ \hline
+    		\end{array}$$
+    		\caption{	Graphe équivalent à celui de la figure~\ref{hmm_seq_graph_eps2} 
+    							sans arc non émetteur.}
+    		\label{hmm_seq_graph_epsw}
+    		\end{figure}
+
+
+			\begin{xalgorithm}{graphe sans arc non émetteur}
+			Soit $G = \acc{N, A, e, s}$ un graphe orienté vérifiant la définition~\ref{hmm_seq_graphe_oriente}. 
+			Pour $n \in N$, on définit la fonction $b\pa{n}$ dénombrant le nombre d'arcs partant du n\oe ud $n$.
+			La fonction $c\pa{n}$ désigne un compteur. On suppose que ce graphe ne comporte pas de cycles. $S\pa{n}$
+			désigne l'ensemble des arcs partant du n\oe ud $n$. La fonction $arc\pa{n_1,n_2,l,w}$ est définie comme
+			étant l'arc reliant les n\oe uds $n_1$ et $n_2$, émettant le symbol~$l$ avec la probabilité $w$.
+			
+			\begin{xalgostep}{initialisation}
+			$M \longleftarrow \acc{s}$ 
+			\begin{xforeach}{n}{N}
+					$\begin{array}{lll}
+					b\pa{n} 	&\longleftarrow& 0 \\
+					c\pa{n} 	&\longleftarrow& 0 \\
+					S\pa{n} 	&\longleftarrow& \emptyset
+					\end{array}$
+			\end{xforeach} \\					
+			\begin{xforeach}{a}{a}
+					$\begin{array}{lll}
+					b\pa{n_a} 	&\longleftarrow& b\pa{n_a} + 1 \\
+					S\pa{n_a} 	&\longleftarrow& S\pa{n_a} \cup \acc{a}
+					\end{array}$ 
+			\end{xforeach}					
+			\end{xalgostep}
+			
+			\begin{xalgostep}{ajout d'arc non émetteur}
+			\begin{xwhile}{$M \neq \emptyset$}
+					soit $n \in M$, $M \longleftarrow M - \acc{n}$ 
+					
+					\begin{xforeach}{a}{A}
+					
+							$c\pa{n_a} \longleftarrow c\pa{n_a} + 1$
+					
+							\begin{xif}{$Em(a)$ et $n'_a = n$}
+									\begin{xforeach}{\alpha}{S\pa{n'_a}}
+											$A \longleftarrow A \cup \acc{arc\pa{n_a,n'_\alpha,l_\alpha,\, w_a \, w_\alpha}}$									
+									\end{xforeach}
+
+									$A \longleftarrow A - \acc{a}$									
+							\end{xif} 
+							
+							\begin{xif}{$c\pa{n_a} = b\pa{n_a}$}
+								$\begin{array}{lll}
+								c\pa{n_a} &\longleftarrow& \infty  \\
+								M 				&\longleftarrow& M \cup \acc{n_a}
+								\end{array}$
+							\end{xif}
+					\end{xforeach}					
+			\end{xwhile}
+			\end{xalgostep}
+			
+			\end{xalgorithm}
+
+
+\begin{xremark}{n\oe uds ajoutés à la liste $M$}
+Seuls les n\oe uds pour lesquels tous les arcs sortants ont été visités. Ceci garantit que tous les arcs successeurs d'un arc émetteur en train d'être supprimé soient émetteurs.
+\end{xremark}
+
+\indexfr{$\epsilon$-removal}
+Cet algorithme, appliqué aux automates à états finis, est aussi connu sous le nom de "$\epsilon$-removal" (voir \citeindex{Mohri2002b}).
+
+
+
+
+
+
+
+\subsection{Minimisation}
+\indexfrr{minimisation}{graphe}
+\indexfrr{graphe}{minimisation}
+
+La minimisation d'un graphe est une opération qui consiste à réduire la taille d'un graphe tout en conservant un graphe équivalent. Ces algorithmes dépassent le cadre de ce chapitre. Il est néanmoins possible de se référer à l'article \citeindex{Mohri2000}.
+
+
+
+
+
+
+
+\subsection{Meilleurs chemins}
+\indexfrr{graphe}{meilleurs chemins}
+\indexfr{Dijkstra}
+\indexfrr{meilleur chemin}{Dijkstra}
+
+Pour construire une liste de réponses probabilisés tirés d'un modèle de reconnaissance, il est parfois nécessaire d'extraire les $n$ meilleurs chemins d'un graphe où $n$ n'est pas forcément connu à l'avance. L'algorithme développé dans ce paragraphe propose une optimisation qui prend en compte le fait que les poids associés aux arcs sont positifs, ceci permet l'utilisation d'un algorithme de type Dijkstra (\citeindex{Dijkstra1971}). Le corps de l'algorithme s'inspire de celui développé dans \citeindex{Chen1994} (page~490) qui permet d'extraire un à un les meilleurs chemins avec un coût du même ordre de grandeur que le nombre de n\oe uds dans ces chemins excepté pour le premier.
+
+
+
+		\begin{xalgorithm}{meilleurs chemins}\label{hmm_seq_algo_arbre_nbest_step_b}
+		Soit $G = \acc{ N, A, e, s}$ un graphe orienté. On désigne également par 
+		$for\pa{n} \subset A$ l'ensemble des arcs partant de $n$~: $for\pa{n} = \acc{ a \in A \sac n_a = n}$. On
+		désigne par $b_n\pa{t}$ un triplet $\pa{p,a,t} \in \cro{0,1} \times A \times \N^+$ associant~:
+				\begin{enumerate}
+				\item La probabilité du $t^{\text{ième}}$ meilleur chemin allant depuis le premier n\oe ud 
+							$e$ au n\oe ud~$n$, on la note $b_n^p\pa{t}$.
+				\item L'arc précédent dans ce chemin depuis l'entrée jusqu'au n\oe eud $n$, on le note $b_n^a\pa{t}$.
+				\item L'indice du meilleur chemin arrivant au n\oe ud précédent, on le note $b_n^t\pa{t}$.
+				\end{enumerate}
+		Par convention, ces trois informations ont pour valeur $\emptyset$ lorsqu'elles n'ont pas encore
+		été calculées. Cette suite $\pa{b_n\pa{t}}_{t \supegal 1}$ 
+		est constamment triée	par ordre de probabilités décroissantes.
+		
+		\begin{xalgostep}{initialisation}
+		\begin{xforeach}{n}{N}
+		$\forall t \supegal 1, \; b_n 		\longleftarrow \emptyset $
+		\end{xforeach} \\
+		$t \longleftarrow 1$
+		\end{xalgostep}
+		
+		\possiblecut
+		
+		\begin{xalgostep}{parcourt de l'arbre}\label{hmm_seq_arbre_nbest_step_b}
+		$\begin{array}{lll}
+		S &\longleftarrow& \acc{e} \\
+		\forall n \in G, \; f\pa{n} &\longleftarrow& 0
+		\end{array}$ \\
+		\begin{xwhile}{$S \neq \emptyset$}
+			Soit $n \in S$, $S \longleftarrow S - \acc{n}$ \\
+			\begin{xforeach}{a}{for\pa{n}}
+				$\begin{array}{lll}
+				f\pa{n'_a} 		&\longleftarrow& f\pa{n'_a} + 1 \\
+				g\pa{a}     	&\longleftarrow& 1
+				\end{array}$ \\
+				\begin{xif}{$f\pa{n'_a} = \card{ for\pa{n'_a}}$}
+					$S \longleftarrow S \cup \acc{n'_a}$
+				\end{xif} \\
+			   $b_{n'_a}     \longleftarrow b_{n'_a}
+	   										\overset{\text{insertion}}{\underset{\text{triée}}{\cup}}
+			   								   \biggpa{  b_n\pa{t} \, w_a, a, t} $
+			\end{xforeach}
+		\end{xwhile}
+		\end{xalgostep}
+		
+		\possiblecut
+		
+		\begin{xalgostep}{obtention du $t^{\text{ième}}$ meilleur chemin}\label{hmm_seq_arbre_nbest_step_c}
+		Soit $\pa{c_i}_i$ le chemin désiré.  \\
+		$\begin{array}{lll} 
+		i 	&\longleftarrow& 1 \\
+		u_0	&\longleftarrow& t \\
+		u_i	&\longleftarrow& b_{s}^{t}\pa{t} \\
+		c_i &\longleftarrow& b_{s}^{a}\pa{t} 
+		\end{array}$ \\
+		\begin{xwhile}{$n_{c_i} \neq e$}
+			$\begin{array}{lll}
+			c_{i+1}	&\longleftarrow& b_{n_{c_i}}^{a}\pa{u_i} \\
+			u_{i+1}	&\longleftarrow& b_{n_{c_i}}^{t}\pa{u_i} \\
+			i 			&\longleftarrow& i + 1 \\
+			\end{array}$
+		\end{xwhile} \\
+		Le $t^{\text{ième}}$ meilleur chemin correspond à la suite d'arcs
+		$\pa{c_{i-k+1}}_{1 \infegal k \infegal i}$ et sa probabilité est $b_s^p\pa{t}$. 
+		La suite $\pa{u_{i-k}}_{0 \infegal k \infegal i}$ correspond aux indices de passages à chaque n\oe ud.
+		\end{xalgostep}
+		
+		\possiblecut
+		
+		\begin{xalgostep}{mise à jour pour l'obtention du meilleur chemin suivant}\label{hmm_seq_arbre_nbest_step_d}
+		On parcourt la suite $\pa{c_{i-k+1}}_{1 \infegal k \infegal i}$ pour mettre à jour les informations
+		relatives aux n\oe uds visités. \\
+		\begin{xfor}{k}{i}{1}
+			$\begin{array}{lll}
+			g\pa{c_k} 					&\longleftarrow& g\pa{c_k} + 1 \\
+	   	b_{n'_{c_k}}      	&\longleftarrow& b_{n'_{c_k}}
+	   										\overset{\text{insertion}}{\underset{\text{triée}}{\cup}}
+	   								   \biggpa{  b_{n_{c_k}}\pa{g\pa{c_k}} \, w_{c_k}, c_k, g\pa{c_k}} 
+			\end{array}$	   								   
+		\end{xfor}
+		\end{xalgostep}
+
+		\begin{xalgostep}{obtention du meilleur chemin suivant}\label{hmm_seq_arbre_nbest_step_d}
+		$t \longleftarrow t + 1$ \\ 
+		Retour à l'étape~\ref{hmm_seq_arbre_nbest_step_c}.
+		\end{xalgostep}
+		
+		\end{xalgorithm}
+
+
+
+Le coût des étapes~\ref{hmm_seq_arbre_nbest_step_c} et~\ref{hmm_seq_arbre_nbest_step_d} est de l'ordre du nombre d'arcs du dernier meilleur chemin extrait. Le coût de l'étape~\ref{hmm_seq_arbre_nbest_step_b} est du même ordre que celui de l'extraction du meilleur chemin avec l'algorithme Dijkstra.
+
+
+
+
+
+
+
+
+
+
+
+
+
+\firstpassagedo{
+	\begin{thebibliography}{99}
+	\input{hmm_seq_bibliographie.tex}
+	\end{thebibliography}
+}
+
+
+\input{../../common/livre_table_end.tex}
+\input{../../common/livre_end.tex}

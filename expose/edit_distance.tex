@@ -1,0 +1,240 @@
+\input{../_header_footer/header_no_utf8.tex}
+
+\ifnum\nbpassages=1
+\title{Edit distance}
+\author{Xavier Dupre}
+\date{\today}
+\maketitle
+\setcounter{tocdepth}{3}
+\tableofcontents
+
+\definespacepar
+\bigskip
+\newpage
+\fi
+
+\section{Target description}
+
+An edit distance is used to compare two words even if it could also be used to compare any kind of sequences. We usually use it to determine the proximity between two words, to find the right spelling. The Levenstein edit distance propose a way to go from one word to another by applying three kind of operations:
+
+    \begin{enumerate}
+    \item comparison between two characters
+    \item insertion of a character
+    \item deletion of a character
+    \end{enumerate}
+
+Example~\ref{figure_distance_edition_exemple_un} shows how we could find a way to transform  word "idstzance" into "distances". 
+
+
+    \begin{figure}[ht]
+    $$
+    \frame{$%
+    \begin{array}[c]{cc|c|c}%
+    \text{\textbf{mot 1}} & \text{\textbf{mot 2}} & \text{\textbf{opération}}%
+    & \text{\textbf{coût}}\\ \hline
+    i & d & \text{comparison bandween "i" and "d"} & 1\\
+    d & i & \text{comparison between "d" and "i"} & 1\\
+    s & s & \text{comparison between "s" and "s"} & 0\\
+    t & t & \text{comparison between "t" and "t"} & 0\\
+    z &  & \text{deletion of "z"} & 1\\
+    a & a & \text{comparison between "a" and "a"} & 0\\
+    n & n & \text{comparison between "n" and "n"} & 0\\
+    c & c & \text{comparison between "c" and "c"} & 0\\
+    e & e & \text{comparison between "e" and "e"} & 0\\
+    & s & \text{insertion of "s"} & 1\\ \hline
+    &  & \text{\textbf{\underline{$\text{\textbf{sum = }distance}$}}} & 4
+    \end{array}
+    $}
+    $$
+    \caption{	Edit distance between  words "idstzance" and "distances". }
+    \label{figure_distance_edition_exemple_un}
+    \end{figure}
+
+\section{Algorithm}
+
+The most simple way to define the Levenstein edit distance is to use a recurrence. We want here to compare words $m_1$~and~$m_2$. Every word is a sequence of characters denoted as: $(m_1^1,m_1^2,m_1^3,...)$. This notation allows us to write:
+
+\begin{eqnarray}
+&&
+		    \left\{
+		    \begin{array}[c]{l}%
+		    d_{0,0}=0\\
+		    d_{i,j}=\min\left\{
+		    \begin{array}{lll}
+		    d_{i-1,j-1}	&	+	& \text{comparison}	\left(  m_1^i,m_2^j\right), \\
+		    d_{i,j-1}		&	+	& \text{insertion}		\left(  m_2^j\right), \\
+		    d_{i-1,j}		&	+	& \text{deletion}	\left(  m_1^i\right)
+		    \end{array}
+		    \right\}%
+		    \end{array}
+		    \right.
+\end{eqnarray}		
+
+The last value of the array gives the distance between the two words.Figure~\ref{figure_distance_edition_exemple_deux} illustrates the recurrence. This algorithm is part of dynamic programming\footnote{See also \murl{http://en.wikipedia.org/wiki/Dynamic\_programming}.}. It is very similar to finding the shortest path into a graph from Djikstra\footnote{See also \murl{http://en.wikipedia.org/wiki/Dijkstra\%27s\_algorithm}.}. 
+
+
+    \begin{figure}[ht]
+    		\begin{small}
+        $$
+        \frame{$%
+        \begin{array}{c}
+            \begin{array}[c]{ccc}%
+                \frame{$%
+		            \begin{small}
+                \begin{array}[c]{cc}%
+                    \searrow & \\
+                    \text{in that way,} \\
+                    \text{it is a} \\
+                    \text{comparison}%
+                \end{array}
+		            \end{small}
+                $}
+                &
+                \frame{$%
+		            \begin{small}
+                \begin{array}[c]{c}%
+                    \longrightarrow j\\
+                    \text{it is an insertion here}%
+                \end{array}
+                \end{small}
+                $}
+                &
+                \\%
+                \frame{$%
+		            \begin{small}
+                \begin{array}[c]{ll}%
+                    & \text{in that way,}\\
+                    \downarrow & \text{it is a}\\
+                    i & \text{deletion}%
+                \end{array}
+		            \end{small}
+                $}
+                &
+                \frame{$%
+                \begin{small}
+                \begin{array}[c]{ccccccccccc}%
+                    &  & d & i & s & t & a & n & c & e & s\\
+                    & 0 &  &  &  &  &  &  &  &  & \\
+                    i &  & 1 &  &  &  &  &  &  &  & \\
+                    d &  &  & 2 &  &  &  &  &  &  & \\
+                    s &  &  &  & 2 &  &  &  &  &  & \\
+                    t &  &  &  &  & 2 &  &  &  &  & \\
+                    z &  &  &  &  & 3 &  &  &  &  & \\
+                    a &  &  &  &  &  & 3 &  &  &  & \\
+                    n &  &  &  &  &  &  & 3 &  &  & \\
+                    c &  &  &  &  &  &  &  & 3 &  & \\
+                    e &  &  &  &  &  &  &  &  & 3 & 4
+                \end{array}
+                \end{small}
+                $}%
+                &
+                \frame{$
+                \begin{small}
+                \begin{array}
+                [c]{ccccccccccc}%
+                &  & d & i & s & t & a & n & c & e & s\\
+                & 0 &  &  &  &  &  &  &  &  & \\
+                i & 1 &  &  &  &  &  &  &  &  & \\
+                d & 2 & 3 & 4 &  &  &  &  &  &  & \\
+                s &  &  &  & 4 &  &  &  &  &  & \\
+                t &  &  &  &  & 4 &  &  &  &  & \\
+                z &  &  &  &  & 5 &  &  &  &  & \\
+                a &  &  &  &  &  & 5 & 6 & 7 &  & \\
+                n &  &  &  &  &  &  &  & 8 &  & \\
+                c &  &  &  &  &  &  &  & 9 &  & \\
+                e &  &  &  &  &  &  &  &  & 9 & 10
+                \end{array}
+                \end{small}
+                $}
+            \end{array}
+            \bigskip
+            \\
+            \begin{small}
+            \begin{tabular}{|cccccccccc|} \hline
+            d & i & s & t &   & a & n & c & e & s\\ 
+            i & d & s & t & z & a & n & c & e &   \\ \hline
+            \end{tabular}
+						\text{ or }
+            \begin{tabular}{|cccccccccccccccccc|} \hline
+              &   & d & i & s & t &   & a & n & c &   &   & e & s\\ 
+            i & d &   &   & s & t & z & a &   &   & n & c & e &   \\ \hline
+            \end{tabular}
+            \medskip
+            \end{small}
+            
+            \\
+            \begin{tabular}{c}%
+                \begin{minipage}{15cm}
+                Every element $\pa{i,j}$ contains the distance the first~$i$ first letters of word $m_1$
+                from the~$j$ first letter of word $m_2$. The first matrix gives the best transformation between the two words. 
+        				The second matrix is another transformation less efficient.
+		            \medskip
+                \end{minipage}
+            \end{tabular}
+        \end{array}
+        $}%
+        $$
+    		\end{small}
+        \caption{Distance between words "idstzance" and "distances". }
+        \label{figure_distance_edition_exemple_deux}
+    \end{figure}
+
+
+
+
+
+
+
+\section{Example in Python}
+
+\begin{verbatimx}        
+def edit_distance ( seq1, 
+                    seq2, 
+                    infinity    = 1e10) :
+    """
+    return the edist distance between two sequences
+    @param      seq1        sequence 1
+    @param      seq2        sequence 2
+    @param      infinity    infinity 
+    @return                 float
+    """
+    
+    def fins (a,b) : return 1
+    def fcmp (a,b) : return 1 if a != b else 0
+    
+    d       = { (-1,-1):0. }  # definition of a dictionary (or a map in C++)
+                              # it is used to model a matrix d [i,j] is the coefficient i,j
+                              # or d.get ( (i,j),  None )
+                              # this function tries to get the coefficient i,j or returns None
+                              # if it does not exist
+    pairs   = { }
+    s1      = { }
+    s2      = { }
+    
+    for i,c1 in enumerate (seq1) :
+        s1 [i] = c1
+        for j,c2 in enumerate (seq2) : pairs [i,j] = (c1,c2)
+            
+    for j,c2 in enumerate (seq2) : s2 [j] = c2
+    
+    l1,l2 = len (seq1),len (seq2)
+    
+    for i in xrange (-1, l1) :
+        for j in xrange (-1, l2) :
+            t1      = d    .get ( (i-1, j  ), infinity)     + fins (s1.get (i, None), i)
+            t2      = d    .get ( (i,   j-1), infinity)     + fins (s2.get (j, None), j)
+            p       = pairs.get ( (i,   j)  , (None, None))
+            t3      = d    .get ( (i-1, j-1), infinity)     + fcmp (p [0], p [1])
+            d [i,j] = min ( [t1,t2,t3] )
+            
+    return d [ l1-1, l2-1 ]
+\end{verbatimx}        
+        
+
+
+
+
+
+
+\input{../_header_footer/footer.tex}
+

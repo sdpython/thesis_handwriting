@@ -1,0 +1,462 @@
+\input{../../common/livre_begin.tex}%
+\firstpassagedo{\input{decision_titre.tex}}
+\input{../../common/livre_table_begin.tex}%
+
+\sloppy
+
+%---------------------------------------------------------------------------------------------------------------------
+\chapter{Décision}
+%---------------------------------------------------------------------------------------------------------------------
+
+\indexfr{décision}
+\indexfr{opérateurs humains}
+
+
+La décision est la dernière étape du processus de reconnaissance et consiste à valider ou invalider les résultats obtenus par les étapes précédentes. Actuellement, les modèles de Markov cachés sont moins fiables que des opérateurs humains et n'atteignent les mêmes performances de reconnaissance que pour la partie des documents la mieux écrite. Par exemple, sur des chèques français, un opérateur humain est capable d'en déchiffrer le montant avec 1\% d'erreur, c'est-à-dire que sur cent chèques, un seul n'est pas lu correctement. Ce taux d'erreur est inatteignable par des logiciels de reconnaissance à moins de ne traiter que environ 70\% des chèques les mieux écrits, les 30\% restant étant toujours décryptés par des opérateurs humains. Par conséquent, l'étape de décision consiste à déterminer l'ensemble des documents pour lesquels les résultats de la reconnaissance peuvent être considérés comme fiables, c'est-à-dire reconnus avec un faible taux d'erreur.
+
+\indexfr{fiabilité}
+\indexfr{taux d'erreur}
+
+
+
+
+
+
+
+
+
+
+
+%--------------------------------------------------------------------------------------------------------------------
+\section{Courbe taux de lecture substitution / taux d'erreur}
+%--------------------------------------------------------------------------------------------------------------------
+
+\label{decision_roc_par}
+\indexfr{ROC}
+\indexsee{Receiver Operating Characteristic}{ROC}
+\indexfrr{critère}{confiance}
+
+Cette courbe permet d'évaluer de manière simple les performances d'un jeu de modèles de reconnaissance qui retourne une réponse (un mot par exemple) et un nombre réel (un critère de confiance). La décision revient à accepter ou rejeter la réponse fournie par le processus de reconnaissance. Ces deux informations permettent d'obtenir pour un seuil fixé~$S$ du critère de confiance et pour une base de données quatre nombres~:
+
+		\begin{enumerate}
+		\item $A_V\pa{s}$~: le nombre des documents pour lesquels $C\pa{d} \supegal s$ et la réponse est bonne.
+		\item $A_F\pa{s}$~: le nombre des documents pour lesquels $C\pa{d} \supegal s$ et la réponse est mauvaise.
+		\item $R_F\pa{s}$~: le nombre des documents pour lesquels $C\pa{d} < s$ et la réponse est bonne.
+		\item $R_V\pa{s}$~: le nombre des documents pour lesquels $C\pa{d} < s$ et la réponse est mauvaise.
+		\end{enumerate}
+
+L'objectif de la reconnaissance est de rendre le nombre $A_F\pa{s}$ aussi petit que possible et $A_V\pa{s}$ aussi grand que possible. En faisant varier $s$, il est possible de tracer le graphe $A_V\pa{s}$ / $A_F\pa{s}$ (voir figure~\ref{decision_courbe_roc}). Dans la mesure où rejeter par erreur est souvent moins grave que d'accepter par erreur, cette courbe permet, pour un taux d'erreur donné, de déterminer le taux de bonnes acceptations correspondant.
+
+				\begin{figure}[ht]
+				$$\begin{array}{|c|} \hline
+    		\includegraphics[height=4cm, width=6cm]{\filext{../reco/image/roc}} \\ \hline
+    		\end{array}$$
+    		\caption{	Courbe proche d'une courbe ROC (Receiver Operating Characteristic)~: 
+    							seule la partie correspondant
+    							aux faibles taux d'erreur est intéressante. Dans cet exemple, 
+    							pour 1\% de documents reconnus par erreur, 70\% le sont correctement.}
+    		\indexfr{ROC}
+    		\indexfr{Receiver Operating Characteristic}
+    		\label{decision_courbe_roc}
+    		\end{figure}
+
+
+\indexfr{rejet}
+
+En règle générale, le taux de référence cherché est donné par $\frac{A_V\pa{s} + A_F\pa{s}} {A_V\pa{s} + A_F\pa{s} + R_V\pa{s} + R_F\pa{s}}$ lorsque $s$ est choisi de telle sorte que $\frac{A_F\pa{s}}{A_F\pa{s}+A_V\pa{s}} \infegal 1 \%$. Ce test constitue un moyen simple d'évaluer la pertinence de modèles de reconnaissance. Il suppose évidemment que le critère de confiance ne soit pas une valeur binaire et permette ainsi d'éliminer les cas pour lesquels la reconnaissance n'est pas fiable.
+
+\indexfrr{mot}{-clé}
+
+Ce test est parfois dupliqué lorsque la décision à prendre n'est plus binaire. Dans le cas d'une recherche de mots-clé, il s'agit de déterminer si un mot appartient à un dictionnaire (ou liste des mots-clé) et s'il en fait partie, de dire lequel. Cette expérience est donc constituée de deux décisions~:
+
+		\begin{enumerate}
+		\item Le mot est-il un mot-clé~? (ou fait-il partie du dictionnaire~?)
+		\item S'il en fait partie, le mot reconnu est-il le bon~?
+		\end{enumerate}
+
+Un critère est développé pour chacun des deux problèmes, ou pour les deux simultanément, auxquels sont associés deux seuils de décision. Il n'est pas évident qu'un seul critère soit adapté à ces deux tâches. Toutefois, dans les deux cas, la courbe décrite par la figure~\ref{decision_courbe_roc} est toujours utilisée pour évaluer les performances d'un système. Même dans le cas d'un système de décision plus élaboré, cette figure est encore utilisée puisque la règle de décision n'est pas modifiée (critère supérieur ou non à un seuil), la pertinence du système est concentrée dans l'élaboration d'un critère plus "intelligent" qu'une simple probabilité déduite des résultats de la reconnaissance.
+
+Ces courbes\seeannex{roc_annex_annex}{ROC} permettent de comparer les performances d'un jeu de modèles dans différents contextes où différents jeux de modèles dans les mêmes conditions. Il est encore impossible de concevoir un système de reconnaissance ayant de bonnes performances sur un large éventail de problèmes mais il est possible d'obtenir des performances acceptables pour une tâche particulière. C'est pourquoi les performances sont très sensibles à~:
+
+
+		\begin{enumerate}
+		\item La qualité des images en entrée du système~: un fond d'image propre, 
+					une écriture lisible, une bonne définition de l'image,~...
+		\item La complexité du résultat~: reconnaître un mot inclus dans un petit dictionnaire, 
+					reconnaître si un mot est inclus dans une liste,~...
+		\item Le contexte~: la langue par exemple, les écritures anglaise et française sont différentes.
+		\end{enumerate}
+
+Ces conditions sont sensiblement identiques pour un même problème mais diffèrent souvent pour des documents provenant de sources différentes (scanner, type de documents, type d'information à reconnaître...). Ceci explique pourquoi il est très difficile de comparer différents systèmes de reconnaissance entre eux puisqu'ils sont également estimés sur des bases de données différentes. Cette partie propose trois directions d'étude. La première consiste en une optimisation du processus de reconnaissance, la seconde évoque la fabrication d'un critère plus pertinent en utilisant le maximum d'information retournée par les modèles de reconnaissance, la troisième direction met en correspondance les résultats de différents jeux de modèles de reconnaissance.
+
+
+
+
+
+
+%--------------------------------------------------------------------------------------------------------------------
+\section{Reconnaissance avec dictionnaire, optimisation en vitesse}
+%--------------------------------------------------------------------------------------------------------------------
+
+\label{section_word_reco__par}
+
+
+\subsection{Introduction}
+\label{section_word_reco}
+
+\indexfrr{optimisation}{vitesse}
+\indexfr{vitesse}
+
+Cette idée est extraite de l'article \citeindex{Dupré2003} et a pour objectif d'accélérer la reconnaissance d'un document. Lors de la reconnaissance d'un mot avec dictionnaire, il est nécessaire de calculer la probabilité d'une séquence d'observations $O$ pour chaque modèle de mot du dictionnaire $D$ afin de déterminer celui qui obtient le meilleur score~:
+
+		\begin{eqnarray}
+		M^* = \underset {M \in D} { \arg \max} \;  \pr{ O \sac M}
+		\label{wordreco_eq1}
+		\end{eqnarray}
+		
+De manière évidente, le temps de reconnaissance augmente linéairement avec la taille du dictionnaire. Nous avons vu au paragraphe~\ref{reco_sans_dico_par} qu'il est possible d'obtenir la séquence de modèles de lettre la plus probable notée $H^*$. A cette séquence correspond un mot noté $l^*$. Ce dernier est rarement un mot correct au sens de la langue et ne peut être le résultat de la reconnaissance mais cette séquence est souvent proche des mots inclus dans le dictionnaire. La proximité de deux mots est dans ce cas retournée par la distance d'édition de Levenstein\seeannex{edit_distance_annexe}{distance d'édition}. On construit donc le voisinage $N^*\pa{s}$ de la séquence de lettres $l^*$ inclus dans un dictionnaire $D$~:
+
+
+			\begin{eqnarray}
+			N^*\pa{s} = \acc{ m \in D \sac d\pa{m, l^*} \infegal s }
+			\end{eqnarray}
+
+L'idée sous-jacente est de vérifier que le mot $M^*$ défini en (\ref{wordreco_eq1}) vérifie également (\ref{wordreco_eq2})~:
+
+		\begin{eqnarray}
+		M^* = \underset { M \in N^*\pa{s} } { \arg \max} \;  \pr{ O \sac M}
+		\label{wordreco_eq2}
+		\end{eqnarray}
+
+L'ensemble $N^*\pa{s}$ doit être suffisamment petit pour éviter un trop grand nombre de calculs des probabilités $\pr{ O \sac M}$ où $M$ est un modèle de mot, il doit également être suffisamment grand afin d'être sûr que le modèle $M^*$ y soit inclus. Ce compromis se traduit par le choix d'une valeur de $s$ adéquat. Par conséquent, l'optimisation en vitesse repose sur trois étapes~:
+
+		\begin{enumerate}
+		\item Calculer la séquence de lettres la plus probable en utilisant l'algorithme de Viterbi.
+		\item Déterminer l'ensemble $N^*\pa{s}$.
+		\item Calculer pour chaque mot de l'ensemble $N^*\pa{s}$ la probabilité $\pr{ O \sac M}$ 
+					et retourner le mot $M^*$ vérifiant (\ref{wordreco_eq2}).
+		\end{enumerate}
+		
+Ce système d'optimisation est résumé par la figure~\ref{figure_system}. Le choix $s$ est un compromis entre optimisation en vitesse et perte de performance.
+
+
+				%\begin{figure}[ht]
+		    %$$\frame{$\begin{array}[c]{c}\includegraphics[height=4cm, width=7cm] 
+		    %{\filext{../decision/image/system}}\end{array}$}$$
+		    %\caption{	Optimisation en vitesse de la reconnaissance~: le second chemin est plus rapide que le premier
+		    %					mais est légèrement moins performant.}
+		    %\label{figure_system}
+				%\end{figure}
+
+				\begin{figure}[ht]
+		    $$\begin{tabular}{|c|} \hline
+		    \filefig{../decision/fig_speed}
+		    \\ \hline \end{tabular}$$
+		    \caption{	Optimisation en vitesse de la reconnaissance pour un dictionnaire de $n$ mots. 
+		    					Le second chemin est plus rapide que le premier
+		    					mais est légèrement moins performant.}
+		    \label{figure_system}
+				\end{figure}
+
+
+
+
+
+
+
+
+\subsection{Résultats}
+\label{section_test}
+
+\indexfr{LAESA}
+\indexfrr{distance}{édition}
+\indexfr{plus proches voisins}
+\indexfr{voisinage}
+
+L'obtention de la meilleure séquence de lettres\footnote{Celle-ci est obtenue en utilisant des bi-grammes.} ainsi que le calcul des probabilités ont déjà été exposés au chapitre précédent. L'obtention du voisinage $N^*\pa{s}$ est en fait un problème classique de recherche des plus proches voisins inclus dans un ensemble fini. L'annexe~\ref{space_metric_introduction} recense différentes solutions permettant d'atteindre cet objectif, ces méthodes s'appliquent à tout espace métrique, et donc également à celui des mots muni d'une distance d'édition\seeannex{edit_distance_annexe}{distance d'édition}. L'algorithme LAESA\seeannex{space_metric_laesa_laesa}{LAESA} propose une solution simple à mettre en \oe uvre ne nécessitant pas un prétraitement du dictionnaire trop prohibitif. Les résultats présentés ci-dessous ont été obtenus avec un arbre de partitionnement\seeannex{section_partitionning_tree}{arbre de partitionnement}.
+
+Les modèles de reconnaissance utilisés pour mesurer l'amélioration apportée par cette optimisation en vitesse ont été estimés sur une base de 38000 prénoms français et sont testés sur une autre base de 12000 prénoms. Le tableau~\ref{test_first_score} donne les performances et les temps de traitements sans optimisation et pour deux dictionnaires de tailles différentes. Le temps de traitement est une fonction affine de la taille $s$ du dictionnaire de type $\alpha s + \beta$ avec $\beta > 0$ car certains calculs sont communs à chaque mot et factorisés (voir \citeindex{Koerich2002a}, algorithme~\ref{hmm_reco_proba_modele_graph_mot}).
+
+
+			\begin{table}[ht]
+		  $$
+		  \begin{tabular}{|c|c|c|c|} \hline
+			  \begin{tabular}{c} \small dictionnaire \\ \small taille \end{tabular} & 
+			  \begin{tabular}{c} \small   taux de \\ \small reconnaissance \end{tabular} & 
+			  \begin{tabular}{c} \small taux de lecture \\ \small pour 1\% de substitution \end{tabular} & 
+			  \begin{tabular}{c} \small temps de  \\ \small traitement \end{tabular} \\ \hline
+			2100			&	91,9 \%		&	72,9 \%		&		101 ms \\ \hline
+			11000			&	83,8 \%		& 46,9 \%		&   244 ms \\ \hline
+		  \end{tabular}
+		  $$
+		  \caption{	Performances du système de reconnaissance. 
+		  					Le temps de traitement n'est pas proportionnel par rapport à la taille du dictionnaire
+		  					parce que certains calculs sont factorisés d'un mot à l'autre
+		  					(voir \citeindexfig{Koerich2002a},
+		  					algorithme~\ref{hmm_reco_proba_modele_graph_mot}). Ce temps vérifie~:
+		  					$t \sim 0,015 \, n + 70 \; ms$ où $t$ est le temps de traitement moyen par mot et $n$ 
+		  					la taille du dictionnaire. Ces mesures ont été obtenues sur un Pentium~IV 1~GHz.
+		  					}
+		  \label{test_first_score}
+			\end{table}
+
+
+La seconde expérience a pour objectif de montrer l'évolution des taux et temps de la table~\ref{test_first_score} pour un système optimisé. Le temps de traitement dévolu à chaque document peut être décomposé comme suit~:
+
+
+		\begin{eqnarray}
+		t_{doc} \sim 	\underbrace	{	C_{dico} + N_{nn}\pa{s} \, t_{word}							}	_ 
+																	{\text{temps de reconnaissance}}+ 
+									\underbrace	{	C_{viterbi} + C_{nn} + N_{dist}\pa{s} \, t_{dist} 		} _ 
+																	{\text{temps d'optimisation}}
+		\label{optim_time_decomp}
+		\end{eqnarray}
+
+		$$
+		\begin{tabular}{|l|l|r|} \hline
+		\textit{paramètre} 			&		\textit{sens}								& \textit{valeur estimée} \\
+		\hline
+		\small $C_{dico}$			&   \small constante de reconnaissance, voir la table~\ref{test_first_score}	& 
+															\small 70 ms \\ \hline
+		\small $N_{nn}\pa{s}$  &  \small taille moyenne du voisinage, fonction de $s$ 					&\\ \hline
+		\small $t_{word}$			&   \small temps moyen de reconnaissance par mot du dictionnaire
+													& 	\small 0,015 ms \\ \hline
+		\small $C_{viterbi}$ 	&   \small temps moyen pour l'algorithme de Viterbi utilisé pour trouver			& 
+															\small 0,01 ms \\ 
+										&					\small la séquence de lettres la plus probable		&					\\ \hline
+		\small $C_{nn}$				&   \small constante de la recherche de voisinage			& 
+															\small 1,8 ms \\ \hline
+		\small $N_{dist}\pa{s}$&  \small nombre moyen de distances d'édition calculées, fonction de  $s$ 	&\\ \hline
+		\small $t_{dist}$			&   \small temps moyen pour calculer une distance d'édition		& 
+															\small 0,004 ms\\ \hline
+		\end{tabular}
+		$$
+
+L'expression~(\ref{wordreco_eq2}) ne permet pas de déterminer le seuil $s$ optimal pour la taille du voisinage car il dépend du dictionnaire et des modèles de reconnaissance. Le tableau~\ref{test_score_2000} montre que pour l'expérience décrite précédemment et pour un dictionnaire de 2178 prénoms. Un seuil acceptable est~4, le temps de traitement est alors réduit de 8~millisecondes pour une perte négligeable de performance.
+
+
+			\begin{table}[ht]
+		  $$
+		  \begin{tabular}{|c|c|c|c|c|c|} \hline
+			  \begin{tabular}{c} \small . \\ \small $s$ \end{tabular} & 
+			  \begin{tabular}{c} \small  taux de \\ \small reconnaissance \end{tabular} & 
+			  \begin{tabular}{c} \small taux de lecture \\ \small pour 1\% de \\ \small substitution \end{tabular} & 
+			  \begin{tabular}{c} \small taille moyenne  \\ \small  moyenne de \\ \small voisinage
+			  										\\ \small \textbf{$N_{nn}\pa{s}$} \end{tabular}  &
+			  \begin{tabular}{c} \small nombre moyen \\ \small de calculs de \\ \small distances d'édition
+			  										\\ \small \textbf{$N_{dist}\pa{s}$}\end{tabular} &
+			  \begin{tabular}{c} \small temps (ms) \\ \small \textbf{$t_{doc}$}\end{tabular} \\ \hline
+			0						&	 38,0 \%					&		- 									&		0,4 							&	281						&	83 	\\ \hline
+			1						&	 59,6 \%					&  	53,8 \%							&   2,0								&	508						&	84	\\ \hline
+			2						&	 78,3 \%					&  	65,8 \%							&   11,0							&	836						&	86	\\ \hline
+			3						&	 87,1 \%					&  	70,8 \%							&   63,3							&	1227					&	88	\\ \hline
+			\textbf{4}	&	 \textbf{90,6} \%	&  	\textbf{72,3} \%		&   \textbf{266,6}		&	
+			\textbf{1587}	&	\textbf{93}	\\ \hline
+			5						& 91,7 \%						&  	72,9 \%							&   707,1							&	1792					&	101	\\ \hline
+			6						&	 91,8 \%					&  	72,9 \%							&   1241,1						&	1753					&	110	\\ \hline
+			7						&	 91,9 \%					&  	72,9 \%							&   1724,4						&	1490					&	116	\\ \hline
+		  \end{tabular}
+		  $$
+		  \caption{	Perte de performance et optimisation en vitesse pour plusieurs valeurs de seuil $s$
+		  					(voir l'équation~(\ref{wordreco_eq2})), pour un dictionnaire de 2178 mots. 
+		  					La meilleure valeur de $s$ semble 4, le système est plus rapide de 8~millisecondes
+		  					et le taux de lecture perd seulement 0,6 points.
+		   }
+		  \label{test_score_2000}
+			\end{table}
+
+			\begin{table}[ht]
+		  $$
+		  \begin{tabular}{|c|c|c|c|c|c|} \hline
+			  \begin{tabular}{c} \small . \\ \small $s$ \end{tabular} & 
+			  \begin{tabular}{c}  \small taux de \\ \small reconnaissance \end{tabular} & 
+			  \begin{tabular}{c} \small taux de lecture\\ \small pour 1\% de \\ \small substitution \end{tabular} & 
+			  \begin{tabular}{c} \small taille moyenne  \\ \small  moyenne de \\ \small voisinage
+			  										\\ \small \textbf{$N_{nn}\pa{s}$} \end{tabular}  &
+			  \begin{tabular}{c} \small nombre moyen \\ \small de calculs de \\ \small distances d'édition
+			  										\\ \small \textbf{$N_{dist}\pa{s}$}\end{tabular} &
+			  \begin{tabular}{c} \small temps (ms) \\ \small \textbf{$t_{doc}$}\end{tabular} \\ \hline
+			2			&	 71,8 \%					&  	40,1 \%							&   36							&	4045					&	111	\\ \hline
+			3			&	 79,7 \%					&  	44,6 \%							&   281							&	6366					&	127	\\ \hline
+			4			&	 82,9 \%					&  	45,7 \%							&   1305						&	8398					&	154	\\ \hline
+		  \end{tabular}
+		  $$
+		  \caption{	Perte de performance et optimisation en vitesse pour plusieurs valeurs de seuil $s$ 
+		  					(voir l'équation~(\ref{wordreco_eq2})), pour un dictionnaire de 11000 mots. 
+		  					La meilleure valeur de $s$ semble 3, 
+		  					le système est alors deux fois plus rapide et un taux de lecture réduit de 1,6 point.
+		   }
+		  \label{test_score_11000}
+			\end{table}
+
+			
+\indexfrr{distance}{édition}			
+
+Avec un dictionnaire de 11000 mots, le gain est plus important, la meilleure valeur est 3, le temps de traitement est divisé par deux pour un taux de lecture réduit de 1,6 point. Le gain en vitesse croît avec la taille du dictionnaire, seul le temps de son prétraitement augmente. La principale amélioration d'un tel système repose sur l'élaboration d'une distance entre mots intégrant les capacités en reconnaissance du dictionnaire. Cette distance doit être petite pour le couple formé par la meilleure séquence hors dictionnaire et le mot le plus probable du dictionnaire, plus grande pour les autres couples de mots. Elle doit également pouvoir être apprise\seeannex{distance_edition_apprentissage_coef_par}{distance d'édition} de manière à s'adapter aux erreurs des modèles de reconnaissance, cet apprentissage est une possible direction de recherche.
+
+\indexfrr{directions de recherche}{apprentissage d'une distance}
+
+
+
+
+
+
+
+
+
+
+
+
+
+%--------------------------------------------------------------------------------------------------------------------
+\section{Améliorer le rejet avec un seul jeu de modèles}
+%--------------------------------------------------------------------------------------------------------------------
+\label{decision_nn_un_modele}
+
+\indexfrr{séquence}{lettres}
+\indexfrr{distance}{édition}
+
+Dans le cas d'une reconnaissance avec dictionnaire, le premier critère de décision est la probabilité du mot le plus probable. Si elle dépasse un certain seuil, ce mot est considéré comme étant la bonne réponse. Toutefois, afin d'améliorer les performances en reconnaissance, est-il possible de fabriquer un meilleur critère à partir de cette probabilité et d'autres informations telles que la distance d'édition entre le mot le plus probable et la séquence de lettres la plus probable~?
+
+\indexfrr{dictionnaire}{fermé}
+\indexfrr{dictionnaire}{ouvert}
+
+Ces problèmes de décision sont présents dans le cas d'un problème où le dictionnaire est fermé, c'est-à-dire que la réponse se trouve nécessairement dans cet ensemble. Ils sont incontournables lorsque le dictionnaire est ouvert, c'est-à-dire lorsque le système de reconnaissance doit d'abord dire si le mot à reconnaître appartient au dictionnaire et ensuite si tel est le cas, à quel mot l'image correspond. Les dictionnaires ouverts seront malgré tout traités comme des dictionnaires fermés, un mot ayant obtenu un mauvais score sera rejeté, peu importe qu'il soit censé ou non appartenir au dictionnaire.
+
+
+
+
+
+\subsection{Informations complémentaires}
+\indexfr{informations complémentaires}
+
+Le paragraphe~\ref{section_word_reco__par} a montré la proximité entre le mot le plus probable hors dictionnaire et le mot le plus probable inclus dans le dictionnaire. L'idée consiste à construire un score plus pertinent prenant en compte ces informations à l'aide d'un réseau de neurones\seeannex{annexe_reseau_neurone}{réseau de neurones} qui devra retourner une valeur proche de un en cas de réponse positive et proche de zéro pour une réponse négative. Les entrées du réseau de neurones sont les suivantes~:
+
+			\begin{enumerate}
+			\item la probabilité du mot le plus probable du dictionnaire,
+			\item la probabilité du second mot le plus probable du dictionnaire,
+			\item la distance d'édition entre le premier mot et le mot le plus probable hors dictionnaire.
+			\end{enumerate}
+			
+La sortie désirée du réseau de neurones est soit nulle lorsque le mot le plus probable du dictionnaire ne correspond pas au mot écrit, et un dans le cas contraire. Ce procédé ne permet d'améliorer le taux de reconnaissance puisqu'il sert à valider ou non la réponse des modèles de reconnaissance mais il a permis d'augmenter le taux de lecture pour 1\% de substitution de 60\% à 65\% sur une base de 12000 prénoms français et un dictionnaire de 2000 prénoms. Cette amélioration décroît lorsque la taille du dictionnaire augmente car dans ce cas, l'écart entre les deux probabilités les plus élévées diminue ainsi que la distance d'édition entre le premier mot et le plus probable hors-dictionnaire.
+
+La distance d'édition utilisée n'est pas très discriminante puisqu'elle est à valeurs entières et excède rarement cinq. En revanche, il serait possible d'apprendre les coefficients de cette distance\seeannex{distance_edition_apprentissage_coef_par}{distance d'édition} de sorte que celle-ci soit élevée lorsque le système de reconnaissance se trompe et faible dans le cas contraire. Cette direction rejoint celle évoquée en conclusion du paragraphe~\ref{section_word_reco__par}.
+
+
+
+
+
+
+\subsection{Mot bruit}
+\indexfrr{mot}{bruit}
+\label{decision_mot_bruit}
+
+Cette idée consiste à ramener le problème d'un dictionnaire ouvert à un dictionnaire fermé en modélisant les mots hors dictionnaire par un ou plusieurs modèles particuliers. Deux versions sont possibles, la première est développée dans \citeindex{Senior1994} et \citeindex{Senior1998}, elle consiste à ajouter au dictionnaire un mot constitué de toutes les lettres. L'autre version est décrite dans \citeindex{Augustin2001}, elle consiste à inclure dans le dictionnaire plusieurs modèles de bruits dont les coefficients sont estimés sur l'ensemble de la base d'apprentissage.
+
+Pour ces deux versions, le raisonnement est identique. Si le mot à reconnaître n'appartient pas au dictionnaire, il paraît naturel de supposer que la probabilité de ces modèles de mot bruit, capables de tout émettre, sera supérieure à celle de tous les autres mots du dictionnaire. Dans ce cas, l'image sera rejetée. 
+
+Les gains de performance obtenus par cette méthode dépendent du dictionnaire utilisé. Plus les mots sont proches les uns des autres, plus il est grand, et plus le rejet sera marginal. Néanmoins, cette méthode permet d'obtenir un gain du même ordre de grandeur que la méthode proposée au paragraphe précédent.
+
+L'intérêt de cette méthode repose également sur le fait que les modèles de lettres n'ont pas été estimés à l'aide de séquences trop bruitées ou que leur architecture a été sélectionnée de manière à réduire l'importance de ces séquences de bruit dans cette estimation.  Cette remarque est à rapprocher des conclusions du paragraphe~\ref{reco_selection_architecture} concernant la sélection de l'archictecture des modèles de reconnaissance, elles expliquent pourquoi l'introduction d'un modèle de mot bruit pour aider la décision est contrebalancée par la grande variabilité des écritures apprises par les modèles de lettre.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%--------------------------------------------------------------------------------------------------------------------
+\section{Mise en parallèle de plusieurs modèles}
+%--------------------------------------------------------------------------------------------------------------------
+\indexfr{parallèle}
+
+
+Jusqu'à présent, le processus d'aide à la décision n'a concerné qu'un seul jeu de modèles de reconnaissance, n'incluant qu'une seule segmentation graphème, qu'un seul jeu de caractéristiques, qu'un seul jeu de modèles de Markov cachés. L'optimisation en vitesse présentée au paragraphe~\ref{section_word_reco__par} permet de réduire le temps de traitement, temps qui pourrait être mis à profit pour comparer les résultats de plusieurs modèles de reconnaissance. L'accroissement de la puissance des ordinateurs permet également de mettre en \oe uvre un tel système car les temps d'apprentissage sont réduits.
+
+L'article \citeindex{Wunsch1995} étudie l'apport de plusieurs processus de reconnaissance, la réponse est validée uniquement si tous les résultats convergent vers une unique solution. L'article \citeindex{Lin2003} propose d'organiser un vote pour trois classifieurs ou plus, le mot qui est le plus souvent reconnu est choisi pour être la solution. Cet article propose une étude théorique à partir de données simulées qui montre l'apport non négligeable de la multiplication des classifieurs. L'article \citeindex{Günter2004} étudie l'apport de plusieurs classifieurs par rapport à l'amélioration de l'apprentissage d'un classifieur par des méthodes comme \emph{Adaboost}\footnote{La méthode Adaboost consiste à pondérer plus fortement les exemples d'apprentissage mal classifiés.}\indexfr{Adaboost} ou la méthode \emph{Bagging}\footnote{La méthode Bagging consiste à apprendre plusieurs classifieurs à partir d'un même échantillon de données incluant $N$ observations. Chaque classifieur est appris sur un ensemble de $N$ observations choisies aléatoirement dans l'échantillon initial. Les points aberrants seront de cette manière sous-représentés, ayant peu de chance d'être choisis dans chaque échantillon.}\indexfr{Bagging}. L'approche proposée par cet article est un système de vote. Toutefois, les classifieurs n'ont pas la même importance, le poids accordé au classifieur $n$ dépend du résultat obtenu par les $n-1$ précédents.
+
+\indexfr{vote}
+\indexfrr{décision}{vote}
+
+L'expérience suivante utilise des bases d'apprentissage et de test de 7000 mots anglais inclus dans un dictionnaire de 116 mots. La reconnaissance est effectuée par un système de plus proches voisins comme celui décrit au paragraphe~\ref{reco_reco_knn_sequence} pour différents jeux de caractéristiques tirés de la table~\ref{reco_carac_distance_assoc}. Le tableau~\ref{decision_table_vote} donne les performances obtenues pour chacune d'entre eux. La table~\ref{decision_table_vote_res} donne les résultats obtenus par vote. Elle montre que l'utilisation de plusieurs classifieurs permet d'obtenir un taux de reconnaissance meilleur que celui obtenu par le meilleur classifieur. Le vote permet de restreindre la reconnaissance à l'ensemble des documents pour lesquels les résultats sont plus fiables.
+
+
+
+			\begin{table}[ht]
+			$$\begin{tabular}{|r|cccccc|} \hline
+			  												& jeu 1 	& jeu 2 		& jeu 3 	& jeu 4 & jeu 5 & jeu 6			\\ \hline
+			jeux de caractéristiques 	&	
+									$Prof\pa{5,5}$	&	$Mat\pa{5,5}$  & $Pol\pa{30}$ &  $Ond\pa{30}$ & $Mat\pa{3,3}$ & $Som\pa{5,5}$	\\ \hline
+			taux de reconnaissance	&	
+									32,94 \% &  33,9 \%       	&		38,3 \% 				&	 24,4 \%				&	 33,5 \%    &	  32,5\%    \\ \hline
+			\end{tabular}$$
+			\caption{ Résultats obtenus sur un même problème par trois processus de reconnaissance différents. Ces 
+								caractéristiques sont décrites par la table~\ref{reco_carac_distance_assoc}
+								(page~\pageref{reco_carac_distance_assoc}).}
+			\label{decision_table_vote}				
+			\end{table}		
+		
+
+			\begin{table}[ht]
+			$$\begin{tabular}{|c|c|c|}\hline
+																&   taux de 						&  taux de \\ 
+																&		documents acceptés  &  reconnaissance  \\ \hline
+			critère maximal                     & 100,0\%							&   39,8\%						\\
+			au moins 2 réponses communes  			& 92,1\%							& 	42,7\%						\\
+			au moins 3 réponses communes				& 60,8\%							& 	56,4\%						\\
+			au moins 4 réponses communes				& 38,8\%							& 	70,6\%						\\
+			au moins 5 réponses communes				& 24,9\%							& 	82,6\%						\\
+			au moins 6 réponses communes				& 13,3\%							& 	88,2\%						\\ \hline
+			\end{tabular}$$
+			\caption{ Pour chaque document, la réponse choisie est celle qui est d'abord validée par le 
+								plus de reconnaisseurs, puis en cas d'ex aequo, le reconnaisseur ayant le plus fort critère de confiance.
+								Ces critères sont comparables car tous les reconnaisseurs sont des classifieurs utilisant
+								les plus proches voisins.
+								 }
+			\label{decision_table_vote_res}
+			\end{table}
+
+
+Le vote est une méthode assez simple permettant d'améliorer les performances en reconnaissance. La suite logique de cette méthode consiste à construire un critère de confiance bâti autour de ceux retournés par les différents classifieurs en utilisant un réseau de neurones\seeannex{annexe_reseau_neurone}{réseau de neurones} par exemple. 
+
+Le filtre opéré par la méthode d'optimisation en vitesse présentée au paragraphe~\ref{section_word_reco__par} permet d'envisager plusieurs classifieurs. Ceux-ci ne seraient cependant pas utilisés de manière indépendante les uns des autres car le temps de traitement de chacun est trop coûteux. Chaque reconnaisseur serait utilisé afin d'infirmer ou de confirmer les résultats extraits du précédent reconnaisseur. Par conséquent, chaque reconnaisseur aurait pour objectif de filtrer le dictionnaire afin que le reconnaisseur suivant ne soit utilisé que sur un ensemble resteint de solutions. Ce système de filtres de reconnaissance est une des directions de recherche envisagées.
+
+\indexfrr{directions de recherche}{plusieurs filtres de reconnaissances}
+
+
+
+
+%--------------------------------------------------------------------------------------------------------------------
+\section{Conclusion}
+%--------------------------------------------------------------------------------------------------------------------
+
+
+
+L'étape de décision ne modifie pas les taux de reconnaissance mais permet d'améliorer la confiance en ces résultats exprimée par le biais d'un taux de lecture pour un taux donné\footnote{généralement 1\%} de substitution. La première méthode présentée tente de conserver ce même taux de confiance tout en améliorant la vitesse de reconnaissance. Ce temps gagné est ensuite réinvesti dans des méthodes permettant d'améliorer cette confiance, soit au niveau du même jeu de modèles, soit en faisant intervenir d'autres reconnaisseurs. 
+
+Toutes les méthodes présentées dans ce chapitre sont indépendantes du contexte hormis le fait que la reconnaissance soit restreinte à des mots faisant partie d'un dictionnaire. La décision est toutefois plus facile lorsque le contexte contient des informations supplémentaires permettant d'éliminer des solutions aberrantes. C'est le cas de la reconnaissance d'un chèque où montants littéral et numérique doivent coïncider, le résultat ne peut être que l'ensemble des solutions communes aux deux processus de reconnaissances. Le contexte est une source d'information qu'il ne faut pas négliger lors de la décision.
+
+
+
+
+
+
+
+\newpage
+
+\firstpassagedo{
+	\begin{thebibliography}{99}
+	\input{decision_article.tex}
+	\end{thebibliography}
+}
+
+\input{../../common/livre_table_end.tex}%
+\input{../../common/livre_end.tex}%
