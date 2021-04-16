@@ -20,11 +20,11 @@ del argument.bbl
 rem xelatex ?
 pdflatex.exe --enable-write18 %1.tex
 c:\python33\python ..\..\common\upper_index.py %1.idx
-makeindex.exe -s ../../common/index.ist %1.idx 
+makeindex.exe -s ../../common/index.ist %1.idx
 c:\python33\python ..\..\common\index_ind.py %1.ind
 pdflatex.exe --enable-write18 %1.tex %1.ind
 c:\python33\python ..\..\common\upper_index.py %1.idx
-makeindex.exe 		-s ../../common/index.ist 	%1.idx 
+makeindex.exe 		-s ../../common/index.ist 	%1.idx
 rem c:\python33\python ..\..\common\index_ind.py %1.ind
 pdflatex.exe --enable-write18 %1.tex %1.ind
 
@@ -44,6 +44,3 @@ del argument.log
 del argument.blg
 del argument.aux
 del argument.bbl
-
-
-

@@ -1,5 +1,5 @@
 latex.exe 		segline.tex
-makeindex.exe 		-s index.ist 	segline.idx 
+makeindex.exe 		-s index.ist 	segline.idx
 latex.exe 		segline.tex 		segline.ind
 
 
